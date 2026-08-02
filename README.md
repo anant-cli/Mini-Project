@@ -33,18 +33,33 @@ parkshare/
 ## 1. Prerequisites
 
 - Node.js 18+
-- PostgreSQL 14+ (PostGIS optional — a Haversine SQL function is included
-  as a fallback for "find nearby slots" geo-queries, so PostGIS is not required)
+- A PostgreSQL 14+ database. You don't need to install or run your own
+  Postgres server — use a free managed instance instead (PostGIS optional;
+  a Haversine SQL function is included as a fallback for "find nearby slots"
+  geo-queries, so PostGIS is not required):
+  - Neon (neon.tech) — free tier, generous, easiest to set up
+  - Supabase (supabase.com) — free tier, includes a nice DB browser UI
+  - Railway (railway.app) / Render (render.com) — free/trial Postgres add-ons
+
+  Any of these gives you a single connection string that looks like
+  `postgresql://user:password@host/dbname?sslmode=require` — that's your
+  `DATABASE_URL`.
 
 ## 2. Database setup
 
+Create a free database on Neon/Supabase/Railway/Render, copy its connection
+string, then run the schema against it from your machine (no server to
+manage — `psql` just connects out to the cloud instance):
+
 ```bash
-createdb parkshare
-psql -d parkshare -f database/schema.sql
+psql "postgresql://user:password@host/dbname?sslmode=require" -f database/schema.sql
 # optional sample data — see the note in seed.sql about generating real
 # bcrypt password hashes before using it
-psql -d parkshare -f database/seed.sql
+psql "postgresql://user:password@host/dbname?sslmode=require" -f database/seed.sql
 ```
+
+(If you'd rather run Postgres locally for development, that still works —
+see `backend/.env.example` for the alternative `PGHOST`/`PGUSER`/etc. vars.)
 
 ## 3. Backend setup
 

@@ -5,15 +5,33 @@ dotenv.config();
 
 const { Pool } = pg;
 
-export const pool = new Pool({
-  host: process.env.PGHOST,
-  port: process.env.PGPORT,
-  database: process.env.PGDATABASE,
-  user: process.env.PGUSER,
-  password: process.env.PGPASSWORD,
-  max: 20,
-  idleTimeoutMillis: 30000,
-});
+// Two ways to configure the connection:
+// 1. DATABASE_URL — a single connection string, which is what every free
+//    managed Postgres host (Neon, Supabase, Render, Railway) gives you.
+//    These all require SSL, so we turn it on automatically whenever
+//    DATABASE_URL is set.
+// 2. PGHOST/PGPORT/etc — individual vars, for a local Postgres install
+//    with no SSL. Used only if DATABASE_URL is absent.
+const useConnectionString = Boolean(process.env.DATABASE_URL);
+
+export const pool = new Pool(
+  useConnectionString
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false },
+        max: 20,
+        idleTimeoutMillis: 30000,
+      }
+    : {
+        host: process.env.PGHOST,
+        port: process.env.PGPORT,
+        database: process.env.PGDATABASE,
+        user: process.env.PGUSER,
+        password: process.env.PGPASSWORD,
+        max: 20,
+        idleTimeoutMillis: 30000,
+      }
+);
 
 // Convenience helper — every model uses this instead of touching the pool directly.
 export const query = (text, params) => pool.query(text, params);
