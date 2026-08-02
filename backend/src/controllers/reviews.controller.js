@@ -1,0 +1,68 @@
+import { z } from 'zod';
+import { addLocationReview, addDriverReview, getReviewsForLocation } from '../models/review.model.js';
+import { recomputeUserRating } from '../models/user.model.js';
+import { findBookingById } from '../models/booking.model.js';
+import { ApiError } from '../middleware/errorHandler.js';
+
+const reviewSchema = z.object({
+  booking_id: z.string().uuid(),
+  rating: z.number().int().min(1).max(5),
+  comment: z.string().optional(),
+});
+
+// Driver reviews the parking space after a completed booking.
+export const reviewLocation = async (req, res, next) => {
+  try {
+    const data = reviewSchema.parse(req.body);
+    const booking = await findBookingById(data.booking_id);
+    if (!booking) throw new ApiError(404, 'Booking not found');
+    if (booking.status !== 'completed') throw new ApiError(400, 'Can only review completed bookings');
+
+    const { rows } = await import('../config/db.js').then(m => m.query(
+      `SELECT location_id FROM slots WHERE slot_id = $1`, [booking.slot_id]
+    ));
+
+    const review = await addLocationReview({
+      booking_id: data.booking_id,
+      location_id: rows[0].location_id,
+      author_id: req.user.user_id,
+      rating: data.rating,
+      comment: data.comment,
+    });
+    res.status(201).json({ review });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Host reviews the driver — this is the "mutual trust" half described in
+// Section 4.4: bad-actor drivers become visible to future hosts.
+export const reviewDriver = async (req, res, next) => {
+  try {
+    const data = reviewSchema.parse(req.body);
+    const booking = await findBookingById(data.booking_id);
+    if (!booking) throw new ApiError(404, 'Booking not found');
+    if (booking.status !== 'completed') throw new ApiError(400, 'Can only review completed bookings');
+
+    const review = await addDriverReview({
+      booking_id: data.booking_id,
+      reviewed_user: booking.user_id,
+      author_id: req.user.user_id,
+      rating: data.rating,
+      comment: data.comment,
+    });
+    await recomputeUserRating(booking.user_id);
+    res.status(201).json({ review });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listLocationReviews = async (req, res, next) => {
+  try {
+    const reviews = await getReviewsForLocation(req.params.locationId);
+    res.json({ reviews });
+  } catch (err) {
+    next(err);
+  }
+};
