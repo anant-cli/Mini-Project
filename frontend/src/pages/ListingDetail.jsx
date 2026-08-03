@@ -130,7 +130,7 @@ export default function ListingDetail() {
           <section className="card">
             <h2 className="font-display text-sm font-semibold text-ink mb-3">Allowed Vehicles</h2>
             <ul className="space-y-2 text-sm text-ink/70 capitalize">
-              {(loc.vehicle_types_allowed || ['car']).map((v) => (
+              {(Array.isArray(loc.vehicle_types_allowed) ? loc.vehicle_types_allowed : ['car']).map((v) => (
                 <li key={v} className="flex items-center gap-2">
                   <span className="text-signal">✓</span> {v.replace('_', ' ')}
                 </li>

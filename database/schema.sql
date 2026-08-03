@@ -165,5 +165,5 @@ $$ LANGUAGE plpgsql IMMUTABLE;
 -- SELECT *, haversine_km(:lat, :lng, latitude, longitude) AS distance_km
 -- FROM locations
 -- WHERE is_verified = true
--- HAVING haversine_km(:lat, :lng, latitude, longitude) < :radius_km
+-- AND haversine_km(:lat, :lng, latitude, longitude) < :radius_km
 -- ORDER BY distance_km ASC;

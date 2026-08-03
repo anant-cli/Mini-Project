@@ -186,7 +186,7 @@ export default function DriverMap() {
     } catch {
       // Fall back to mock data
       let mock = [...MOCK_LOCATIONS];
-      if (filters.vehicleType) mock = mock.filter((l) => l.vehicle_types_allowed.includes(filters.vehicleType));
+      if (filters.vehicleType) mock = mock.filter((l) => Array.isArray(l.vehicle_types_allowed) && l.vehicle_types_allowed.includes(filters.vehicleType));
       if (filters.evOnly)      mock = mock.filter((l) => l.has_ev_charging);
       if (filters.maxPrice)    mock = mock.filter((l) => l.price_per_hour <= Number(filters.maxPrice));
       setResults(mock);

@@ -191,7 +191,7 @@ export default function HostDashboard() {
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                    {(l.vehicle_types_allowed || []).map((v) => (
+                    {(Array.isArray(l.vehicle_types_allowed) ? l.vehicle_types_allowed : []).map((v) => (
                       <span key={v} className="badge badge-gray">{v.replace('_', ' ')}</span>
                     ))}
                     {l.has_ev_charging && <span className="badge badge-green">⚡ EV</span>}

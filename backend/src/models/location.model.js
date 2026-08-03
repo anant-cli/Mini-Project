@@ -59,7 +59,7 @@ export const findNearbyLocations = async ({ lat, lng, radiusKm = 5, vehicleType,
             (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id AND s.status = 'available') AS available_slots
      FROM locations l
      WHERE ${conditions.join(' AND ')}
-     HAVING haversine_km($1, $2, l.latitude, l.longitude) < $3
+       AND haversine_km($1, $2, l.latitude, l.longitude) < $3
      ORDER BY distance_km ASC`,
     params
   );
