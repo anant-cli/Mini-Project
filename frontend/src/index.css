@@ -163,7 +163,7 @@ textarea:focus-visible {
   .badge-green  { @apply badge bg-signal/15 text-signal-dark; }
   .badge-amber  { @apply badge bg-meter/20 text-meter; }
   .badge-red    { @apply badge bg-cone/15 text-cone; }
-  .badge-gray   { @apply badge bg-asphalt/8 text-ink/60; }
+  .badge-gray   { @apply badge bg-asphalt/10 text-ink/60; }
 
   /* Form inputs */
   .input {
