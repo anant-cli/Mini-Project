@@ -10,6 +10,19 @@ import { generateQrToken, generateQrDataUrl } from '../utils/qrcode.js';
 import { emitSlotUpdate, emitBookingEvent } from '../config/socket.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
+export const getQrPass = async (req, res, next) => {
+  try {
+    const booking = await findBookingById(req.params.id);
+    if (!booking) throw new ApiError(404, 'Booking not found');
+    if (booking.user_id !== req.user.user_id) throw new ApiError(403, 'Not your booking');
+
+    const qrDataUrl = await generateQrDataUrl(booking.qr_token);
+    res.json({ booking, qr_pass: qrDataUrl });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const bookingSchema = z.object({
   slot_id: z.string().uuid(),
   vehicle_number: z.string().min(3),
