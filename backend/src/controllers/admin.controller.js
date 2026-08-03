@@ -59,3 +59,16 @@ export const suspendUser = async (req, res, next) => {
     next(err);
   }
 };
+
+export const listUsers = async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT user_id, name, email, phone_number, role, id_verified, avg_rating, created_at 
+       FROM users 
+       ORDER BY created_at DESC`
+    );
+    res.json({ users: rows });
+  } catch (err) {
+    next(err);
+  }
+};

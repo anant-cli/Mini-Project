@@ -1,49 +1,87 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-// The signature element of the ParkShare UI: a grid of slot indicators that
-// behaves like the real sensor lights embedded in a parking bay — green
-// (available), amber (about to expire / reserved soon), coral (occupied).
-// One cell flips state on an interval to dramatize "real-time" without
-// being a generic animated gradient.
-const STATES = ['available', 'available', 'available', 'occupied', 'reserved'];
+const STATUS_COLORS = {
+  available: { bg: '#0E9A8C', cls: 'slot-pulse' },
+  booked:    { bg: '#F2A93B', cls: '' },
+  occupied:  { bg: '#FF5F45', cls: 'occupied-glow' },
+  disabled:  { bg: '#8898A8', cls: '' },
+};
 
-const colorFor = (state) => ({
-  available: 'bg-signal text-signal',
-  occupied: 'bg-cone text-cone',
-  reserved: 'bg-meter text-meter',
-}[state]);
+/**
+ * Visual slot-status grid. Accepts an optional `slots` array from the API;
+ * falls back to a randomised demo grid when none is provided.
+ *
+ * Props:
+ *   rows     – number of rows (default 4)
+ *   cols     – number of columns (default 8)
+ *   slots    – optional array of { slot_id, status } from the API
+ *   onSelect – optional callback(slot) when a user clicks a slot
+ *   selected – slot_id of the currently selected slot
+ */
+export default function SlotStatusGrid({ rows = 4, cols = 8, slots, onSelect, selected }) {
+  const [demo, setDemo] = useState([]);
+  const timerRef = useRef(null);
 
-export default function SlotStatusGrid({ rows = 4, cols = 8, className = '' }) {
-  const [grid, setGrid] = useState(() =>
-    Array.from({ length: rows * cols }, () => STATES[Math.floor(Math.random() * STATES.length)])
-  );
-
+  // Generate a random demo grid and occasionally flip a slot
   useEffect(() => {
-    const id = setInterval(() => {
-      setGrid((prev) => {
+    if (slots) return; // real data provided — no demo needed
+
+    const gen = () =>
+      Array.from({ length: rows * cols }, (_, i) => {
+        const r = Math.random();
+        return {
+          slot_id: `demo-${i}`,
+          status: r < 0.55 ? 'available' : r < 0.80 ? 'booked' : 'occupied',
+        };
+      });
+
+    setDemo(gen());
+
+    // Occasionally flip a slot status to simulate live updates
+    timerRef.current = setInterval(() => {
+      setDemo((prev) => {
         const next = [...prev];
-        const i = Math.floor(Math.random() * next.length);
-        next[i] = STATES[Math.floor(Math.random() * STATES.length)];
+        const idx = Math.floor(Math.random() * next.length);
+        const statuses = ['available', 'available', 'available', 'booked', 'occupied'];
+        next[idx] = { ...next[idx], status: statuses[Math.floor(Math.random() * statuses.length)] };
         return next;
       });
-    }, 1400);
-    return () => clearInterval(id);
-  }, []);
+    }, 2000);
+
+    return () => clearInterval(timerRef.current);
+  }, [rows, cols, slots]);
+
+  const data = slots ?? demo;
 
   return (
     <div
-      className={`grid gap-2 ${className}`}
+      role="grid"
+      aria-label="Parking slot status grid"
+      className="grid gap-1.5"
       style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-      role="img"
-      aria-label="Live grid of parking slot availability indicators"
     >
-      {grid.map((state, i) => (
-        <div
-          key={i}
-          className={`slot-pulse aspect-square rounded-md ${colorFor(state)} bg-opacity-90`}
-          style={{ animationDelay: `${(i % 7) * 0.2}s` }}
-        />
-      ))}
+      {data.map((slot) => {
+        const { bg, cls } = STATUS_COLORS[slot.status] || STATUS_COLORS.available;
+        const isSelected = selected === slot.slot_id;
+        return (
+          <button
+            key={slot.slot_id}
+            role="gridcell"
+            title={`${slot.slot_number || slot.slot_id} — ${slot.status}`}
+            disabled={slot.status !== 'available'}
+            onClick={() => onSelect?.(slot)}
+            className={[
+              'h-5 w-full rounded-sm transition-all duration-300',
+              cls,
+              onSelect && slot.status === 'available' ? 'cursor-pointer hover:scale-110 hover:brightness-110' : 'cursor-default',
+              isSelected ? 'ring-2 ring-white ring-offset-1 scale-110' : '',
+            ].join(' ')}
+            style={{ background: bg, color: bg }}
+            aria-label={`Slot ${slot.slot_number || slot.slot_id}: ${slot.status}`}
+            aria-pressed={isSelected}
+          />
+        );
+      })}
     </div>
   );
 }
