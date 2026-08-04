@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { query } from '../config/db.js';
 import { addLocationReview, addDriverReview, getReviewsForLocation } from '../models/review.model.js';
 import { recomputeUserRating } from '../models/user.model.js';
 import { findBookingById } from '../models/booking.model.js';
@@ -17,10 +18,11 @@ export const reviewLocation = async (req, res, next) => {
     const booking = await findBookingById(data.booking_id);
     if (!booking) throw new ApiError(404, 'Booking not found');
     if (booking.status !== 'completed') throw new ApiError(400, 'Can only review completed bookings');
+    if (booking.user_id !== req.user.user_id) {
+      throw new ApiError(403, 'You can only review your own bookings');
+    }
 
-    const { rows } = await import('../config/db.js').then(m => m.query(
-      `SELECT location_id FROM slots WHERE slot_id = $1`, [booking.slot_id]
-    ));
+    const { rows } = await query(`SELECT location_id FROM slots WHERE slot_id = $1`, [booking.slot_id]);
 
     const review = await addLocationReview({
       booking_id: data.booking_id,
@@ -43,6 +45,16 @@ export const reviewDriver = async (req, res, next) => {
     const booking = await findBookingById(data.booking_id);
     if (!booking) throw new ApiError(404, 'Booking not found');
     if (booking.status !== 'completed') throw new ApiError(400, 'Can only review completed bookings');
+
+    const { rows: ownerRows } = await query(
+      `SELECT l.owner_id FROM locations l
+       JOIN slots s ON s.location_id = l.location_id
+       WHERE s.slot_id = $1`,
+      [booking.slot_id]
+    );
+    if (ownerRows[0]?.owner_id !== req.user.user_id) {
+      throw new ApiError(403, 'You can only review drivers who booked your listing');
+    }
 
     const review = await addDriverReview({
       booking_id: data.booking_id,

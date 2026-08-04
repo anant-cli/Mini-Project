@@ -67,13 +67,25 @@ export const findNearbyLocations = async ({ lat, lng, radiusKm = 5, vehicleType,
 };
 
 export const getLocationById = async (locationId) => {
-  const { rows } = await query(`SELECT * FROM locations WHERE location_id = $1`, [locationId]);
+  const { rows } = await query(
+    `SELECT l.*, u.name AS host_name
+     FROM locations l
+     JOIN users u ON u.user_id = l.owner_id
+     WHERE l.location_id = $1`,
+    [locationId]
+  );
   return rows[0];
 };
 
 export const getLocationsByOwner = async (ownerId) => {
   const { rows } = await query(`SELECT * FROM locations WHERE owner_id = $1 ORDER BY created_at DESC`, [ownerId]);
-  return rows[0] ? rows : rows;
+  return rows;
+};
+
+// Used by ownership checks (EV chargers, etc.) — cheap lookup of just the owner_id.
+export const getLocationOwnerId = async (locationId) => {
+  const { rows } = await query(`SELECT owner_id FROM locations WHERE location_id = $1`, [locationId]);
+  return rows[0]?.owner_id || null;
 };
 
 export const verifyLocation = async (locationId, verified = true) => {

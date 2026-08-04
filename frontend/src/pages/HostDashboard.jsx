@@ -45,7 +45,7 @@ export default function HostDashboard() {
 
   const loadEarnings = async () => {
     try {
-      const { data } = await api.get('/bookings/mine');
+      const { data } = await api.get('/bookings/host');
       const completed = (data.bookings || []).filter((b) => b.status === 'completed');
       const total = completed.reduce((s, b) => s + Number(b.total_amount || 0), 0);
       setEarnings({ total, pending: total * 0.15, bookings: completed.length });

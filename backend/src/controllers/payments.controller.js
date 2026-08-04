@@ -1,9 +1,31 @@
 import { query } from '../config/db.js';
 import { getPaymentByBooking } from '../models/payment.model.js';
+import { findBookingById } from '../models/booking.model.js';
 import { ApiError } from '../middleware/errorHandler.js';
+
+// Only the driver on the booking, the host who owns the location, or an
+// admin may view payment details for a booking.
+const assertCanViewBookingPayment = async (req, booking) => {
+  if (req.user.role === 'admin') return;
+  if (booking.user_id === req.user.user_id) return; // the driver
+
+  const { rows } = await query(
+    `SELECT l.owner_id FROM locations l
+     JOIN slots s ON s.location_id = l.location_id
+     WHERE s.slot_id = $1`,
+    [booking.slot_id]
+  );
+  if (rows[0]?.owner_id === req.user.user_id) return; // the host
+
+  throw new ApiError(403, 'You do not have access to this booking');
+};
 
 export const getPaymentForBooking = async (req, res, next) => {
   try {
+    const booking = await findBookingById(req.params.bookingId);
+    if (!booking) throw new ApiError(404, 'No payment found for this booking');
+    await assertCanViewBookingPayment(req, booking);
+
     const payment = await getPaymentByBooking(req.params.bookingId);
     if (!payment) throw new ApiError(404, 'No payment found for this booking');
     res.json({ payment });

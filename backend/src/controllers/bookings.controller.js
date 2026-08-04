@@ -3,7 +3,7 @@ import { withTransaction, query } from '../config/db.js';
 import { lockSlotForUpdate, hasOverlappingBooking, setSlotStatus } from '../models/slot.model.js';
 import {
   createBookingRow, findBookingByQrToken, findBookingById,
-  getBookingsForUser, recordCheckin, recordCheckout, cancelBooking,
+  getBookingsForUser, getBookingsForHost, recordCheckin, recordCheckout, cancelBooking,
 } from '../models/booking.model.js';
 import { createHeldPayment, releasePayment } from '../models/payment.model.js';
 import { generateQrToken, generateQrDataUrl } from '../utils/qrcode.js';
@@ -96,6 +96,17 @@ export const createBooking = async (req, res, next) => {
 export const listMyBookings = async (req, res, next) => {
   try {
     const bookings = await getBookingsForUser(req.user.user_id);
+    res.json({ bookings });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Bookings made against the current host's listings — powers the Host
+// Dashboard earnings panel. Distinct from /bookings/mine (driver's own trips).
+export const listHostBookings = async (req, res, next) => {
+  try {
+    const bookings = await getBookingsForHost(req.user.user_id);
     res.json({ bookings });
   } catch (err) {
     next(err);

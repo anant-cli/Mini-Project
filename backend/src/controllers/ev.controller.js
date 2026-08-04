@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { query } from '../config/db.js';
+import { getLocationOwnerId } from '../models/location.model.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 const chargerSchema = z.object({
@@ -10,9 +11,20 @@ const chargerSchema = z.object({
   price_per_kwh: z.number().positive(),
 });
 
+// A host may only manage chargers on locations they own. Admins can manage any.
+const assertOwnsLocation = async (req, locationId) => {
+  const ownerId = await getLocationOwnerId(locationId);
+  if (!ownerId) throw new ApiError(404, 'Listing not found');
+  if (req.user.role !== 'admin' && ownerId !== req.user.user_id) {
+    throw new ApiError(403, 'You do not own this listing');
+  }
+};
+
 export const addCharger = async (req, res, next) => {
   try {
     const data = chargerSchema.parse(req.body);
+    await assertOwnsLocation(req, data.location_id);
+
     const { rows } = await query(
       `INSERT INTO ev_chargers (location_id, connector_type, current_type, power_kw, price_per_kwh)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
@@ -39,6 +51,14 @@ export const setChargerStatus = async (req, res, next) => {
     if (!['available', 'in_use', 'out_of_service'].includes(status)) {
       throw new ApiError(400, 'Invalid charger status');
     }
+
+    const { rows: chargerRows } = await query(
+      `SELECT location_id FROM ev_chargers WHERE charger_id = $1`,
+      [req.params.id]
+    );
+    if (!chargerRows[0]) throw new ApiError(404, 'Charger not found');
+    await assertOwnsLocation(req, chargerRows[0].location_id);
+
     const { rows } = await query(
       `UPDATE ev_chargers SET status = $2 WHERE charger_id = $1 RETURNING *`,
       [req.params.id, status]

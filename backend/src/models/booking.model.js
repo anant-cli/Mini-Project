@@ -38,6 +38,22 @@ export const getBookingsForUser = async (userId) => {
   return rows;
 };
 
+// All bookings made against locations owned by this host — used for the
+// Host Dashboard earnings view (distinct from getBookingsForUser, which
+// returns bookings the user made themselves as a driver).
+export const getBookingsForHost = async (ownerId) => {
+  const { rows } = await query(
+    `SELECT b.*, l.name AS location_name, l.address, s.slot_number
+     FROM bookings b
+     JOIN slots s ON s.slot_id = b.slot_id
+     JOIN locations l ON l.location_id = s.location_id
+     WHERE l.owner_id = $1
+     ORDER BY b.start_time DESC`,
+    [ownerId]
+  );
+  return rows;
+};
+
 export const recordCheckin = async (bookingId, method = 'qr') => {
   const { rows } = await query(
     `UPDATE bookings
