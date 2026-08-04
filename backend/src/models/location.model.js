@@ -78,7 +78,26 @@ export const getLocationById = async (locationId) => {
 };
 
 export const getLocationsByOwner = async (ownerId) => {
-  const { rows } = await query(`SELECT * FROM locations WHERE owner_id = $1 ORDER BY created_at DESC`, [ownerId]);
+  const { rows } = await query(
+    `SELECT l.*,
+            COALESCE(
+              (SELECT json_agg(
+                        json_build_object(
+                          'slot_id', s.slot_id,
+                          'slot_number', s.slot_number,
+                          'status', s.status,
+                          'vehicle_type', s.vehicle_type
+                        ) ORDER BY s.slot_number
+                      )
+               FROM slots s WHERE s.location_id = l.location_id),
+              '[]'
+            ) AS slots,
+            (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id AND s.status = 'available') AS available_slots
+     FROM locations l
+     WHERE l.owner_id = $1
+     ORDER BY l.created_at DESC`,
+    [ownerId]
+  );
   return rows;
 };
 

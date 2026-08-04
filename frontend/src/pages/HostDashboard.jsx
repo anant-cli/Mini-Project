@@ -184,10 +184,15 @@ export default function HostDashboard() {
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-ink/55">{l.address}</p>
-                  <p className="mt-3 font-mono text-sm font-semibold text-signal-dark">₹{l.price_per_hour}/hr</p>
+                  <div className="mt-2 flex items-center justify-between">
+                    <p className="font-mono text-sm font-semibold text-signal-dark">₹{l.price_per_hour}/hr</p>
+                    <span className={`badge ${Number(l.available_slots) > 0 ? 'badge-green' : 'badge-red'}`}>
+                      {l.available_slots}/{l.total_slots} available
+                    </span>
+                  </div>
 
                   <div className="mt-3">
-                    <SlotStatusGrid rows={2} cols={Math.min(l.total_slots, 10)} />
+                    <SlotStatusGrid rows={2} cols={Math.min(l.total_slots, 10)} slots={l.slots} />
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
