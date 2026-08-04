@@ -34,7 +34,7 @@ export default function Login() {
         <div className="relative z-10">
           <div className="flex items-center gap-2.5 font-display text-xl font-bold text-chalk">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-signal text-sm font-bold">P</span>
-            ParkShare
+            ParkSlot
           </div>
         </div>
         <div className="relative z-10 space-y-6">
@@ -65,7 +65,7 @@ export default function Login() {
       {/* ── Right: form panel ── */}
       <div className="flex flex-1 items-center justify-center px-6 py-16 bg-chalk">
         <div className="w-full max-w-md animate-fade-up">
-          <h1 className="font-display text-3xl font-bold text-ink">Log in to ParkShare</h1>
+          <h1 className="font-display text-3xl font-bold text-ink">Log in to ParkSlot</h1>
           <p className="mt-2 text-sm text-ink/55">
             Book a slot, manage a listing, or open the admin panel.
           </p>

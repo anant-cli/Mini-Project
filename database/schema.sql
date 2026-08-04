@@ -1,5 +1,5 @@
 -- ============================================================
--- ParkShare — PostgreSQL Schema
+-- ParkSlot — PostgreSQL Schema
 -- Peer-to-peer smart parking marketplace
 -- Enable PostGIS if available (optional — Haversine fallback
 -- is used in application code if this extension is absent).

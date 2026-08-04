@@ -111,7 +111,7 @@ export default function ListingDetail() {
               </div>
               <div>
                 <p className="font-medium text-ink">{loc.host_name || 'Verified Host'}</p>
-                <p className="text-sm text-ink/55">Joined ParkShare recently</p>
+                <p className="text-sm text-ink/55">Joined ParkSlot recently</p>
               </div>
             </div>
             <div className="mt-6 border-t border-asphalt/10 pt-4 flex gap-4 text-sm">
@@ -161,7 +161,7 @@ export default function ListingDetail() {
           <section className="card bg-asphalt text-chalk border-none">
             <h2 className="font-display text-sm font-semibold mb-2">Escrow Protected</h2>
             <p className="text-xs text-chalk/60 leading-relaxed">
-              Your payment is held by ParkShare until you check out. The host is only paid for the exact time you stay.
+              Your payment is held by ParkSlot until you check out. The host is only paid for the exact time you stay.
             </p>
           </section>
         </div>

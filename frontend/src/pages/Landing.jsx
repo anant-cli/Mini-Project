@@ -31,7 +31,7 @@ const JOURNEY = [
   {
     plate: 'BOOK',
     title: 'Pay into escrow',
-    body: 'Your fare is held by ParkShare — not the host — the instant you confirm a time window. No fraud possible.',
+    body: 'Your fare is held by ParkSlot — not the host — the instant you confirm a time window. No fraud possible.',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-8 w-8" aria-hidden="true">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
@@ -161,7 +161,7 @@ export default function Landing() {
               <span className="text-signal">circling the block</span> for.
             </h1>
             <p className="mt-6 max-w-md text-base text-chalk/65 leading-relaxed">
-              ParkShare turns unused space — driveways, mall lots, office bays — into bookable,
+              ParkSlot turns unused space — driveways, mall lots, office bays — into bookable,
               QR-verified parking, with escrow payments and EV charging built in.
             </p>
             <div className="mt-9 flex flex-wrap gap-4">
@@ -406,7 +406,7 @@ export default function Landing() {
             <div>
               <div className="flex items-center gap-2 font-display text-lg font-bold">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-signal text-sm font-bold">P</span>
-                ParkShare
+                ParkSlot
               </div>
               <p className="mt-3 text-sm text-chalk/50 leading-relaxed">
                 A peer-to-peer parking marketplace — college mini project demonstrating geolocation,
@@ -433,7 +433,7 @@ export default function Landing() {
             </div>
           </div>
           <div className="mt-10 border-t border-chalk/10 pt-6 text-center font-mono text-xs text-chalk/30">
-            ParkShare — built as a college mini project · MIT License
+            ParkSlot — built as a college mini project · MIT License
           </div>
         </div>
       </footer>

@@ -101,7 +101,7 @@ export default function Signup() {
         <div className="relative z-10">
           <div className="flex items-center gap-2.5 font-display text-xl font-bold text-chalk">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-signal text-sm font-bold">P</span>
-            ParkShare
+            ParkSlot
           </div>
         </div>
         <div className="relative z-10 space-y-5">

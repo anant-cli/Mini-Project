@@ -55,7 +55,7 @@ export default function Navbar() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-signal text-chalk text-sm font-bold shadow-sm">
             P
           </span>
-          ParkShare
+          ParkSlot
         </Link>
 
         {/* Desktop nav */}

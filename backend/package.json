@@ -1,7 +1,7 @@
 {
-  "name": "parkshare-backend",
+  "name": "parkslot-backend",
   "version": "1.0.0",
-  "description": "ParkShare API — auth, listings, bookings, escrow payments, EV charging, real-time slot updates",
+  "description": "ParkSlot API — auth, listings, bookings, escrow payments, EV charging, real-time slot updates",
   "main": "src/server.js",
   "type": "module",
   "scripts": {

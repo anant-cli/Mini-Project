@@ -438,7 +438,7 @@ export default function HostDashboard() {
             <div className="mt-5 rounded-xl bg-asphalt/5 p-4 text-xs text-ink/50">
               <p className="font-semibold text-ink/70 mb-2">How it works</p>
               <ol className="space-y-1.5 list-decimal list-inside">
-                <li>Driver shows you their QR pass from the ParkShare app</li>
+                <li>Driver shows you their QR pass from the ParkSlot app</li>
                 <li>Scan it with a barcode scanner or copy the token</li>
                 <li>Click "Check in" when they arrive — billing clock starts</li>
                 <li>Click "Check out" when they leave — final bill computed, payout released</li>
