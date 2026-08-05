@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - ParkSlot</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container flex justify-between items-center">
+      <a href="/index.html" class="navbar-brand">ParkSlot Admin</a>
+      <div class="nav-links" id="nav-links"></div>
+    </div>
+  </nav>
+
+  <main class="container mt-8">
+    <h1 class="text-3xl mb-8">Admin Dashboard</h1>
+
+    <div class="flex gap-8" style="flex-wrap: wrap;">
+      <div class="clay-card w-full">
+        <h2 class="text-2xl mb-4">Pending Approvals</h2>
+        <div id="pending-list" class="flex flex-col gap-4">
+          <p class="text-muted">Loading...</p>
+        </div>
+      </div>
+      
+      <div class="clay-card w-full mt-8">
+        <h2 class="text-2xl mb-4">All Users</h2>
+        <div id="users-list" class="flex flex-col gap-4">
+          <p class="text-muted">Loading...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module">
+    import api from '/js/api.js';
+
+    async function loadPending() {
+      try {
+        const res = await api.get('/admin/listings/pending'); // Assuming route exists
+        const listings = res.data.data || res.data;
+        const container = document.getElementById('pending-list');
+        
+        if (listings.length === 0) {
+          container.innerHTML = '<p class="text-muted">No pending listings.</p>';
+          return;
+        }
+
+        container.innerHTML = listings.map(l => `
+          <div class="clay-card" style="padding: 16px;">
+            <div class="flex justify-between items-center">
+              <div>
+                <strong>${l.address}</strong>
+                <p class="text-muted text-sm">$${l.pricePerHour}/hr</p>
+              </div>
+              <div>
+                <button onclick="approveListing('${l._id}')" class="clay-btn clay-btn-primary" style="padding: 8px 16px; font-size: 0.8rem;">Approve</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+        document.getElementById('pending-list').innerHTML = '<p class="text-muted">Error loading listings (Admin endpoint may not exist).</p>';
+      }
+    }
+
+    async function loadUsers() {
+      try {
+        const res = await api.get('/admin/users'); // Assuming route exists
+        const users = res.data.data || res.data;
+        const container = document.getElementById('users-list');
+        
+        container.innerHTML = users.map(u => `
+          <div class="clay-card" style="padding: 16px;">
+            <strong>${u.name}</strong> (${u.email}) - <span style="color:var(--color-primary)">${u.role}</span>
+          </div>
+        `).join('');
+      } catch (err) {
+        console.error(err);
+        document.getElementById('users-list').innerHTML = '<p class="text-muted">Error loading users (Admin endpoint may not exist).</p>';
+      }
+    }
+
+    window.approveListing = async (id) => {
+      try {
+        await api.patch(`/admin/listings/${id}/approve`);
+        alert('Listing approved!');
+        loadPending();
+      } catch (err) {
+        alert('Failed to approve');
+      }
+    };
+
+    loadPending();
+    loadUsers();
+  </script>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search Parking - ParkSlot</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <style>
+    #map {
+      height: 600px;
+      width: 100%;
+      border-radius: 24px;
+      z-index: 1; /* Keep below navbar */
+    }
+    .map-container {
+      position: relative;
+    }
+    .search-overlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container flex justify-between items-center">
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <div class="nav-links" id="nav-links"></div>
+    </div>
+  </nav>
+
+  <main class="container mt-4">
+    <div class="clay-card p-0 map-container">
+      <div class="search-overlay clay-card">
+        <h2 class="text-xl font-bold mb-4">Find Parking</h2>
+        <div class="form-group">
+          <input type="text" id="location-search" class="clay-input" placeholder="Search location..." />
+        </div>
+        <button id="search-btn" class="clay-btn clay-btn-primary w-full">Search</button>
+      </div>
+      <div id="map"></div>
+    </div>
+  </main>
+
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module">
+    import api from '/js/api.js';
+    import L from 'leaflet';
+
+    // Fix for Leaflet default icon paths in bundler
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    });
+
+    const map = L.map('map').setView([40.7128, -74.0060], 13); // Default to NYC or change as needed
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    let markers = [];
+
+    async function loadListings() {
+      try {
+        // Assume API endpoint /listings returns active listings
+        const res = await api.get('/listings?status=active');
+        const listings = res.data.data || res.data;
+        
+        // Clear old markers
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        listings.forEach(listing => {
+          if (listing.location && listing.location.coordinates) {
+            const [lng, lat] = listing.location.coordinates;
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(`
+              <div>
+                <strong>${listing.address}</strong><br>
+                Price: $${listing.pricePerHour}/hr<br>
+                <a href="/listing.html?id=${listing._id}" style="color: var(--color-primary); font-weight: bold;">View Details</a>
+              </div>
+            `);
+            markers.push(marker);
+          }
+        });
+      } catch (err) {
+        console.error('Error loading listings:', err);
+      }
+    }
+
+    // Attempt to load listings on mount
+    loadListings();
+
+    // Setup search
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const query = document.getElementById('location-search').value;
+      if (query) {
+        // Geocode using nominatim as a quick workaround without Google Maps API
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.length > 0) {
+              const lat = data[0].lat;
+              const lon = data[0].lon;
+              map.setView([lat, lon], 14);
+              loadListings(); // Optionally filter by bounds here
+            }
+          })
+          .catch(err => console.error(err));
+      }
+    });
+  </script>
+</body>
+</html>

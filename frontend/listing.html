@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Listing Details - ParkSlot</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container flex justify-between items-center">
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <div class="nav-links" id="nav-links"></div>
+    </div>
+  </nav>
+
+  <main class="container mt-8">
+    <div class="clay-card">
+      <h1 class="text-3xl mb-4" id="listing-title">Loading...</h1>
+      <p class="text-muted text-xl mb-4" id="listing-address"></p>
+      
+      <div class="flex gap-8" style="flex-wrap: wrap;">
+        <!-- Images -->
+        <div style="flex: 2; min-width: 300px;">
+          <div id="listing-images" class="clay-card" style="min-height: 300px; display:flex; align-items:center; justify-content:center; background:#e6eef4; overflow:hidden; padding:0;">
+             <!-- Placeholder for images -->
+             <span class="text-muted">No images available</span>
+          </div>
+        </div>
+        
+        <!-- Details & Booking -->
+        <div style="flex: 1; min-width: 300px;">
+          <div class="clay-card">
+            <h2 class="text-2xl mb-4" id="listing-price">$-/hr</h2>
+            <p class="mb-4 text-muted" id="listing-type">Type: Loading...</p>
+            
+            <form id="booking-form">
+              <div class="form-group">
+                <label class="form-label" for="start-time">Start Time</label>
+                <input type="datetime-local" id="start-time" class="clay-input" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="end-time">End Time</label>
+                <input type="datetime-local" id="end-time" class="clay-input" required />
+              </div>
+              
+              <button type="submit" class="clay-btn clay-btn-primary w-full mt-4">Book Now</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module">
+    import api from '/js/api.js';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const listingId = urlParams.get('id');
+
+    async function loadListing() {
+      if (!listingId) {
+        document.getElementById('listing-title').innerText = 'Listing Not Found';
+        return;
+      }
+      try {
+        const res = await api.get(`/listings/${listingId}`);
+        const listing = res.data.data || res.data;
+        
+        document.getElementById('listing-title').innerText = listing.title || 'Parking Spot';
+        document.getElementById('listing-address').innerText = listing.address;
+        document.getElementById('listing-price').innerText = `$${listing.pricePerHour}/hr`;
+        document.getElementById('listing-type').innerText = `Type: ${listing.type || 'Standard'}`;
+
+        if (listing.images && listing.images.length > 0) {
+          const imgContainer = document.getElementById('listing-images');
+          imgContainer.innerHTML = `<img src="${listing.images[0]}" alt="Parking Spot" style="width:100%; height:100%; object-fit:cover;" />`;
+        }
+
+      } catch (err) {
+        console.error(err);
+        document.getElementById('listing-title').innerText = 'Error Loading Listing';
+      }
+    }
+
+    loadListing();
+
+    document.getElementById('booking-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const startTime = document.getElementById('start-time').value;
+      const endTime = document.getElementById('end-time').value;
+
+      try {
+        await api.post('/bookings', {
+          listing: listingId,
+          startTime,
+          endTime
+        });
+        alert('Booking created successfully!');
+        window.location.href = '/bookings.html';
+      } catch (err) {
+        console.error(err);
+        alert('Failed to create booking.');
+      }
+    });
+  </script>
+</body>
+</html>

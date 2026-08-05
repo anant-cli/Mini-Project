@@ -1,0 +1,206 @@
+:root {
+  /* Color Palette - Best Color Theory */
+  --color-bg: #e6eef4; /* Soft cool grey-blue */
+  --color-surface: #f4f7f9;
+  --color-primary: #5c8df6; /* Soft blue */
+  --color-secondary: #ff8b7e; /* Soft coral */
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-text: #2d3748;
+  --color-text-muted: #718096;
+  
+  /* Claymorphism Shadows */
+  --clay-shadow-dark: rgba(163, 177, 198, 0.6);
+  --clay-shadow-light: rgba(255, 255, 255, 0.8);
+  
+  /* Layout */
+  --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  text-decoration: none;
+  color: var(--color-primary);
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #4a75d1;
+}
+
+/* Utilities */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-4 { gap: 1rem; }
+.gap-8 { gap: 2rem; }
+
+.mt-4 { margin-top: 1rem; }
+.mt-8 { margin-top: 2rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-8 { margin-bottom: 2rem; }
+.p-4 { padding: 1rem; }
+.p-8 { padding: 2rem; }
+.w-full { width: 100%; }
+
+.text-center { text-align: center; }
+.text-2xl { font-size: 1.5rem; }
+.text-3xl { font-size: 1.875rem; }
+.text-4xl { font-size: 2.25rem; font-weight: 700; }
+.font-bold { font-weight: bold; }
+.text-muted { color: var(--color-text-muted); }
+
+/* Claymorphism UI Components */
+
+/* The Clay Panel / Card */
+.clay-card {
+  background: var(--color-surface);
+  border-radius: 24px;
+  box-shadow: 
+    8px 8px 16px var(--clay-shadow-dark),
+    -8px -8px 16px var(--clay-shadow-light),
+    inset 2px 2px 4px rgba(255,255,255, 0.5),
+    inset -2px -2px 4px rgba(0,0,0, 0.05);
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: transform 0.3s ease;
+}
+
+.clay-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Clay Button */
+.clay-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  border-radius: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 
+    6px 6px 12px var(--clay-shadow-dark),
+    -6px -6px 12px var(--clay-shadow-light),
+    inset 2px 2px 4px rgba(255,255,255, 0.5),
+    inset -2px -2px 4px rgba(0,0,0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.clay-btn:active {
+  box-shadow: 
+    inset 6px 6px 12px var(--clay-shadow-dark),
+    inset -6px -6px 12px var(--clay-shadow-light);
+  transform: scale(0.98);
+}
+
+.clay-btn-primary {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 
+    6px 6px 12px rgba(92, 141, 246, 0.4),
+    -6px -6px 12px var(--clay-shadow-light),
+    inset 2px 2px 4px rgba(255,255,255, 0.4),
+    inset -2px -2px 4px rgba(0,0,0, 0.1);
+}
+
+.clay-btn-secondary {
+  background: var(--color-secondary);
+  color: white;
+  box-shadow: 
+    6px 6px 12px rgba(255, 139, 126, 0.4),
+    -6px -6px 12px var(--clay-shadow-light),
+    inset 2px 2px 4px rgba(255,255,255, 0.4),
+    inset -2px -2px 4px rgba(0,0,0, 0.1);
+}
+
+/* Clay Input */
+.clay-input {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 16px;
+  border: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 
+    inset 6px 6px 12px var(--clay-shadow-dark),
+    inset -6px -6px 12px var(--clay-shadow-light);
+  outline: none;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.clay-input:focus {
+  box-shadow: 
+    inset 8px 8px 16px var(--clay-shadow-dark),
+    inset -8px -8px 16px var(--clay-shadow-light),
+    0 0 0 2px var(--color-primary);
+}
+
+/* Navbar */
+.navbar {
+  padding: 16px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.navbar .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-brand {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
