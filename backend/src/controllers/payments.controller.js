@@ -39,9 +39,17 @@ export const getPaymentForBooking = async (req, res, next) => {
 export const raiseDispute = async (req, res, next) => {
   try {
     const { booking_id, reason } = req.body;
+    if (!booking_id || !reason?.trim()) {
+      throw new ApiError(400, 'booking_id and reason are required');
+    }
+
+    const booking = await findBookingById(booking_id);
+    if (!booking) throw new ApiError(404, 'Booking not found');
+    await assertCanViewBookingPayment(req, booking);
+
     const { rows } = await query(
       `INSERT INTO disputes (booking_id, raised_by, reason) VALUES ($1,$2,$3) RETURNING *`,
-      [booking_id, req.user.user_id, reason]
+      [booking_id, req.user.user_id, reason.trim()]
     );
     await query(`UPDATE bookings SET status = 'disputed' WHERE booking_id = $1`, [booking_id]);
     res.status(201).json({ dispute: rows[0] });

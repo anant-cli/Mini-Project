@@ -48,6 +48,10 @@ export default function BookingModal({ location, slots = [], onClose }) {
   const submit = async (e) => {
     e.preventDefault();
     if (!selectedSlot) { toast.error('Please select a parking slot.'); return; }
+    if (new Date(form.end_time) <= new Date(form.start_time)) {
+      toast.error('Check-out must be after check-in.');
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await api.post('/bookings', {
@@ -88,7 +92,7 @@ export default function BookingModal({ location, slots = [], onClose }) {
         aria-modal="true"
         aria-label={`Book a slot at ${location?.name}`}
         tabIndex={-1}
-        className="fixed inset-x-4 bottom-0 top-12 z-50 mx-auto flex max-w-xl flex-col rounded-t-3xl bg-white shadow-lift outline-none sm:inset-4 sm:top-[10vh] sm:rounded-3xl sm:bottom-auto animate-scale-in overflow-hidden"
+        className="fixed inset-x-0 bottom-0 top-10 z-50 mx-auto flex max-w-xl flex-col rounded-t-3xl bg-white shadow-lift outline-none sm:inset-4 sm:top-[10vh] sm:bottom-auto sm:rounded-3xl animate-scale-in overflow-hidden"
       >
         {/* Modal header */}
         <div className="flex items-start justify-between border-b border-asphalt/10 px-6 py-5">
@@ -162,7 +166,7 @@ export default function BookingModal({ location, slots = [], onClose }) {
               </div>
 
               {/* Date/time */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="input-label" htmlFor="bm-start">Check-in</label>
                   <input

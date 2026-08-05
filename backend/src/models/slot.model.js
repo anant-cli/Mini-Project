@@ -30,3 +30,14 @@ export const setSlotStatus = async (slotId, status, client = null) => {
   const { rows } = await runner(`UPDATE slots SET status = $2 WHERE slot_id = $1 RETURNING *`, [slotId, status]);
   return rows[0];
 };
+
+export const countAvailableSlots = async (locationId, client = null) => {
+  const runner = client ? client.query.bind(client) : query;
+  const { rows } = await runner(
+    `SELECT COUNT(*)::int AS available_slots
+     FROM slots
+     WHERE location_id = $1 AND status = 'available'`,
+    [locationId]
+  );
+  return rows[0]?.available_slots ?? 0;
+};

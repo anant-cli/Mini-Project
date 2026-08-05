@@ -131,6 +131,7 @@ export default function DriverMap() {
 
   // Socket ref
   const socketRef = useRef(null);
+  const watchedIdsRef = useRef([]);
 
   /* Live slot updates via Socket.io */
   useEffect(() => {
@@ -138,6 +139,15 @@ export default function DriverMap() {
     try {
       const socket = io(apiBase, { transports: ['websocket', 'polling'] });
       socketRef.current = socket;
+      socket.on('slot_updated', ({ location_id, available_slots }) => {
+        setResults((prev) =>
+          prev.map((loc) =>
+            loc.location_id === location_id
+              ? { ...loc, available_slots: Math.max(0, Number(available_slots ?? loc.available_slots)) }
+              : loc
+          )
+        );
+      });
       return () => socket.disconnect();
     } catch {
       // Backend offline — fine, we show mock data
@@ -149,24 +159,11 @@ export default function DriverMap() {
     const socket = socketRef.current;
     if (!socket || isMock) return;
     const ids = results.map((l) => l.location_id);
+    const previousIds = watchedIdsRef.current;
+    if (previousIds.length) socket.emit('unwatch_area', previousIds);
+    watchedIdsRef.current = ids;
     socket.emit('watch_area', ids);
-
-    socket.on('slot_updated', ({ location_id, slot_id, status }) => {
-      setResults((prev) =>
-        prev.map((loc) =>
-          loc.location_id === location_id
-            ? {
-                ...loc,
-                available_slots:
-                  status === 'available'
-                    ? loc.available_slots + 1
-                    : Math.max(0, loc.available_slots - 1),
-              }
-            : loc
-        )
-      );
-    });
-    return () => { socket.off('slot_updated'); socket.emit('unwatch_area', ids); };
+    return () => { socket.emit('unwatch_area', ids); };
   }, [results, isMock]);
 
   /* Search / filter */
@@ -329,7 +326,7 @@ export default function DriverMap() {
       {/* Main content: map + sidebar */}
       <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_380px]">
         {/* Map */}
-        <div className="h-[540px] overflow-hidden rounded-2xl border border-asphalt/10 shadow-sm">
+        <div className="h-[380px] overflow-hidden rounded-2xl border border-asphalt/10 shadow-sm sm:h-[460px] lg:h-[540px]">
             <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
               <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

@@ -1,56 +1,93 @@
-# ParkSlot – Peer-to-Peer Smart Parking Marketplace
+# ParkSlot - Peer-to-Peer Smart Parking Marketplace
 
-ParkSlot is a two-sided marketplace for parking ("Airbnb for parking"), built as a college mini project. It connects space owners with drivers looking for guaranteed, verified parking. The platform features live availability via WebSockets, escrow-style payments based on actual time parked, EV charging support, and a QR-based dual-verification check-in process.
+ParkSlot connects drivers with verified parking spaces listed by hosts. It includes live slot availability, QR-based check-in/check-out, escrow-style mock payments, EV charger metadata, saved listings, reviews, and basic admin approval.
 
-## 🚀 Key Features
+## Tech Stack
 
-*   **Two-Sided Marketplace:** Drivers search for parking; hosts list unused driveways or lots.
-*   **Live Slot Updates:** Map pins and slot grids update instantly as slots are booked (Socket.io).
-*   **QR-Based Verification:** The booking clock doesn't start until the driver arrives and the host scans their unique QR pass. Check-out is also verified by scan.
-*   **Escrow Payments:** Driver payments are held securely until checkout, preventing fraud on both sides. Overtime is calculated and billed automatically.
-*   **EV Ready:** Filter map by EV charging. Hosts can add chargers with specific connector types, power ratings, and per-kWh pricing.
-*   **Mock Data Fallback:** The frontend gracefully falls back to interactive mock data if the backend server is unreachable, making it perfect for immediate demonstrations.
+- Frontend: React, Vite, Tailwind CSS, React Router, Leaflet, Socket.io client
+- Backend: Node.js, Express, PostgreSQL, Socket.io
+- Auth: JWT with bcrypt password hashing
+- Data: SQL schema and seed files in `database/`
 
-## 🛠 Tech Stack
-
-*   **Frontend:** React (Vite), Tailwind CSS, React Router, Leaflet (Map), Socket.io-client.
-*   **Backend:** Node.js, Express, PostgreSQL, Socket.io (real-time updates).
-*   **Authentication:** JWT (JSON Web Tokens) with bcrypt password hashing.
-
-## 📦 Running the Application
+## Run Locally
 
 ### 1. Prerequisites
-- Node.js (v18+)
-- PostgreSQL (v14+)
 
-### 2. Database Setup
-1. Create a PostgreSQL database named `parkslot`.
-2. Run the `backend/db/schema.sql` file to create the tables.
-3. Run the `backend/db/seed.sql` file to populate demo data (includes hashed passwords).
+- Node.js 18+
+- PostgreSQL 14+
 
-### 3. Backend Setup
+### 2. Database
+
+Create a PostgreSQL database named `parkslot`, then run:
+
+```bash
+psql -d parkslot -f database/schema.sql
+psql -d parkslot -f database/seed.sql
+```
+
+### 3. Backend
+
 ```bash
 cd backend
 npm install
-# Create a .env file based on .env.example
 npm start
 ```
 
-### 4. Frontend Setup
+Common environment variables:
+
+```env
+PORT=5000
+DATABASE_URL=postgres://user:password@localhost:5432/parkslot
+JWT_SECRET=change-me
+CORS_ORIGIN=http://localhost:5173
+PLATFORM_COMMISSION_PERCENT=15
+```
+
+### 4. Frontend
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-## 🔐 Demo Credentials
+Set `VITE_API_URL=http://localhost:5000/api` if the frontend is not being proxied to the backend.
 
-If you seeded the database using `seed.sql`, you can log in with:
+## Demo Credentials
 
-*   **Driver:** `asha.driver@example.com`
-*   **Host:** `vikram.host@example.com`
-*   **Admin:** `admin@parkshare.app`
-*   **Password:** `Password123!` (for all accounts)
+After loading `database/seed.sql`:
 
-## 💡 Frontend-Only Demo Mode
-If you start the frontend *without* starting the backend, it will automatically enter **Demo Mode**. This will load mock data onto the map and allow you to view the UI and interact with map filters without a database connection.
+- Driver: `asha.driver@example.com`
+- Host: `vikram.host@example.com`
+- Admin: `admin@parkshare.app`
+- Password: `Password123!`
+
+## System Architecture
+
+```mermaid
+flowchart LR
+  Driver[Driver browser] --> Frontend[React + Vite frontend]
+  Host[Host browser] --> Frontend
+  Admin[Admin browser] --> Frontend
+
+  Frontend -->|REST /api| API[Express API]
+  Frontend <-->|Socket.io| Realtime[Socket.io server]
+  Realtime --- API
+
+  API --> Auth[Auth middleware + JWT]
+  API --> Routes[Route controllers]
+  Routes --> Models[Database models]
+  Models --> DB[(PostgreSQL)]
+
+  Routes --> QR[QR token/data URL utility]
+  Routes --> Payments[Escrow-style payment records]
+  Routes --> Reviews[Reviews + favorites]
+```
+
+## Project Layout
+
+```text
+backend/   Express API, Socket.io, route controllers, models, middleware
+database/  PostgreSQL schema and seed data
+frontend/  React pages, components, auth context, API client
+```

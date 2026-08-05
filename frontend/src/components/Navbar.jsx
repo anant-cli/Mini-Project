@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Button from './Button.jsx';
 
@@ -21,6 +21,7 @@ const navLinks = (role) => [
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -32,7 +33,7 @@ export default function Navbar() {
   }, []);
 
   // Close mobile menu on route change
-  useEffect(() => { setMenuOpen(false); }, [navigate]);
+  useEffect(() => { setMenuOpen(false); }, [location.pathname]);
 
   const links = navLinks(user?.role);
   const roleInfo = ROLE_LABELS[user?.role];

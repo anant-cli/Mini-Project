@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { withTransaction, query } from '../config/db.js';
-import { lockSlotForUpdate, hasOverlappingBooking, setSlotStatus } from '../models/slot.model.js';
+import { lockSlotForUpdate, hasOverlappingBooking, setSlotStatus, countAvailableSlots } from '../models/slot.model.js';
 import {
   createBookingRow, findBookingByQrToken, findBookingById,
   getBookingsForUser, getBookingsForHost, recordCheckin, recordCheckout, cancelBooking,
@@ -30,6 +30,21 @@ const bookingSchema = z.object({
   end_time: z.string().max(40),
 });
 
+const assertCanManageBooking = async (req, booking) => {
+  if (req.user.role === 'admin') return;
+
+  const { rows } = await query(
+    `SELECT l.owner_id
+     FROM locations l
+     JOIN slots s ON s.location_id = l.location_id
+     WHERE s.slot_id = $1`,
+    [booking.slot_id]
+  );
+
+  if (rows[0]?.owner_id === req.user.user_id) return;
+  throw new ApiError(403, 'You do not have access to manage this booking');
+};
+
 // Step 1-4 of the "How a request flows end-to-end" example in the plan:
 // lock the slot row, verify no overlapping booking exists, hold funds,
 // write the booking, generate the QR pass.
@@ -38,6 +53,9 @@ export const createBooking = async (req, res, next) => {
     const data = bookingSchema.parse(req.body);
     const startTime = new Date(data.start_time);
     const endTime = new Date(data.end_time);
+    if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+      throw new ApiError(400, 'start_time and end_time must be valid dates');
+    }
     if (endTime <= startTime) throw new ApiError(400, 'end_time must be after start_time');
 
     const result = await withTransaction(async (client) => {
@@ -54,6 +72,7 @@ export const createBooking = async (req, res, next) => {
          JOIN slots s ON s.location_id = l.location_id WHERE s.slot_id = $1`,
         [data.slot_id]
       );
+      if (!locRows[0]) throw new ApiError(404, 'Location not found for slot');
       const pricePerHour = Number(locRows[0].price_per_hour);
       const hours = (endTime - startTime) / 3600000;
       const estimatedAmount = Number((pricePerHour * hours).toFixed(2));
@@ -76,12 +95,18 @@ export const createBooking = async (req, res, next) => {
         payment_mode: 'card',
       });
 
-      return { booking, payment, locationId: locRows[0].location_id, pricePerHour };
+      const availableSlots = await countAvailableSlots(locRows[0].location_id, client);
+
+      return { booking, payment, locationId: locRows[0].location_id, availableSlots, pricePerHour };
     });
 
     const qrDataUrl = await generateQrDataUrl(result.booking.qr_token);
 
-    emitSlotUpdate(result.locationId, { slot_id: data.slot_id, status: 'booked' });
+    emitSlotUpdate(result.locationId, {
+      slot_id: data.slot_id,
+      status: 'booked',
+      available_slots: result.availableSlots,
+    });
 
     res.status(201).json({
       booking: result.booking,
@@ -121,6 +146,7 @@ export const checkin = async (req, res, next) => {
     const booking = await findBookingByQrToken(qr_token);
     if (!booking) throw new ApiError(404, 'Invalid QR code');
     if (booking.status !== 'confirmed') throw new ApiError(400, `Booking is not in a checkin-eligible state (current: ${booking.status})`);
+    await assertCanManageBooking(req, booking);
 
     const updated = await recordCheckin(booking.booking_id, 'qr');
     await setSlotStatus(booking.slot_id, 'occupied');
@@ -140,21 +166,28 @@ export const checkout = async (req, res, next) => {
     const booking = await findBookingByQrToken(qr_token);
     if (!booking) throw new ApiError(404, 'Invalid QR code');
     if (booking.status !== 'checked_in') throw new ApiError(400, 'Booking has not been checked in yet');
+    await assertCanManageBooking(req, booking);
 
     const { rows } = await query(
       `SELECT l.price_per_hour, l.location_id FROM locations l
        JOIN slots s ON s.location_id = l.location_id WHERE s.slot_id = $1`,
       [booking.slot_id]
     );
+    if (!rows[0]) throw new ApiError(404, 'Location not found for slot');
     const pricePerHour = Number(rows[0].price_per_hour);
 
     const { booking: completed, actualMinutes } = await recordCheckout(booking.booking_id, pricePerHour);
     await setSlotStatus(booking.slot_id, 'available');
+    const availableSlots = await countAvailableSlots(rows[0].location_id);
 
     const commissionPercent = Number(process.env.PLATFORM_COMMISSION_PERCENT || 15);
     const { platformCut, hostPayout } = await releasePayment(booking.booking_id, completed.total_amount, commissionPercent);
 
-    emitSlotUpdate(rows[0].location_id, { slot_id: booking.slot_id, status: 'available' });
+    emitSlotUpdate(rows[0].location_id, {
+      slot_id: booking.slot_id,
+      status: 'available',
+      available_slots: availableSlots,
+    });
     emitBookingEvent(booking.booking_id, {
       type: 'checked_out',
       total_amount: completed.total_amount,
@@ -177,6 +210,18 @@ export const cancel = async (req, res, next) => {
     }
     const cancelled = await cancelBooking(booking.booking_id);
     await setSlotStatus(booking.slot_id, 'available');
+    const { rows } = await query(
+      `SELECT location_id FROM slots WHERE slot_id = $1`,
+      [booking.slot_id]
+    );
+    if (rows[0]) {
+      const availableSlots = await countAvailableSlots(rows[0].location_id);
+      emitSlotUpdate(rows[0].location_id, {
+        slot_id: booking.slot_id,
+        status: 'available',
+        available_slots: availableSlots,
+      });
+    }
     res.json({ booking: cancelled });
   } catch (err) {
     next(err);
