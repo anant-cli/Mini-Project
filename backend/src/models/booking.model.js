@@ -27,13 +27,32 @@ export const findBookingById = async (bookingId) => {
 
 export const getBookingsForUser = async (userId) => {
   const { rows } = await query(
-    `SELECT b.*, l.name AS location_name, l.address
+    `SELECT b.*, l.name AS location_name, l.address,
+            lr.review_id AS location_review_id
      FROM bookings b
      JOIN slots s ON s.slot_id = b.slot_id
      JOIN locations l ON l.location_id = s.location_id
+     LEFT JOIN reviews lr ON lr.booking_id = b.booking_id AND lr.location_id IS NOT NULL
      WHERE b.user_id = $1
      ORDER BY b.start_time DESC`,
     [userId]
+  );
+  return rows;
+};
+
+export const getBookingsForHost = async (ownerId) => {
+  const { rows } = await query(
+    `SELECT b.*, l.location_id, l.name AS location_name, l.address, s.slot_number,
+            u.name AS driver_name, u.email AS driver_email,
+            dr.review_id AS driver_review_id
+     FROM bookings b
+     JOIN slots s ON s.slot_id = b.slot_id
+     JOIN locations l ON l.location_id = s.location_id
+     JOIN users u ON u.user_id = b.user_id
+     LEFT JOIN reviews dr ON dr.booking_id = b.booking_id AND dr.reviewed_user IS NOT NULL
+     WHERE l.owner_id = $1
+     ORDER BY b.start_time DESC`,
+    [ownerId]
   );
   return rows;
 };

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api.js';
 import Button from '../components/Button.jsx';
 import SlotStatusGrid from '../components/SlotStatusGrid.jsx';
+import StarRating from '../components/StarRating.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../components/Toast.jsx';
 
@@ -32,6 +33,9 @@ export default function HostDashboard() {
   const [scanError, setScanError] = useState('');
   const [activeTab, setActiveTab] = useState('listings'); // listings | new | scanner
   const [earnings, setEarnings] = useState({ total: 0, pending: 0, bookings: 0 });
+  const [hostedBookings, setHostedBookings] = useState([]);
+  const [reviewForms, setReviewForms] = useState({});
+  const [submittingReview, setSubmittingReview] = useState('');
 
   /* ── Load data ── */
   const loadListings = async () => {
@@ -52,8 +56,17 @@ export default function HostDashboard() {
     } catch { /* ignore */ }
   };
 
+  const loadHostedBookings = async () => {
+    try {
+      const { data } = await api.get('/bookings/hosted');
+      setHostedBookings(data.bookings || []);
+    } catch {
+      setHostedBookings([]);
+    }
+  };
+
   useEffect(() => {
-    if (user) { loadListings(); loadEarnings(); }
+    if (user) { loadListings(); loadEarnings(); loadHostedBookings(); }
     /* eslint-disable-next-line */
   }, [user]);
 
@@ -123,7 +136,43 @@ export default function HostDashboard() {
     { id: 'listings', label: 'My listings' },
     { id: 'new',      label: '+ New listing' },
     { id: 'scanner',  label: '🔲 Gate scanner' },
+    { id: 'reviews',  label: 'Driver reviews' },
   ];
+
+  const updateReviewForm = (bookingId, patch) => {
+    setReviewForms((forms) => ({
+      ...forms,
+      [bookingId]: { rating: 0, comment: '', ...(forms[bookingId] || {}), ...patch },
+    }));
+  };
+
+  const submitDriverReview = async (booking) => {
+    const form = reviewForms[booking.booking_id] || {};
+    if (!form.rating) {
+      toast.error('Choose a star rating first.');
+      return;
+    }
+    setSubmittingReview(booking.booking_id);
+    try {
+      const { data } = await api.post('/reviews/driver', {
+        booking_id: booking.booking_id,
+        rating: form.rating,
+        comment: form.comment?.trim() || undefined,
+      });
+      setHostedBookings((items) => items.map((item) => (
+        item.booking_id === booking.booking_id
+          ? { ...item, driver_review_id: data.review.review_id }
+          : item
+      )));
+      toast.success('Driver review posted.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not post driver review.');
+    } finally {
+      setSubmittingReview('');
+    }
+  };
+
+  const fmtDate = (dt) => new Date(dt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
@@ -440,6 +489,63 @@ export default function HostDashboard() {
               </ol>
             </div>
           </div>
+        </section>
+      )}
+
+      {activeTab === 'reviews' && (
+        <section className="mt-6 max-w-4xl space-y-4">
+          {hostedBookings.filter((b) => b.status === 'completed').length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-asphalt/20 p-12 text-center">
+              <p className="font-display text-lg font-semibold text-ink/50">No completed hosted bookings yet</p>
+              <p className="mt-2 text-sm text-ink/40">Driver reviews appear here after checkout.</p>
+            </div>
+          ) : (
+            hostedBookings.filter((b) => b.status === 'completed').map((b) => (
+              <div key={b.booking_id} className="card">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="font-display text-lg font-semibold text-ink">{b.driver_name}</h3>
+                    <p className="mt-1 text-sm text-ink/55">{b.location_name}</p>
+                    <p className="mt-2 text-sm text-ink/60">
+                      {fmtDate(b.start_time)} to {fmtDate(b.end_time)}
+                    </p>
+                    <p className="mt-1 font-mono text-xs text-ink/45">Slot {b.slot_number || 'assigned'}</p>
+                  </div>
+                  {b.driver_review_id && (
+                    <span className="badge badge-green">Reviewed</span>
+                  )}
+                </div>
+
+                {!b.driver_review_id && (
+                  <div className="mt-5 border-t border-asphalt/10 pt-4 space-y-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="text-sm font-medium text-ink">Rate this driver</span>
+                      <StarRating
+                        value={reviewForms[b.booking_id]?.rating || 0}
+                        onChange={(rating) => updateReviewForm(b.booking_id, { rating })}
+                        size="md"
+                      />
+                    </div>
+                    <textarea
+                      className="input min-h-20 resize-y"
+                      maxLength={1000}
+                      placeholder="Optional comment"
+                      value={reviewForms[b.booking_id]?.comment || ''}
+                      onChange={(e) => updateReviewForm(b.booking_id, { comment: e.target.value })}
+                    />
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      loading={submittingReview === b.booking_id}
+                      onClick={() => submitDriverReview(b)}
+                    >
+                      Submit review
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </section>
       )}
     </div>

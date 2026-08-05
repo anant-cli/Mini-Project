@@ -5,20 +5,31 @@ import Button from '../components/Button.jsx';
 import BookingModal from '../components/BookingModal.jsx';
 import SlotStatusGrid from '../components/SlotStatusGrid.jsx';
 import { useToast } from '../components/Toast.jsx';
+import StarRating from '../components/StarRating.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function ListingDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showBooking, setShowBooking] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       try {
         const { data } = await api.get(`/listings/${id}`);
         setListing(data);
+        const [{ data: reviewData }, favoriteResult] = await Promise.all([
+          api.get(`/reviews/location/${id}`),
+          user?.role === 'driver' ? api.get('/favorites/ids').catch(() => ({ data: { ids: [] } })) : Promise.resolve({ data: { ids: [] } }),
+        ]);
+        setReviews(reviewData.reviews || []);
+        setSaved((favoriteResult.data.ids || []).includes(id));
       } catch (err) {
         toast.error('Could not load listing details.');
         navigate('/search');
@@ -27,7 +38,32 @@ export default function ListingDetail() {
       }
     };
     load();
-  }, [id, navigate, toast]);
+  }, [id, navigate, toast, user?.role]);
+
+  const toggleSaved = async () => {
+    if (!user) {
+      toast.info('Log in as a driver to save listings.');
+      navigate('/login');
+      return;
+    }
+    if (user.role !== 'driver') {
+      toast.info('Only driver accounts can save listings.');
+      return;
+    }
+    try {
+      if (saved) {
+        await api.delete(`/favorites/${id}`);
+        setSaved(false);
+        toast.success('Removed from saved listings.');
+      } else {
+        await api.post(`/favorites/${id}`);
+        setSaved(true);
+        toast.success('Saved listing.');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update saved listing.');
+    }
+  };
 
   if (loading) {
     return (
@@ -64,6 +100,16 @@ export default function ListingDetail() {
           <div className="flex items-center gap-3">
             <h1 className="font-display text-3xl font-bold text-ink">{loc.name}</h1>
             {loc.has_ev_charging && <span className="badge badge-green shrink-0">⚡ EV Charging</span>}
+            <button
+              type="button"
+              onClick={toggleSaved}
+              className={`rounded-full border p-2 transition-colors ${saved ? 'border-cone bg-cone/8 text-cone' : 'border-asphalt/15 text-ink/45 hover:border-cone/40 hover:text-cone'}`}
+              aria-label={saved ? 'Remove from saved listings' : 'Save listing'}
+            >
+              <svg viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0 6.25-9 11-9 11s-9-4.75-9-11A5.25 5.25 0 0 1 12 4.5a5.25 5.25 0 0 1 9 3.75Z" />
+              </svg>
+            </button>
           </div>
           <p className="mt-2 text-ink/60">{loc.address}</p>
           <div className="mt-3 flex items-center gap-4 text-sm font-medium">
@@ -122,6 +168,27 @@ export default function ListingDetail() {
                 </span>
               </div>
             </div>
+          </section>
+
+          <section className="card">
+            <h2 className="font-display text-lg font-semibold text-ink mb-4">Reviews</h2>
+            {reviews.length === 0 ? (
+              <p className="text-sm text-ink/50">No reviews yet.</p>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <div key={review.review_id} className="border-b border-asphalt/10 pb-4 last:border-b-0 last:pb-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium text-ink">{review.author_name || 'Driver'}</p>
+                      <StarRating value={review.rating} size="sm" />
+                    </div>
+                    {review.comment && (
+                      <p className="mt-2 text-sm leading-relaxed text-ink/65">{review.comment}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
 

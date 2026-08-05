@@ -1,5 +1,21 @@
 import { query } from '../config/db.js';
 
+export const findLocationReviewForBooking = async (bookingId) => {
+  const { rows } = await query(
+    `SELECT * FROM reviews WHERE booking_id = $1 AND location_id IS NOT NULL`,
+    [bookingId]
+  );
+  return rows[0];
+};
+
+export const findDriverReviewForBooking = async (bookingId) => {
+  const { rows } = await query(
+    `SELECT * FROM reviews WHERE booking_id = $1 AND reviewed_user IS NOT NULL`,
+    [bookingId]
+  );
+  return rows[0];
+};
+
 // Driver rates the space (location review)
 export const addLocationReview = async ({ booking_id, location_id, author_id, rating, comment }) => {
   const { rows } = await query(

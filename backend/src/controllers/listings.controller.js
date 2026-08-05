@@ -7,16 +7,16 @@ import { getSlotsByLocation } from '../models/slot.model.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 const listingSchema = z.object({
-  name: z.string().min(2),
-  address: z.string().min(4),
+  name: z.string().min(2).max(100),
+  address: z.string().min(4).max(300),
   latitude: z.number(),
   longitude: z.number(),
   total_slots: z.number().int().positive(),
   price_per_hour: z.number().positive(),
-  vehicle_types_allowed: z.array(z.string()).nonempty(),
+  vehicle_types_allowed: z.array(z.string().max(30)).nonempty(),
   has_ev_charging: z.boolean().optional(),
-  operating_hours: z.object({ open: z.string(), close: z.string() }).optional(),
-  photos: z.array(z.string()).optional(),
+  operating_hours: z.object({ open: z.string().max(5), close: z.string().max(5) }).optional(),
+  photos: z.array(z.string().max(500)).optional(),
 });
 
 export const createListing = async (req, res, next) => {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../lib/api.js';
 import Button from '../components/Button.jsx';
 import QrPass from '../components/QrPass.jsx';
+import StarRating from '../components/StarRating.jsx';
 import { useToast } from '../components/Toast.jsx';
 
 const STATUS_COLORS = {
@@ -17,6 +18,8 @@ export default function BookingHistory() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePass, setActivePass] = useState(null); // { booking, qr_pass }
+  const [reviewForms, setReviewForms] = useState({});
+  const [submittingReview, setSubmittingReview] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -43,6 +46,39 @@ export default function BookingHistory() {
   };
 
   const fmtDate = (dt) => new Date(dt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+  const updateReviewForm = (bookingId, patch) => {
+    setReviewForms((forms) => ({
+      ...forms,
+      [bookingId]: { rating: 0, comment: '', ...(forms[bookingId] || {}), ...patch },
+    }));
+  };
+
+  const submitReview = async (booking) => {
+    const form = reviewForms[booking.booking_id] || {};
+    if (!form.rating) {
+      toast.error('Choose a star rating first.');
+      return;
+    }
+    setSubmittingReview(booking.booking_id);
+    try {
+      const { data } = await api.post('/reviews/location', {
+        booking_id: booking.booking_id,
+        rating: form.rating,
+        comment: form.comment?.trim() || undefined,
+      });
+      setBookings((items) => items.map((item) => (
+        item.booking_id === booking.booking_id
+          ? { ...item, location_review_id: data.review.review_id }
+          : item
+      )));
+      toast.success('Review posted. Thank you!');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not post review.');
+    } finally {
+      setSubmittingReview('');
+    }
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -108,6 +144,39 @@ export default function BookingHistory() {
                   )}
                 </div>
               </div>
+              {b.status === 'completed' && (
+                <div className="mt-5 border-t border-asphalt/10 pt-4">
+                  {b.location_review_id ? (
+                    <p className="text-sm font-medium text-signal-dark">You reviewed this parking space.</p>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm font-medium text-ink">Rate this parking space</span>
+                        <StarRating
+                          value={reviewForms[b.booking_id]?.rating || 0}
+                          onChange={(rating) => updateReviewForm(b.booking_id, { rating })}
+                          size="md"
+                        />
+                      </div>
+                      <textarea
+                        className="input min-h-20 resize-y"
+                        maxLength={1000}
+                        placeholder="Optional comment"
+                        value={reviewForms[b.booking_id]?.comment || ''}
+                        onChange={(e) => updateReviewForm(b.booking_id, { comment: e.target.value })}
+                      />
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        loading={submittingReview === b.booking_id}
+                        onClick={() => submitReview(b)}
+                      >
+                        Submit review
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))
         )}

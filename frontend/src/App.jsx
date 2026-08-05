@@ -8,6 +8,8 @@ import HostDashboard from './pages/HostDashboard.jsx';
 import AdminPanel from './pages/AdminPanel.jsx';
 import BookingHistory from './pages/BookingHistory.jsx';
 import ListingDetail from './pages/ListingDetail.jsx';
+import SavedListings from './pages/SavedListings.jsx';
+import NotFound from './pages/NotFound.jsx';
 
 export default function App() {
   return (
@@ -22,7 +24,9 @@ export default function App() {
           <Route path="/host" element={<HostDashboard />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/bookings" element={<BookingHistory />} />
+          <Route path="/saved" element={<SavedListings />} />
           <Route path="/listing/:id" element={<ListingDetail />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
     </div>

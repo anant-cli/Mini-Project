@@ -13,6 +13,7 @@ const ROLE_LABELS = {
 const navLinks = (role) => [
   { to: '/search',   label: 'Find parking' },
   { to: '/host',     label: 'List your space' },
+  ...(role === 'driver' ? [{ to: '/saved', label: 'Saved' }] : []),
   ...(role === 'driver' || role === 'admin' ? [{ to: '/bookings', label: 'My bookings' }] : []),
   ...(role === 'admin' ? [{ to: '/admin', label: 'Admin' }] : []),
 ];

@@ -3,7 +3,7 @@ import { withTransaction, query } from '../config/db.js';
 import { lockSlotForUpdate, hasOverlappingBooking, setSlotStatus } from '../models/slot.model.js';
 import {
   createBookingRow, findBookingByQrToken, findBookingById,
-  getBookingsForUser, recordCheckin, recordCheckout, cancelBooking,
+  getBookingsForUser, getBookingsForHost, recordCheckin, recordCheckout, cancelBooking,
 } from '../models/booking.model.js';
 import { createHeldPayment, releasePayment } from '../models/payment.model.js';
 import { generateQrToken, generateQrDataUrl } from '../utils/qrcode.js';
@@ -25,9 +25,9 @@ export const getQrPass = async (req, res, next) => {
 
 const bookingSchema = z.object({
   slot_id: z.string().uuid(),
-  vehicle_number: z.string().min(3),
-  start_time: z.string(),
-  end_time: z.string(),
+  vehicle_number: z.string().min(3).max(20),
+  start_time: z.string().max(40),
+  end_time: z.string().max(40),
 });
 
 // Step 1-4 of the "How a request flows end-to-end" example in the plan:
@@ -96,6 +96,15 @@ export const createBooking = async (req, res, next) => {
 export const listMyBookings = async (req, res, next) => {
   try {
     const bookings = await getBookingsForUser(req.user.user_id);
+    res.json({ bookings });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listHostedBookings = async (req, res, next) => {
+  try {
+    const bookings = await getBookingsForHost(req.user.user_id);
     res.json({ bookings });
   } catch (err) {
     next(err);

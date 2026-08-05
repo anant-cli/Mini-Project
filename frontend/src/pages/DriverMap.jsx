@@ -6,6 +6,7 @@ import api from '../lib/api.js';
 import Button from '../components/Button.jsx';
 import BookingModal from '../components/BookingModal.jsx';
 import { useToast } from '../components/Toast.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { io } from 'socket.io-client';
 
 /* ─── Map helpers ─────────────────────────────────────────────── */
@@ -117,11 +118,13 @@ function Stars({ rating }) {
 /* ─── Main ────────────────────────────────────────────────────── */
 export default function DriverMap() {
   const toast = useToast();
+  const { user } = useAuth();
   const [center] = useState(DEFAULT_CENTER);
   const [filters, setFilters] = useState({ vehicleType: '', evOnly: false, maxPrice: '' });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isMock, setIsMock] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState([]);
 
   // Booking modal state
   const [booking, setBooking] = useState(null); // { location, slots }
@@ -198,6 +201,16 @@ export default function DriverMap() {
 
   useEffect(() => { search(); /* eslint-disable-next-line */ }, []);
 
+  useEffect(() => {
+    if (user?.role !== 'driver') {
+      setFavoriteIds([]);
+      return;
+    }
+    api.get('/favorites/ids')
+      .then(({ data }) => setFavoriteIds(data.ids || []))
+      .catch(() => setFavoriteIds([]));
+  }, [user?.role]);
+
   /* Open booking modal */
   const openBooking = async (loc) => {
     let slots = isMock ? (MOCK_SLOTS[loc.location_id] || []) : [];
@@ -211,6 +224,34 @@ export default function DriverMap() {
       }
     }
     setBooking({ location: loc, slots });
+  };
+
+  const toggleFavorite = async (loc, e) => {
+    e.stopPropagation();
+    if (isMock) {
+      toast.info('Saved listings need the backend connection.');
+      return;
+    }
+    if (!user) {
+      toast.info('Log in as a driver to save listings.');
+      return;
+    }
+    if (user.role !== 'driver') {
+      toast.info('Only driver accounts can save listings.');
+      return;
+    }
+    const isSaved = favoriteIds.includes(loc.location_id);
+    try {
+      if (isSaved) {
+        await api.delete(`/favorites/${loc.location_id}`);
+        setFavoriteIds((ids) => ids.filter((id) => id !== loc.location_id));
+      } else {
+        await api.post(`/favorites/${loc.location_id}`);
+        setFavoriteIds((ids) => [...ids, loc.location_id]);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update saved listing.');
+    }
   };
 
   return (
@@ -358,7 +399,19 @@ export default function DriverMap() {
                     </div>
                     <p className="mt-0.5 text-xs text-ink/55 truncate">{loc.address}</p>
                   </div>
-                  <span className="font-mono text-xs text-ink/45 shrink-0">{Number(loc.distance_km).toFixed(1)} km</span>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="font-mono text-xs text-ink/45">{Number(loc.distance_km).toFixed(1)} km</span>
+                    <button
+                      type="button"
+                      onClick={(e) => toggleFavorite(loc, e)}
+                      className={`rounded-full border p-1.5 transition-colors ${favoriteIds.includes(loc.location_id) ? 'border-cone bg-cone/8 text-cone' : 'border-asphalt/15 text-ink/40 hover:border-cone/40 hover:text-cone'}`}
+                      aria-label={favoriteIds.includes(loc.location_id) ? 'Remove from saved listings' : 'Save listing'}
+                    >
+                      <svg viewBox="0 0 24 24" fill={favoriteIds.includes(loc.location_id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0 6.25-9 11-9 11s-9-4.75-9-11A5.25 5.25 0 0 1 12 4.5a5.25 5.25 0 0 1 9 3.75Z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">

@@ -5,10 +5,10 @@ import { signToken } from '../utils/jwt.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 const signupSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
-  phone: z.string().optional(),
+  name: z.string().min(2).max(100),
+  email: z.string().email().max(160),
+  password: z.string().min(8).max(128),
+  phone: z.string().max(20).optional(),
   role: z.enum(['driver', 'host', 'business_host']).optional(),
 });
 
@@ -28,8 +28,8 @@ export const signup = async (req, res, next) => {
 };
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+  email: z.string().email().max(160),
+  password: z.string().min(1).max(128),
 });
 
 export const login = async (req, res, next) => {

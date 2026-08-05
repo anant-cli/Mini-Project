@@ -124,6 +124,12 @@ CREATE TABLE reviews (
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (location_id IS NOT NULL OR reviewed_user IS NOT NULL)
 );
+CREATE UNIQUE INDEX idx_reviews_one_location_review_per_booking
+    ON reviews (booking_id)
+    WHERE location_id IS NOT NULL;
+CREATE UNIQUE INDEX idx_reviews_one_driver_review_per_booking
+    ON reviews (booking_id)
+    WHERE reviewed_user IS NOT NULL;
 
 -- ---------- FAVORITES ----------
 CREATE TABLE favorites (
