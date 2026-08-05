@@ -1,6 +1,6 @@
-# ParkShare – Peer-to-Peer Smart Parking Marketplace
+# ParkSlot – Peer-to-Peer Smart Parking Marketplace
 
-ParkShare is a two-sided marketplace for parking ("Airbnb for parking"), built as a college mini project. It connects space owners with drivers looking for guaranteed, verified parking. The platform features live availability via WebSockets, escrow-style payments based on actual time parked, EV charging support, and a QR-based dual-verification check-in process.
+ParkSlot is a two-sided marketplace for parking ("Airbnb for parking"), built as a college mini project. It connects space owners with drivers looking for guaranteed, verified parking. The platform features live availability via WebSockets, escrow-style payments based on actual time parked, EV charging support, and a QR-based dual-verification check-in process.
 
 ## 🚀 Key Features
 
@@ -24,7 +24,7 @@ ParkShare is a two-sided marketplace for parking ("Airbnb for parking"), built a
 - PostgreSQL (v14+)
 
 ### 2. Database Setup
-1. Create a PostgreSQL database named `parkshare`.
+1. Create a PostgreSQL database named `parkslot`.
 2. Run the `backend/db/schema.sql` file to create the tables.
 3. Run the `backend/db/seed.sql` file to populate demo data (includes hashed passwords).
 

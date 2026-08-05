@@ -186,8 +186,15 @@ export default function DriverMap() {
       if (filters.maxPrice) r = r.filter((l) => Number(l.price_per_hour) <= Number(filters.maxPrice));
       setResults(r);
       setIsMock(false);
-    } catch {
-      // Fall back to mock data
+    } catch (err) {
+      // Only fall back to mock data when the backend is genuinely unreachable
+      // (no response at all). A real 4xx/5xx means the backend IS up but
+      // something's wrong — surface that instead of pretending we're offline.
+      if (err.response) {
+        toast.error(err.response.data?.error || 'Search failed. Please try again.');
+        setLoading(false);
+        return;
+      }
       let mock = [...MOCK_LOCATIONS];
       if (filters.vehicleType) mock = mock.filter((l) => Array.isArray(l.vehicle_types_allowed) && l.vehicle_types_allowed.includes(filters.vehicleType));
       if (filters.evOnly)      mock = mock.filter((l) => l.has_ev_charging);

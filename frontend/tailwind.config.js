@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // ---- ParkShare token system ----
+        // ---- ParkSlot token system ----
         // Grounded in real parking infrastructure: sensor lights, meters,
         // cones, and lot-marking chalk — not a generic SaaS palette.
         asphalt: {

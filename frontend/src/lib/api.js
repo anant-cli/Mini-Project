@@ -5,7 +5,7 @@ import axios from 'axios';
    });
 
    api.interceptors.request.use((config) => {
-     const token = localStorage.getItem('parkshare_token');
+     const token = localStorage.getItem('parkslot_token');
      if (token) config.headers.Authorization = `Bearer ${token}`;
      return config;
    });

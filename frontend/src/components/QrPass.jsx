@@ -16,7 +16,7 @@ export default function QrPass({ booking, qrDataUrl, onClose }) {
   const download = () => {
     const a = document.createElement('a');
     a.href = qrDataUrl;
-    a.download = `parkshare-pass-${booking.booking_id?.slice(0, 8) ?? 'pass'}.png`;
+    a.download = `parkslot-pass-${booking.booking_id?.slice(0, 8) ?? 'pass'}.png`;
     a.click();
   };
 

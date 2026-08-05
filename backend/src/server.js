@@ -46,7 +46,7 @@ app.use(cors({ origin: corsOrigin }));
 app.use(express.json());
 app.use(morgan('dev'));
 
-app.get('/health', (req, res) => res.json({ status: 'ok', service: 'parkshare-api' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', service: 'parkslot-api' }));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingsRoutes);
@@ -65,5 +65,5 @@ initSocket(httpServer);
 
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
-  console.log(`ParkShare API listening on port ${PORT}`);
+  console.log(`ParkSlot API listening on port ${PORT}`);
 });

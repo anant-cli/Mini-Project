@@ -111,6 +111,9 @@ export const listHostedBookings = async (req, res, next) => {
   }
 };
 
+export const listHostBookings = listHostedBookings;
+
+
 // Host/staff scans the driver's QR at the gate on arrival.
 export const checkin = async (req, res, next) => {
   try {

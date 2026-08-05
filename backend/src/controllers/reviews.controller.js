@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { query } from '../config/db.js';
 import {
   addLocationReview, addDriverReview, getReviewsForLocation,
   findLocationReviewForBooking, findDriverReviewForBooking,
@@ -24,9 +25,7 @@ export const reviewLocation = async (req, res, next) => {
     const existing = await findLocationReviewForBooking(data.booking_id);
     if (existing) throw new ApiError(409, 'This booking already has a location review');
 
-    const { rows } = await import('../config/db.js').then(m => m.query(
-      `SELECT location_id FROM slots WHERE slot_id = $1`, [booking.slot_id]
-    ));
+    const { rows } = await query(`SELECT location_id FROM slots WHERE slot_id = $1`, [booking.slot_id]);
 
     const review = await addLocationReview({
       booking_id: data.booking_id,
@@ -58,6 +57,24 @@ export const reviewDriver = async (req, res, next) => {
        WHERE s.slot_id = $1`,
       [booking.slot_id]
     ));
+    if (!rows[0] || rows[0].owner_id !== req.user.user_id) throw new ApiError(403, 'Not your hosted booking');
+
+    const { rows: ownerRows } = await query(
+      `SELECT l.owner_id FROM locations l
+       JOIN slots s ON s.location_id = l.location_id
+       WHERE s.slot_id = $1`,
+      [booking.slot_id]
+    );
+    if (ownerRows[0]?.owner_id !== req.user.user_id) {
+      throw new ApiError(403, 'You can only review drivers who booked your listing');
+    }
+
+    const { rows } = await query(
+      `SELECT l.owner_id FROM locations l
+       JOIN slots s ON s.location_id = l.location_id
+       WHERE s.slot_id = $1`,
+      [booking.slot_id]
+    );
     if (!rows[0] || rows[0].owner_id !== req.user.user_id) throw new ApiError(403, 'Not your hosted booking');
 
     const review = await addDriverReview({

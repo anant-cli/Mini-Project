@@ -4,6 +4,7 @@ import {
   getLocationsByOwner, verifyLocation, getUnverifiedLocations,
 } from '../models/location.model.js';
 import { getSlotsByLocation } from '../models/slot.model.js';
+import { query } from '../config/db.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 const listingSchema = z.object({
@@ -53,7 +54,19 @@ export const getListing = async (req, res, next) => {
     const location = await getLocationById(req.params.id);
     if (!location) throw new ApiError(404, 'Listing not found');
     const slots = await getSlotsByLocation(location.location_id);
-    res.json({ location, slots });
+
+    // Include charger details so the frontend's EV info panel reflects
+    // what the host actually configured, instead of always showing defaults.
+    let ev_chargers = [];
+    if (location.has_ev_charging) {
+      const { rows } = await query(
+        `SELECT * FROM ev_chargers WHERE location_id = $1`,
+        [location.location_id]
+      );
+      ev_chargers = rows;
+    }
+
+    res.json({ location, slots, ev_chargers });
   } catch (err) {
     next(err);
   }
