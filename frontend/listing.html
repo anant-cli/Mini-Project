@@ -15,27 +15,53 @@
     </div>
   </nav>
 
-  <main class="container mt-8">
+  <main class="container mt-8" id="page-root">
+    <div class="state-msg"><div class="spinner"></div><p class="text-muted">Loading listing...</p></div>
+  </main>
+
+  <template id="listing-template">
     <div class="clay-card">
-      <h1 class="text-3xl mb-4" id="listing-title">Loading...</h1>
-      <p class="text-muted text-xl mb-4" id="listing-address"></p>
-      
-      <div class="flex gap-8" style="flex-wrap: wrap;">
-        <!-- Images -->
-        <div style="flex: 2; min-width: 300px;">
-          <div id="listing-images" class="clay-card" style="min-height: 300px; display:flex; align-items:center; justify-content:center; background:#e6eef4; overflow:hidden; padding:0;">
-             <!-- Placeholder for images -->
-             <span class="text-muted">No images available</span>
+      <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 12px;">
+        <div>
+          <h1 class="text-3xl mb-2" data-field="name"></h1>
+          <p class="text-muted text-xl" data-field="address"></p>
+          <p class="text-sm text-muted mt-2">Hosted by <span data-field="host_name"></span></p>
+        </div>
+        <button id="fav-btn" class="clay-btn" style="white-space:nowrap;">&#9825; Save</button>
+      </div>
+
+      <div class="flex gap-8 mt-4" style="flex-wrap: wrap;">
+        <div style="flex: 2; min-width: 280px;">
+          <div class="clay-card" style="background:#e6eef4;">
+            <div class="flex justify-between items-center mb-2">
+              <h2 class="text-2xl" data-field="price"></h2>
+              <span class="badge" data-field="ev-badge"></span>
+            </div>
+            <p class="text-muted mb-2">Vehicle types: <span data-field="vehicle-types"></span></p>
+            <p class="text-muted mb-2">Hours: <span data-field="hours"></span></p>
+
+            <h3 class="font-semibold mt-4 mb-2">Slot availability</h3>
+            <div id="slot-grid" class="slot-grid"></div>
+
+            <div id="ev-charger-list" class="mt-4"></div>
+
+            <h3 class="font-semibold mt-4 mb-2">Reviews</h3>
+            <div id="reviews-list" class="flex flex-col gap-2"></div>
           </div>
         </div>
-        
-        <!-- Details & Booking -->
-        <div style="flex: 1; min-width: 300px;">
+
+        <div style="flex: 1; min-width: 280px;">
           <div class="clay-card">
-            <h2 class="text-2xl mb-4" id="listing-price">$-/hr</h2>
-            <p class="mb-4 text-muted" id="listing-type">Type: Loading...</p>
-            
+            <h2 class="text-xl mb-4">Book this spot</h2>
             <form id="booking-form">
+              <div class="form-group">
+                <label class="form-label" for="slot-select">Slot</label>
+                <select id="slot-select" class="clay-input" style="padding:14px 20px;" required></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="vehicle-number">Vehicle number</label>
+                <input type="text" id="vehicle-number" class="clay-input" placeholder="e.g. KA01AB1234" required />
+              </div>
               <div class="form-group">
                 <label class="form-label" for="start-time">Start Time</label>
                 <input type="datetime-local" id="start-time" class="clay-input" required />
@@ -44,67 +70,246 @@
                 <label class="form-label" for="end-time">End Time</label>
                 <input type="datetime-local" id="end-time" class="clay-input" required />
               </div>
-              
-              <button type="submit" class="clay-btn clay-btn-primary w-full mt-4">Book Now</button>
+              <p id="estimate" class="text-muted mb-2"></p>
+              <button type="submit" id="book-submit" class="clay-btn clay-btn-primary w-full mt-2">Book Now</button>
             </form>
           </div>
         </div>
       </div>
     </div>
-  </main>
+  </template>
+
+  <div id="qr-modal" class="modal-backdrop" style="display:none;">
+    <div class="clay-card modal-box">
+      <h2 class="text-xl mb-4">Booking confirmed!</h2>
+      <img id="qr-image" src="" alt="QR pass" />
+      <p class="text-muted text-sm mt-4">Show this QR code to the host when you arrive.</p>
+      <button id="qr-close" class="clay-btn clay-btn-primary w-full mt-4">Go to My Bookings</button>
+    </div>
+  </div>
 
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
-    import api from '/js/api.js';
+    import api, { apiErrorMessage } from '/js/api.js';
+    import { getUser } from '/js/auth.js';
+    import { showToast } from '/js/toast.js';
+    import { watchLocations, onSlotUpdated } from '/js/socket.js';
 
     const urlParams = new URLSearchParams(window.location.search);
     const listingId = urlParams.get('id');
+    const root = document.getElementById('page-root');
+    const user = getUser();
+
+    const VEHICLE_LABELS = {
+      two_wheeler: 'Two-wheeler', car: 'Car', suv: 'SUV',
+      ev_car: 'EV Car', ev_two_wheeler: 'EV Two-wheeler',
+    };
+
+    let currentSlots = [];
+    let pricePerHour = 0;
+
+    function money(n) { return `₹${Number(n).toFixed(0)}`; }
 
     async function loadListing() {
       if (!listingId) {
-        document.getElementById('listing-title').innerText = 'Listing Not Found';
+        root.innerHTML = '<div class="clay-card state-msg">Listing not found.</div>';
         return;
       }
       try {
         const res = await api.get(`/listings/${listingId}`);
-        const listing = res.data.data || res.data;
-        
-        document.getElementById('listing-title').innerText = listing.title || 'Parking Spot';
-        document.getElementById('listing-address').innerText = listing.address;
-        document.getElementById('listing-price').innerText = `$${listing.pricePerHour}/hr`;
-        document.getElementById('listing-type').innerText = `Type: ${listing.type || 'Standard'}`;
+        const { location, slots, ev_chargers } = res.data;
+        pricePerHour = Number(location.price_per_hour);
+        currentSlots = slots;
 
-        if (listing.images && listing.images.length > 0) {
-          const imgContainer = document.getElementById('listing-images');
-          imgContainer.innerHTML = `<img src="${listing.images[0]}" alt="Parking Spot" style="width:100%; height:100%; object-fit:cover;" />`;
+        const tpl = document.getElementById('listing-template').content.cloneNode(true);
+        tpl.querySelector('[data-field="name"]').textContent = location.name;
+        tpl.querySelector('[data-field="address"]').textContent = location.address;
+        tpl.querySelector('[data-field="host_name"]').textContent = location.host_name || 'a ParkSlot host';
+        tpl.querySelector('[data-field="price"]').textContent = `${money(pricePerHour)}/hr`;
+        tpl.querySelector('[data-field="vehicle-types"]').textContent =
+          (location.vehicle_types_allowed || []).map((v) => VEHICLE_LABELS[v] || v).join(', ') || 'Car';
+        const hours = location.operating_hours || {};
+        tpl.querySelector('[data-field="hours"]').textContent =
+          hours.open && hours.close ? `${hours.open} – ${hours.close}` : '24 hours';
+
+        const evBadge = tpl.querySelector('[data-field="ev-badge"]');
+        if (location.has_ev_charging) {
+          evBadge.textContent = '⚡ EV Charging';
+          evBadge.classList.add('badge-ev');
+        } else {
+          evBadge.remove();
         }
 
+        root.innerHTML = '';
+        root.appendChild(tpl);
+
+        renderSlotGrid(slots);
+        renderChargers(ev_chargers);
+        renderSlotOptions(slots);
+        loadReviews();
+        setupFavoriteButton();
+        setupBookingForm();
+
+        watchLocations([listingId]);
       } catch (err) {
-        console.error(err);
-        document.getElementById('listing-title').innerText = 'Error Loading Listing';
+        root.innerHTML = `<div class="clay-card state-msg text-danger">${apiErrorMessage(err, 'Could not load this listing.')}</div>`;
       }
     }
 
-    loadListing();
+    function renderSlotGrid(slots) {
+      const grid = document.getElementById('slot-grid');
+      grid.innerHTML = slots.map((s) => `<div class="slot-cell ${s.status}" title="${s.slot_number} — ${s.status}">${s.slot_number}</div>`).join('');
+    }
 
-    document.getElementById('booking-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const startTime = document.getElementById('start-time').value;
-      const endTime = document.getElementById('end-time').value;
+    function renderChargers(chargers) {
+      const el = document.getElementById('ev-charger-list');
+      if (!chargers || chargers.length === 0) { el.innerHTML = ''; return; }
+      el.innerHTML = `<h3 class="font-semibold mt-4 mb-2">EV Chargers</h3>` + chargers.map((c) => `
+        <div class="flex justify-between items-center text-sm mb-2">
+          <span>${c.connector_type} &middot; ${c.current_type} &middot; ${c.power_kw}kW</span>
+          <span class="badge badge-${c.status}">${c.status.replace('_', ' ')}</span>
+        </div>
+      `).join('');
+    }
 
-      try {
-        await api.post('/bookings', {
-          listing: listingId,
-          startTime,
-          endTime
-        });
-        alert('Booking created successfully!');
-        window.location.href = '/bookings.html';
-      } catch (err) {
-        console.error(err);
-        alert('Failed to create booking.');
+    function renderSlotOptions(slots) {
+      const select = document.getElementById('slot-select');
+      const available = slots.filter((s) => s.status === 'available');
+      if (available.length === 0) {
+        select.innerHTML = '<option value="">No slots available right now</option>';
+        document.getElementById('book-submit').disabled = true;
+        return;
       }
+      select.innerHTML = available.map((s) =>
+        `<option value="${s.slot_id}">${s.slot_number} (${VEHICLE_LABELS[s.vehicle_type] || s.vehicle_type})</option>`
+      ).join('');
+    }
+
+    async function loadReviews() {
+      try {
+        const res = await api.get(`/reviews/location/${listingId}`);
+        const reviews = res.data.reviews || [];
+        const el = document.getElementById('reviews-list');
+        if (reviews.length === 0) {
+          el.innerHTML = '<p class="text-muted text-sm">No reviews yet.</p>';
+          return;
+        }
+        el.innerHTML = reviews.map((r) => `
+          <div class="clay-card" style="padding:12px 16px;">
+            <div class="flex justify-between">
+              <strong>${r.author_name}</strong>
+              <span>${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
+            </div>
+            ${r.comment ? `<p class="text-sm text-muted mt-2">${r.comment}</p>` : ''}
+          </div>
+        `).join('');
+      } catch (err) {
+        // Non-critical — fail silently, reviews just won't show.
+      }
+    }
+
+    function setupFavoriteButton() {
+      const btn = document.getElementById('fav-btn');
+      if (!user || user.role !== 'driver') { btn.style.display = 'none'; return; }
+
+      let saved = false;
+      api.get('/favorites/ids').then((res) => {
+        saved = (res.data.ids || []).includes(listingId);
+        btn.innerHTML = saved ? '&#9829; Saved' : '&#9825; Save';
+      }).catch(() => {});
+
+      btn.addEventListener('click', async () => {
+        try {
+          if (saved) {
+            await api.delete(`/favorites/${listingId}`);
+            saved = false;
+            showToast('Removed from saved listings.');
+          } else {
+            await api.post(`/favorites/${listingId}`);
+            saved = true;
+            showToast('Added to saved listings.', 'success');
+          }
+          btn.innerHTML = saved ? '&#9829; Saved' : '&#9825; Save';
+        } catch (err) {
+          showToast(apiErrorMessage(err), 'error');
+        }
+      });
+    }
+
+    function updateEstimate() {
+      const start = document.getElementById('start-time').value;
+      const end = document.getElementById('end-time').value;
+      const estimate = document.getElementById('estimate');
+      if (!start || !end) { estimate.textContent = ''; return; }
+      const hours = (new Date(end) - new Date(start)) / 3600000;
+      if (hours <= 0) { estimate.textContent = 'End time must be after start time.'; return; }
+      estimate.textContent = `Estimated total: ${money(hours * pricePerHour)} (${hours.toFixed(1)} hrs)`;
+    }
+
+    function setupBookingForm() {
+      document.getElementById('start-time').addEventListener('input', updateEstimate);
+      document.getElementById('end-time').addEventListener('input', updateEstimate);
+
+      document.getElementById('booking-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!user) {
+          showToast('Please log in as a driver to book a spot.', 'error');
+          window.location.href = '/login.html';
+          return;
+        }
+        if (user.role !== 'driver') {
+          showToast('Only driver accounts can book parking.', 'error');
+          return;
+        }
+
+        const slotId = document.getElementById('slot-select').value;
+        const vehicleNumber = document.getElementById('vehicle-number').value.trim();
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
+
+        if (!slotId) { showToast('No slot selected.', 'error'); return; }
+        if (new Date(endTime) <= new Date(startTime)) {
+          showToast('End time must be after start time.', 'error');
+          return;
+        }
+
+        const submitBtn = document.getElementById('book-submit');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Booking...';
+
+        try {
+          const res = await api.post('/bookings', {
+            slot_id: slotId,
+            vehicle_number: vehicleNumber,
+            start_time: new Date(startTime).toISOString(),
+            end_time: new Date(endTime).toISOString(),
+          });
+          document.getElementById('qr-image').src = res.data.qr_pass;
+          document.getElementById('qr-modal').style.display = 'flex';
+        } catch (err) {
+          showToast(apiErrorMessage(err, 'Could not create booking.'), 'error');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Book Now';
+        }
+      });
+    }
+
+    document.getElementById('qr-close').addEventListener('click', () => {
+      window.location.href = '/bookings.html';
     });
+
+    // Live slot status — refresh the grid/options in place when anyone books/cancels/checks in.
+    onSlotUpdated(() => {
+      api.get(`/listings/${listingId}`).then((res) => {
+        currentSlots = res.data.slots;
+        renderSlotGrid(currentSlots);
+        renderSlotOptions(currentSlots);
+      }).catch(() => {});
+    });
+
+    loadListing();
   </script>
 </body>
 </html>

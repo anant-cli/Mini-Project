@@ -12,18 +12,19 @@
       height: 600px;
       width: 100%;
       border-radius: 24px;
-      z-index: 1; /* Keep below navbar */
+      z-index: 1;
     }
-    .map-container {
-      position: relative;
-    }
+    .map-container { position: relative; }
     .search-overlay {
       position: absolute;
       top: 20px;
       left: 20px;
       z-index: 1000;
       width: 300px;
+      max-height: calc(100% - 40px);
+      overflow-y: auto;
     }
+    .filter-row { display: flex; gap: 10px; align-items: center; }
   </style>
 </head>
 <body>
@@ -39,9 +40,30 @@
       <div class="search-overlay clay-card">
         <h2 class="text-xl font-bold mb-4">Find Parking</h2>
         <div class="form-group">
-          <input type="text" id="location-search" class="clay-input" placeholder="Search location..." />
+          <input type="text" id="location-search" class="clay-input" placeholder="Search a place (city, address)..." />
         </div>
-        <button id="search-btn" class="clay-btn clay-btn-primary w-full">Search</button>
+        <div class="form-group">
+          <select id="vehicle-filter" class="clay-input" style="padding: 14px 20px;">
+            <option value="">Any vehicle type</option>
+            <option value="two_wheeler">Two-wheeler</option>
+            <option value="car">Car</option>
+            <option value="suv">SUV</option>
+            <option value="ev_car">EV Car</option>
+            <option value="ev_two_wheeler">EV Two-wheeler</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <input type="number" id="max-price" class="clay-input" placeholder="Max price / hr" min="0" />
+        </div>
+        <div class="form-group checkbox-row">
+          <input type="checkbox" id="ev-only" />
+          <label for="ev-only">EV charging only</label>
+        </div>
+        <button id="search-btn" class="clay-btn clay-btn-primary w-full mb-2">Search this area</button>
+        <button id="locate-btn" class="clay-btn w-full">Use my location</button>
+
+        <div id="results-summary" class="text-muted text-sm mt-4"></div>
+        <div id="results-list" class="flex flex-col gap-2 mt-2"></div>
       </div>
       <div id="map"></div>
     </div>
@@ -49,10 +71,11 @@
 
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
-    import api from '/js/api.js';
+    import api, { apiErrorMessage } from '/js/api.js';
+    import { showToast } from '/js/toast.js';
+    import { watchLocations, unwatchLocations, onSlotUpdated } from '/js/socket.js';
     import L from 'leaflet';
 
-    // Fix for Leaflet default icon paths in bundler
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -60,65 +83,142 @@
       shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
     });
 
-    const map = L.map('map').setView([40.7128, -74.0060], 13); // Default to NYC or change as needed
+    let center = { lat: 12.9716, lng: 77.5946 }; // sensible default; overridden by geolocation below
+    const map = L.map('map').setView([center.lat, center.lng], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '© OpenStreetMap'
+      attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
     let markers = [];
+    let watchedIds = [];
+
+    function priceStr(l) { return `₹${Number(l.price_per_hour).toFixed(0)}/hr`; }
+
+    function renderResults(listings) {
+      const summary = document.getElementById('results-summary');
+      const list = document.getElementById('results-list');
+      summary.textContent = `${listings.length} spot${listings.length === 1 ? '' : 's'} found nearby`;
+
+      if (listings.length === 0) {
+        list.innerHTML = '<p class="text-muted text-sm">No parking found here. Try widening your search or removing filters.</p>';
+        return;
+      }
+
+      list.innerHTML = listings.map((l) => `
+        <a href="/listing.html?id=${l.location_id}" class="clay-card list-card" style="display:block; text-decoration:none; color:inherit;">
+          <div class="font-semibold">${l.name}</div>
+          <div class="text-sm text-muted">${l.address}</div>
+          <div class="flex justify-between items-center mt-2">
+            <span class="badge ${Number(l.available_slots) > 0 ? 'badge-available' : 'badge-disabled'}">
+              ${l.available_slots} available
+            </span>
+            <span class="font-semibold">${priceStr(l)}</span>
+          </div>
+        </a>
+      `).join('');
+    }
 
     async function loadListings() {
       try {
-        // Assume API endpoint /listings returns active listings
-        const res = await api.get('/listings?status=active');
-        const listings = res.data.data || res.data;
-        
-        // Clear old markers
-        markers.forEach(m => map.removeLayer(m));
+        const params = {
+          lat: center.lat,
+          lng: center.lng,
+          radiusKm: 15,
+        };
+        const vehicleType = document.getElementById('vehicle-filter').value;
+        const maxPrice = document.getElementById('max-price').value;
+        const evOnly = document.getElementById('ev-only').checked;
+        if (vehicleType) params.vehicleType = vehicleType;
+        if (maxPrice) params.maxPrice = maxPrice;
+        if (evOnly) params.evOnly = 'true';
+
+        const res = await api.get('/listings/search', { params });
+        const listings = res.data.results || [];
+
+        // Stop watching old locations, start watching the new set for live updates.
+        unwatchLocations(watchedIds);
+        watchedIds = listings.map((l) => l.location_id);
+        watchLocations(watchedIds);
+
+        markers.forEach((m) => map.removeLayer(m));
         markers = [];
 
-        listings.forEach(listing => {
-          if (listing.location && listing.location.coordinates) {
-            const [lng, lat] = listing.location.coordinates;
-            const marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup(`
-              <div>
-                <strong>${listing.address}</strong><br>
-                Price: $${listing.pricePerHour}/hr<br>
-                <a href="/listing.html?id=${listing._id}" style="color: var(--color-primary); font-weight: bold;">View Details</a>
-              </div>
-            `);
-            markers.push(marker);
-          }
+        listings.forEach((listing) => {
+          const marker = L.marker([listing.latitude, listing.longitude]).addTo(map);
+          marker.bindPopup(`
+            <strong>${listing.name}</strong><br>
+            ${priceStr(listing)} &middot; ${listing.available_slots} available<br>
+            <a href="/listing.html?id=${listing.location_id}" style="color:#5c8df6; font-weight:bold;">View Details</a>
+          `);
+          marker.locationId = listing.location_id;
+          markers.push(marker);
         });
+
+        renderResults(listings);
       } catch (err) {
-        console.error('Error loading listings:', err);
+        showToast(apiErrorMessage(err, 'Could not load nearby parking.'), 'error');
       }
     }
 
-    // Attempt to load listings on mount
-    loadListings();
-
-    // Setup search
-    document.getElementById('search-btn').addEventListener('click', () => {
-      const query = document.getElementById('location-search').value;
-      if (query) {
-        // Geocode using nominatim as a quick workaround without Google Maps API
-        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-          .then(r => r.json())
-          .then(data => {
-            if (data && data.length > 0) {
-              const lat = data[0].lat;
-              const lon = data[0].lon;
-              map.setView([lat, lon], 14);
-              loadListings(); // Optionally filter by bounds here
-            }
-          })
-          .catch(err => console.error(err));
-      }
+    // Live slot availability — badge text/marker popups refresh without a reload.
+    onSlotUpdated(({ slot_id, available_slots, status } = {}) => {
+      loadListings();
     });
+
+    document.getElementById('search-btn').addEventListener('click', loadListings);
+    document.getElementById('vehicle-filter').addEventListener('change', loadListings);
+    document.getElementById('ev-only').addEventListener('change', loadListings);
+
+    document.getElementById('locate-btn').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        showToast('Geolocation is not supported by this browser.', 'error');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          map.setView([center.lat, center.lng], 14);
+          loadListings();
+        },
+        () => showToast('Could not get your location. Using default area instead.', 'error')
+      );
+    });
+
+    document.getElementById('location-search').addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const query = e.target.value.trim();
+      if (!query) return;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.length > 0) {
+            center = { lat: Number(data[0].lat), lng: Number(data[0].lon) };
+            map.setView([center.lat, center.lng], 14);
+            loadListings();
+          } else {
+            showToast('No matching location found.', 'error');
+          }
+        })
+        .catch(() => showToast('Location search failed.', 'error'));
+    });
+
+    // Try to center on the user automatically on first load; fall back to default.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          map.setView([center.lat, center.lng], 13);
+          loadListings();
+        },
+        () => loadListings(),
+        { timeout: 4000 }
+      );
+    } else {
+      loadListings();
+    }
   </script>
 </body>
 </html>

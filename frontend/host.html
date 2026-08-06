@@ -15,121 +15,363 @@
     </div>
   </nav>
 
-  <main class="container mt-8">
-    <div class="flex justify-between items-center mb-8">
+  <main class="container mt-8" id="page-root" style="display:none;">
+    <div class="flex justify-between items-center mb-8" style="flex-wrap:wrap; gap:12px;">
       <h1 class="text-3xl">Host Dashboard</h1>
       <button id="add-listing-btn" class="clay-btn clay-btn-primary">+ Add New Listing</button>
+    </div>
+
+    <div class="grid grid-3 mb-8">
+      <div class="clay-card text-center">
+        <p class="text-muted text-sm">Total Listings</p>
+        <p class="text-3xl" id="stat-listings">0</p>
+      </div>
+      <div class="clay-card text-center">
+        <p class="text-muted text-sm">Completed Bookings</p>
+        <p class="text-3xl" id="stat-bookings">0</p>
+      </div>
+      <div class="clay-card text-center">
+        <p class="text-muted text-sm">Est. Payout (after 15% commission)</p>
+        <p class="text-3xl" id="stat-earnings">₹0</p>
+      </div>
     </div>
 
     <div class="clay-card mb-8" id="add-listing-form" style="display: none;">
       <h2 class="text-2xl mb-4">Create Listing</h2>
       <form id="create-listing-form">
-        <div class="flex gap-4 mb-4">
-          <div class="form-group w-full">
-            <label class="form-label" for="address">Address</label>
-            <input type="text" id="address" class="clay-input" required />
+        <div class="grid grid-2">
+          <div class="form-group">
+            <label class="form-label" for="name">Listing Name</label>
+            <input type="text" id="name" class="clay-input" placeholder="e.g. Koramangala Driveway" required />
           </div>
-          <div class="form-group w-full">
-            <label class="form-label" for="price">Price Per Hour ($)</label>
-            <input type="number" id="price" class="clay-input" required />
+          <div class="form-group">
+            <label class="form-label" for="price">Price Per Hour (₹)</label>
+            <input type="number" id="price" class="clay-input" min="1" step="0.01" required />
           </div>
         </div>
-        <div class="flex gap-4 mb-4">
-          <div class="form-group w-full">
+        <div class="form-group">
+          <label class="form-label" for="address">Address</label>
+          <input type="text" id="address" class="clay-input" required />
+        </div>
+        <div class="grid grid-2">
+          <div class="form-group">
             <label class="form-label" for="lat">Latitude</label>
-            <input type="text" id="lat" class="clay-input" required />
+            <input type="number" step="any" id="lat" class="clay-input" required />
           </div>
-          <div class="form-group w-full">
+          <div class="form-group">
             <label class="form-label" for="lng">Longitude</label>
-            <input type="text" id="lng" class="clay-input" required />
+            <input type="number" step="any" id="lng" class="clay-input" required />
           </div>
         </div>
-        <div class="form-group mb-4">
-          <label class="form-label" for="type">Space Type</label>
-          <select id="type" class="clay-input" style="padding: 14px 20px;">
-            <option value="driveway">Driveway</option>
-            <option value="garage">Garage</option>
-            <option value="commercial">Commercial</option>
-          </select>
+        <button type="button" id="use-location-btn" class="clay-btn mb-4">Use my current location</button>
+
+        <div class="grid grid-2">
+          <div class="form-group">
+            <label class="form-label" for="total-slots">Total Slots</label>
+            <input type="number" id="total-slots" class="clay-input" min="1" value="1" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Operating Hours</label>
+            <div class="flex gap-4">
+              <input type="time" id="open-time" class="clay-input" value="00:00" />
+              <input type="time" id="close-time" class="clay-input" value="23:59" />
+            </div>
+          </div>
         </div>
-        <button type="submit" class="clay-btn clay-btn-primary">Save Listing</button>
+
+        <div class="form-group">
+          <label class="form-label">Vehicle Types Allowed</label>
+          <div class="checkbox-group">
+            <label class="checkbox-row"><input type="checkbox" name="vtype" value="car" checked /> Car</label>
+            <label class="checkbox-row"><input type="checkbox" name="vtype" value="two_wheeler" /> Two-wheeler</label>
+            <label class="checkbox-row"><input type="checkbox" name="vtype" value="suv" /> SUV</label>
+            <label class="checkbox-row"><input type="checkbox" name="vtype" value="ev_car" /> EV Car</label>
+            <label class="checkbox-row"><input type="checkbox" name="vtype" value="ev_two_wheeler" /> EV Two-wheeler</label>
+          </div>
+        </div>
+
+        <div class="form-group checkbox-row">
+          <input type="checkbox" id="has-ev" />
+          <label for="has-ev">This listing has EV charging</label>
+        </div>
+
+        <div id="ev-fields" style="display:none;">
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label class="form-label" for="ev-connector">Connector Type</label>
+              <select id="ev-connector" class="clay-input" style="padding:14px 20px;">
+                <option>Type-1</option><option>Type-2</option><option>CCS</option><option>CHAdeMO</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ev-current">Current Type</label>
+              <select id="ev-current" class="clay-input" style="padding:14px 20px;">
+                <option>AC</option><option>DC</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-2">
+            <div class="form-group">
+              <label class="form-label" for="ev-power">Power (kW)</label>
+              <input type="number" id="ev-power" class="clay-input" min="0.1" step="0.1" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="ev-price">Price / kWh (₹)</label>
+              <input type="number" id="ev-price" class="clay-input" min="0.1" step="0.1" />
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" id="create-submit" class="clay-btn clay-btn-primary">Save Listing</button>
         <button type="button" class="clay-btn clay-btn-secondary" id="cancel-listing-btn">Cancel</button>
       </form>
     </div>
 
-    <div class="clay-card">
+    <div class="clay-card mb-8">
       <h2 class="text-2xl mb-4">Your Listings</h2>
       <div id="host-listings" class="flex flex-col gap-4">
-        <p class="text-muted">Loading...</p>
+        <div class="state-msg"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <div class="clay-card mb-8">
+      <h2 class="text-2xl mb-4">Check-in / Check-out</h2>
+      <p class="text-muted text-sm mb-4">Ask the driver to show their QR pass, then enter the code shown beneath it (or scan it with any QR app first).</p>
+      <div class="flex gap-4" style="flex-wrap:wrap;">
+        <input type="text" id="qr-token-input" class="clay-input" style="flex:1; min-width:200px;" placeholder="Paste QR token here" />
+        <button id="checkin-btn" class="clay-btn clay-btn-primary">Check In</button>
+        <button id="checkout-btn" class="clay-btn clay-btn-secondary">Check Out</button>
+      </div>
+      <p id="checkin-result" class="text-sm mt-4"></p>
+    </div>
+
+    <div class="clay-card">
+      <h2 class="text-2xl mb-4">Bookings</h2>
+      <div id="host-bookings" class="flex flex-col gap-3">
+        <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
   </main>
 
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
-    import api from '/js/api.js';
+    import api, { apiErrorMessage } from '/js/api.js';
+    import { requireAuth } from '/js/auth.js';
+    import { showToast } from '/js/toast.js';
+    import { watchLocations, onSlotUpdated } from '/js/socket.js';
+
+    const user = requireAuth(['host', 'business_host']);
+    if (user) document.getElementById('page-root').style.display = 'block';
 
     document.getElementById('add-listing-btn').addEventListener('click', () => {
       document.getElementById('add-listing-form').style.display = 'block';
     });
-    
     document.getElementById('cancel-listing-btn').addEventListener('click', () => {
       document.getElementById('add-listing-form').style.display = 'none';
     });
+    document.getElementById('has-ev').addEventListener('change', (e) => {
+      document.getElementById('ev-fields').style.display = e.target.checked ? 'block' : 'none';
+    });
+    document.getElementById('use-location-btn').addEventListener('click', () => {
+      if (!navigator.geolocation) return showToast('Geolocation not supported.', 'error');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+          document.getElementById('lng').value = pos.coords.longitude.toFixed(6);
+        },
+        () => showToast('Could not get your location.', 'error')
+      );
+    });
+
+    function money(n) { return `₹${Number(n).toFixed(0)}`; }
 
     async function loadListings() {
+      const container = document.getElementById('host-listings');
       try {
-        const res = await api.get('/listings/host/me');
-        const listings = res.data.data || res.data;
-        const container = document.getElementById('host-listings');
-        
+        const res = await api.get('/listings/mine');
+        const listings = res.data.listings || [];
+        document.getElementById('stat-listings').textContent = listings.length;
+
         if (listings.length === 0) {
-          container.innerHTML = '<p class="text-muted">You have no listings yet.</p>';
+          container.innerHTML = '<p class="text-muted">You have no listings yet. Add one to get started.</p>';
           return;
         }
 
-        container.innerHTML = listings.map(l => `
-          <div class="clay-card" style="padding: 16px;">
-            <div class="flex justify-between items-center">
+        container.innerHTML = listings.map((l) => `
+          <div class="clay-card" style="padding:18px 20px;" data-location="${l.location_id}">
+            <div class="list-card-row">
               <div>
-                <strong>${l.address}</strong>
-                <p class="text-muted text-sm">$${l.pricePerHour}/hr • ${l.type}</p>
+                <strong>${l.name}</strong>
+                <p class="text-muted text-sm">${l.address}</p>
+                <p class="text-sm mt-2">${money(l.price_per_hour)}/hr &middot; ${l.available_slots}/${l.total_slots} available</p>
               </div>
-              <span style="color: ${l.status === 'active' ? 'var(--color-success)' : 'var(--color-warning)'}">${l.status}</span>
+              <span class="badge ${l.is_verified ? 'badge-available' : 'badge-pending'}">${l.is_verified ? 'Verified' : 'Pending review'}</span>
+            </div>
+            <div class="slot-grid" data-slotgrid="${l.location_id}">
+              ${(l.slots || []).map((s) => `<div class="slot-cell ${s.status}" title="${s.slot_number}">${s.slot_number}</div>`).join('')}
             </div>
           </div>
         `).join('');
+
+        watchLocations(listings.map((l) => l.location_id));
       } catch (err) {
-        console.error(err);
-        document.getElementById('host-listings').innerHTML = '<p class="text-danger">Failed to load listings.</p>';
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load listings.')}</p>`;
       }
     }
 
+    function refreshSlotGrid(locationId) {
+      api.get(`/listings/${locationId}`).then((res) => {
+        const el = document.querySelector(`[data-slotgrid="${locationId}"]`);
+        if (!el) return;
+        el.innerHTML = res.data.slots.map((s) =>
+          `<div class="slot-cell ${s.status}" title="${s.slot_number}">${s.slot_number}</div>`
+        ).join('');
+      }).catch(() => {});
+    }
+
+    onSlotUpdated(() => {
+      document.querySelectorAll('[data-slotgrid]').forEach((el) => refreshSlotGrid(el.dataset.slotgrid));
+    });
+
     document.getElementById('create-listing-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const address = document.getElementById('address').value;
-      const price = document.getElementById('price').value;
-      const lat = document.getElementById('lat').value;
-      const lng = document.getElementById('lng').value;
-      const type = document.getElementById('type').value;
+      const submitBtn = document.getElementById('create-submit');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+
+      const vehicleTypes = Array.from(document.querySelectorAll('input[name="vtype"]:checked')).map((cb) => cb.value);
+      if (vehicleTypes.length === 0) {
+        showToast('Select at least one vehicle type.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Listing';
+        return;
+      }
+
+      const hasEv = document.getElementById('has-ev').checked;
 
       try {
-        await api.post('/listings', {
-          address,
-          pricePerHour: parseFloat(price),
-          location: { type: 'Point', coordinates: [parseFloat(lng), parseFloat(lat)] },
-          type
+        const res = await api.post('/listings', {
+          name: document.getElementById('name').value.trim(),
+          address: document.getElementById('address').value.trim(),
+          latitude: Number(document.getElementById('lat').value),
+          longitude: Number(document.getElementById('lng').value),
+          total_slots: Number(document.getElementById('total-slots').value),
+          price_per_hour: Number(document.getElementById('price').value),
+          vehicle_types_allowed: vehicleTypes,
+          has_ev_charging: hasEv,
+          operating_hours: {
+            open: document.getElementById('open-time').value,
+            close: document.getElementById('close-time').value,
+          },
         });
-        alert('Listing created!');
+
+        const locationId = res.data.location.location_id;
+
+        if (hasEv) {
+          const power = document.getElementById('ev-power').value;
+          const priceKwh = document.getElementById('ev-price').value;
+          if (power && priceKwh) {
+            await api.post('/ev-chargers', {
+              location_id: locationId,
+              connector_type: document.getElementById('ev-connector').value,
+              current_type: document.getElementById('ev-current').value,
+              power_kw: Number(power),
+              price_per_kwh: Number(priceKwh),
+            });
+          }
+        }
+
+        showToast('Listing created! An admin will review it shortly.', 'success');
+        document.getElementById('create-listing-form').reset();
         document.getElementById('add-listing-form').style.display = 'none';
+        document.getElementById('ev-fields').style.display = 'none';
         loadListings();
       } catch (err) {
-        console.error(err);
-        alert('Failed to create listing.');
+        showToast(apiErrorMessage(err, 'Failed to create listing.'), 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Listing';
       }
     });
 
-    loadListings();
+    async function loadBookings() {
+      const container = document.getElementById('host-bookings');
+      try {
+        const res = await api.get('/bookings/host');
+        const bookings = res.data.bookings || [];
+
+        const completed = bookings.filter((b) => b.status === 'completed');
+        document.getElementById('stat-bookings').textContent = completed.length;
+        const gross = completed.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+        document.getElementById('stat-earnings').textContent = money(gross * 0.85);
+
+        if (bookings.length === 0) {
+          container.innerHTML = '<p class="text-muted">No bookings yet.</p>';
+          return;
+        }
+
+        container.innerHTML = bookings.map((b) => `
+          <div class="clay-card" style="padding:14px 18px;">
+            <div class="list-card-row">
+              <div>
+                <strong>${b.location_name}</strong> &middot; Slot ${b.slot_number}
+                <p class="text-sm text-muted">${b.driver_name} (${b.driver_email}) &middot; ${b.vehicle_number}</p>
+                <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} &rarr; ${new Date(b.end_time).toLocaleString()}</p>
+              </div>
+              <div class="text-center">
+                <span class="badge badge-${b.status}">${b.status.replace('_', ' ')}</span>
+                ${b.total_amount ? `<p class="text-sm mt-2">${money(b.total_amount)}</p>` : ''}
+              </div>
+            </div>
+            ${b.status === 'completed' && !b.driver_review_id ? `
+              <button class="clay-btn mt-2 rate-driver-btn" data-booking="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Rate this driver</button>
+            ` : ''}
+          </div>
+        `).join('');
+
+        document.querySelectorAll('.rate-driver-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const rating = prompt('Rate this driver 1-5:', '5');
+            if (!rating) return;
+            try {
+              await api.post('/reviews/driver', { booking_id: btn.dataset.booking, rating: Number(rating) });
+              showToast('Review submitted.', 'success');
+              loadBookings();
+            } catch (err) {
+              showToast(apiErrorMessage(err), 'error');
+            }
+          });
+        });
+      } catch (err) {
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load bookings.')}</p>`;
+      }
+    }
+
+    async function handleScan(action) {
+      const token = document.getElementById('qr-token-input').value.trim();
+      const resultEl = document.getElementById('checkin-result');
+      if (!token) { showToast('Enter a QR token first.', 'error'); return; }
+      try {
+        const res = await api.post(`/bookings/${action}`, { qr_token: token });
+        resultEl.textContent = `${action === 'checkin' ? 'Checked in' : 'Checked out'}: ${res.data.booking.vehicle_number} — status ${res.data.booking.status}`;
+        resultEl.className = 'text-sm mt-4 text-success';
+        showToast('Success!', 'success');
+        document.getElementById('qr-token-input').value = '';
+        loadListings();
+        loadBookings();
+      } catch (err) {
+        resultEl.textContent = apiErrorMessage(err);
+        resultEl.className = 'text-sm mt-4 text-danger';
+      }
+    }
+
+    document.getElementById('checkin-btn').addEventListener('click', () => handleScan('checkin'));
+    document.getElementById('checkout-btn').addEventListener('click', () => handleScan('checkout'));
+
+    if (user) {
+      loadListings();
+      loadBookings();
+    }
   </script>
 </body>
 </html>

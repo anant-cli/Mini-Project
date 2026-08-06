@@ -20,9 +20,12 @@ dotenv.config();
 
 const app = express();
 
+// CORS_ORIGIN may be a single origin or a comma-separated list (useful when
+// the frontend has both a production domain and Vercel preview URLs).
 const corsOrigin = process.env.CORS_ORIGIN || '*';
+const allowedOrigins = corsOrigin === '*' ? '*' : corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
 const apiOrigin = process.env.API_ORIGIN || `http://localhost:${process.env.PORT || 5000}`;
-const frontendOrigin = corsOrigin === '*' ? 'http://localhost:5173' : corsOrigin;
+const frontendOrigin = allowedOrigins === '*' ? 'http://localhost:5173' : allowedOrigins[0];
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -42,7 +45,7 @@ app.use(helmet({
     },
   },
 }));
-app.use(cors({ origin: corsOrigin }));
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 app.use(morgan('dev'));
 

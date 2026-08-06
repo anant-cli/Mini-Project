@@ -15,49 +15,69 @@
     </div>
   </nav>
 
-  <main class="container mt-8">
+  <main class="container mt-8" id="page-root" style="display:none;">
     <h1 class="text-3xl mb-8">Saved Listings</h1>
 
     <div class="clay-card">
       <div id="saved-list" class="flex flex-col gap-4">
-        <p class="text-muted">Loading...</p>
+        <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
   </main>
 
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
-    import api from '/js/api.js';
+    import api, { apiErrorMessage } from '/js/api.js';
+    import { requireAuth } from '/js/auth.js';
+    import { showToast } from '/js/toast.js';
+
+    const user = requireAuth(['driver']);
+    if (user) document.getElementById('page-root').style.display = 'block';
+
+    function money(n) { return `₹${Number(n).toFixed(0)}`; }
 
     async function loadSaved() {
+      const container = document.getElementById('saved-list');
       try {
-        const res = await api.get('/users/saved-listings'); // Assuming route exists
-        const listings = res.data.data || res.data;
-        const container = document.getElementById('saved-list');
-        
+        const res = await api.get('/favorites');
+        const listings = res.data.favorites || [];
+
         if (listings.length === 0) {
-          container.innerHTML = '<p class="text-muted">You have no saved listings.</p>';
+          container.innerHTML = '<p class="text-muted">You have no saved listings yet. <a href="/search.html">Browse parking &rarr;</a></p>';
           return;
         }
 
-        container.innerHTML = listings.map(l => `
-          <div class="clay-card" style="padding: 16px;">
-            <div class="flex justify-between items-center">
-              <div>
-                <strong>${l.address}</strong>
-                <p class="text-muted text-sm">$${l.pricePerHour}/hr • ${l.type}</p>
-              </div>
-              <a href="/listing.html?id=${l._id}" class="clay-btn clay-btn-primary">View</a>
+        container.innerHTML = listings.map((l) => `
+          <div class="clay-card list-card" style="padding:16px 20px;" data-id="${l.location_id}">
+            <div>
+              <strong>${l.name}</strong>
+              <p class="text-muted text-sm">${l.address}</p>
+              <p class="text-sm mt-2">${money(l.price_per_hour)}/hr &middot; ${l.available_slots} available</p>
+            </div>
+            <div class="flex gap-2">
+              <a href="/listing.html?id=${l.location_id}" class="clay-btn clay-btn-primary" style="padding:8px 16px; font-size:0.85rem;">View</a>
+              <button class="clay-btn remove-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Remove</button>
             </div>
           </div>
         `).join('');
+
+        container.querySelectorAll('.remove-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            try {
+              await api.delete(`/favorites/${btn.dataset.id}`);
+              showToast('Removed from saved listings.');
+              loadSaved();
+            } catch (err) {
+              showToast(apiErrorMessage(err), 'error');
+            }
+          });
+        });
       } catch (err) {
-        console.error(err);
-        document.getElementById('saved-list').innerHTML = '<p class="text-muted">Failed to load saved listings or endpoint does not exist.</p>';
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load saved listings.')}</p>`;
       }
     }
 
-    loadSaved();
+    if (user) loadSaved();
   </script>
 </body>
 </html>

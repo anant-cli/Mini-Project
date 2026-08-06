@@ -3,8 +3,11 @@ import { Server } from 'socket.io';
 let io;
 
 export const initSocket = (httpServer) => {
+  const corsOrigin = process.env.CORS_ORIGIN || '*';
+  const allowedOrigins = corsOrigin === '*' ? '*' : corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+
   io = new Server(httpServer, {
-    cors: { origin: process.env.CORS_ORIGIN || '*' },
+    cors: { origin: allowedOrigins },
   });
 
   io.on('connection', (socket) => {

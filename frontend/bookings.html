@@ -15,52 +15,112 @@
     </div>
   </nav>
 
-  <main class="container mt-8">
+  <main class="container mt-8" id="page-root" style="display:none;">
     <h1 class="text-3xl mb-8">My Bookings</h1>
 
     <div class="clay-card">
       <div id="bookings-list" class="flex flex-col gap-4">
-        <p class="text-muted">Loading...</p>
+        <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
   </main>
 
+  <div id="qr-modal" class="modal-backdrop" style="display:none;">
+    <div class="clay-card modal-box">
+      <h2 class="text-xl mb-4">Your QR Pass</h2>
+      <img id="qr-image" src="" alt="QR pass" />
+      <button id="qr-close" class="clay-btn clay-btn-primary w-full mt-4">Close</button>
+    </div>
+  </div>
+
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
-    import api from '/js/api.js';
+    import api, { apiErrorMessage } from '/js/api.js';
+    import { requireAuth } from '/js/auth.js';
+    import { showToast } from '/js/toast.js';
+
+    const user = requireAuth();
+    if (user) document.getElementById('page-root').style.display = 'block';
+
+    function money(n) { return `₹${Number(n).toFixed(0)}`; }
 
     async function loadBookings() {
+      const container = document.getElementById('bookings-list');
       try {
-        const res = await api.get('/bookings');
-        const bookings = res.data.data || res.data;
-        const container = document.getElementById('bookings-list');
-        
+        const res = await api.get('/bookings/mine');
+        const bookings = res.data.bookings || [];
+
         if (bookings.length === 0) {
-          container.innerHTML = '<p class="text-muted">You have no bookings yet.</p>';
+          container.innerHTML = '<p class="text-muted">You have no bookings yet. <a href="/search.html">Find parking &rarr;</a></p>';
           return;
         }
 
-        container.innerHTML = bookings.map(b => `
-          <div class="clay-card" style="padding: 16px;">
-            <div class="flex justify-between items-center">
+        container.innerHTML = bookings.map((b) => `
+          <div class="clay-card list-card" style="padding:16px 20px;">
+            <div class="list-card-row">
               <div>
-                <strong>${b.listing ? b.listing.address : 'Unknown Listing'}</strong>
-                <p class="text-muted text-sm">
-                  ${new Date(b.startTime).toLocaleString()} - ${new Date(b.endTime).toLocaleString()}
-                </p>
-                <p class="text-sm" style="color:var(--color-primary)">Total: $${b.totalPrice}</p>
+                <strong>${b.location_name}</strong>
+                <p class="text-sm text-muted">${b.address}</p>
+                <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} &rarr; ${new Date(b.end_time).toLocaleString()}</p>
+                <p class="text-sm mt-2">${money(b.total_amount || b.estimated_amount)}${b.overtime_amount > 0 ? ` (incl. ${money(b.overtime_amount)} overtime)` : ''}</p>
               </div>
-              <span style="font-weight: bold; color: ${b.status === 'confirmed' ? 'var(--color-success)' : 'var(--color-warning)'}">${b.status}</span>
+              <span class="badge badge-${b.status}">${b.status.replace('_', ' ')}</span>
+            </div>
+            <div class="flex gap-2 mt-2" style="flex-wrap:wrap;">
+              ${['pending', 'confirmed'].includes(b.status) ? `<button class="clay-btn qr-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Show QR Pass</button>` : ''}
+              ${['pending', 'confirmed'].includes(b.status) ? `<button class="clay-btn cancel-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Cancel</button>` : ''}
+              ${b.status === 'completed' && !b.location_review_id ? `<button class="clay-btn review-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Leave a review</button>` : ''}
             </div>
           </div>
         `).join('');
+
+        container.querySelectorAll('.qr-btn').forEach((btn) => btn.addEventListener('click', () => showQr(btn.dataset.id)));
+        container.querySelectorAll('.cancel-btn').forEach((btn) => btn.addEventListener('click', () => cancelBooking(btn.dataset.id)));
+        container.querySelectorAll('.review-btn').forEach((btn) => btn.addEventListener('click', () => leaveReview(btn.dataset.id)));
       } catch (err) {
-        console.error(err);
-        document.getElementById('bookings-list').innerHTML = '<p class="text-danger">Failed to load bookings.</p>';
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load bookings.')}</p>`;
       }
     }
 
-    loadBookings();
+    async function showQr(bookingId) {
+      try {
+        const res = await api.get(`/bookings/${bookingId}/pass`);
+        document.getElementById('qr-image').src = res.data.qr_pass;
+        document.getElementById('qr-modal').style.display = 'flex';
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    }
+
+    async function cancelBooking(bookingId) {
+      if (!confirm('Cancel this booking?')) return;
+      try {
+        await api.patch(`/bookings/${bookingId}/cancel`);
+        showToast('Booking cancelled.', 'success');
+        loadBookings();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    }
+
+    async function leaveReview(bookingId) {
+      const rating = prompt('Rate this parking spot 1-5:', '5');
+      if (!rating) return;
+      const comment = prompt('Add a comment (optional):', '') || undefined;
+      try {
+        await api.post('/reviews/location', { booking_id: bookingId, rating: Number(rating), comment });
+        showToast('Thanks for the review!', 'success');
+        loadBookings();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    }
+
+    document.getElementById('qr-close').addEventListener('click', () => {
+      document.getElementById('qr-modal').style.display = 'none';
+    });
+
+    if (user) loadBookings();
   </script>
 </body>
 </html>

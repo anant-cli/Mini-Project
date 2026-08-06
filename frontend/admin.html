@@ -15,89 +15,185 @@
     </div>
   </nav>
 
-  <main class="container mt-8">
+  <main class="container mt-8" id="page-root" style="display:none;">
     <h1 class="text-3xl mb-8">Admin Dashboard</h1>
 
-    <div class="flex gap-8" style="flex-wrap: wrap;">
-      <div class="clay-card w-full">
-        <h2 class="text-2xl mb-4">Pending Approvals</h2>
-        <div id="pending-list" class="flex flex-col gap-4">
-          <p class="text-muted">Loading...</p>
-        </div>
+    <div class="grid grid-3 mb-8" id="report-stats">
+      <div class="clay-card text-center"><p class="text-muted text-sm">Gross Volume</p><p class="text-3xl" id="stat-volume">₹0</p></div>
+      <div class="clay-card text-center"><p class="text-muted text-sm">Captured Transactions</p><p class="text-3xl" id="stat-transactions">0</p></div>
+      <div class="clay-card text-center"><p class="text-muted text-sm">Total Users</p><p class="text-3xl" id="stat-users">0</p></div>
+    </div>
+
+    <div class="clay-card mb-8">
+      <h2 class="text-2xl mb-4">Pending Listing Approvals</h2>
+      <div id="pending-list" class="flex flex-col gap-3">
+        <div class="state-msg"><div class="spinner"></div></div>
       </div>
-      
-      <div class="clay-card w-full mt-8">
-        <h2 class="text-2xl mb-4">All Users</h2>
-        <div id="users-list" class="flex flex-col gap-4">
-          <p class="text-muted">Loading...</p>
-        </div>
+    </div>
+
+    <div class="clay-card mb-8">
+      <h2 class="text-2xl mb-4">Open Disputes</h2>
+      <div id="disputes-list" class="flex flex-col gap-3">
+        <div class="state-msg"><div class="spinner"></div></div>
+      </div>
+    </div>
+
+    <div class="clay-card">
+      <h2 class="text-2xl mb-4">All Users</h2>
+      <div id="users-list" class="flex flex-col gap-2">
+        <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
   </main>
 
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
-    import api from '/js/api.js';
+    import api, { apiErrorMessage } from '/js/api.js';
+    import { requireAuth } from '/js/auth.js';
+    import { showToast } from '/js/toast.js';
+
+    const user = requireAuth(['admin']);
+    if (user) document.getElementById('page-root').style.display = 'block';
+
+    function money(n) { return `₹${Number(n).toFixed(0)}`; }
+
+    async function loadReport() {
+      try {
+        const res = await api.get('/admin/report');
+        document.getElementById('stat-volume').textContent = money(res.data.revenue.gross_volume);
+        document.getElementById('stat-transactions').textContent = res.data.revenue.total_transactions;
+        const totalUsers = (res.data.userCounts || []).reduce((sum, r) => sum + Number(r.count), 0);
+        document.getElementById('stat-users').textContent = totalUsers;
+      } catch (err) {
+        showToast(apiErrorMessage(err, 'Failed to load platform report.'), 'error');
+      }
+    }
 
     async function loadPending() {
+      const container = document.getElementById('pending-list');
       try {
-        const res = await api.get('/admin/listings/pending'); // Assuming route exists
-        const listings = res.data.data || res.data;
-        const container = document.getElementById('pending-list');
-        
+        const res = await api.get('/listings/admin/pending');
+        const listings = res.data.listings || [];
+
         if (listings.length === 0) {
-          container.innerHTML = '<p class="text-muted">No pending listings.</p>';
+          container.innerHTML = '<p class="text-muted">No listings awaiting review.</p>';
           return;
         }
 
-        container.innerHTML = listings.map(l => `
-          <div class="clay-card" style="padding: 16px;">
-            <div class="flex justify-between items-center">
+        container.innerHTML = listings.map((l) => `
+          <div class="clay-card list-card">
+            <div class="list-card-row">
               <div>
-                <strong>${l.address}</strong>
-                <p class="text-muted text-sm">$${l.pricePerHour}/hr</p>
+                <strong>${l.name}</strong>
+                <p class="text-muted text-sm">${l.address}</p>
+                <p class="text-sm">${money(l.price_per_hour)}/hr &middot; ${l.total_slots} slots</p>
               </div>
-              <div>
-                <button onclick="approveListing('${l._id}')" class="clay-btn clay-btn-primary" style="padding: 8px 16px; font-size: 0.8rem;">Approve</button>
+              <div class="flex gap-2">
+                <button class="clay-btn clay-btn-primary approve-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Approve</button>
+                <button class="clay-btn reject-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Reject</button>
               </div>
             </div>
           </div>
         `).join('');
+
+        container.querySelectorAll('.approve-btn').forEach((btn) => btn.addEventListener('click', () => reviewListing(btn.dataset.id, true)));
+        container.querySelectorAll('.reject-btn').forEach((btn) => btn.addEventListener('click', () => reviewListing(btn.dataset.id, false)));
       } catch (err) {
-        console.error(err);
-        document.getElementById('pending-list').innerHTML = '<p class="text-muted">Error loading listings (Admin endpoint may not exist).</p>';
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err)}</p>`;
+      }
+    }
+
+    async function reviewListing(id, approve) {
+      try {
+        await api.patch(`/listings/admin/${id}/review`, { approve });
+        showToast(approve ? 'Listing approved.' : 'Listing rejected.', 'success');
+        loadPending();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    }
+
+    async function loadDisputes() {
+      const container = document.getElementById('disputes-list');
+      try {
+        const res = await api.get('/admin/disputes');
+        const disputes = res.data.disputes || [];
+
+        if (disputes.length === 0) {
+          container.innerHTML = '<p class="text-muted">No open disputes.</p>';
+          return;
+        }
+
+        container.innerHTML = disputes.map((d) => `
+          <div class="clay-card list-card">
+            <div>
+              <strong>${d.vehicle_number || 'Booking'} &middot; ${money(d.total_amount || 0)}</strong>
+              <p class="text-sm text-muted mt-2">${d.reason}</p>
+            </div>
+            <div class="flex gap-2 mt-2">
+              <input type="text" class="clay-input resolution-input" data-id="${d.dispute_id}" placeholder="Resolution note..." style="flex:1;" />
+              <button class="clay-btn clay-btn-primary resolve-btn" data-id="${d.dispute_id}" style="padding:10px 16px; font-size:0.85rem;">Resolve</button>
+            </div>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.resolve-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const input = container.querySelector(`.resolution-input[data-id="${btn.dataset.id}"]`);
+            try {
+              await api.patch(`/admin/disputes/${btn.dataset.id}/resolve`, { resolution: input.value.trim() || 'Resolved by admin.' });
+              showToast('Dispute resolved.', 'success');
+              loadDisputes();
+            } catch (err) {
+              showToast(apiErrorMessage(err), 'error');
+            }
+          });
+        });
+      } catch (err) {
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err)}</p>`;
       }
     }
 
     async function loadUsers() {
+      const container = document.getElementById('users-list');
       try {
-        const res = await api.get('/admin/users'); // Assuming route exists
-        const users = res.data.data || res.data;
-        const container = document.getElementById('users-list');
-        
-        container.innerHTML = users.map(u => `
-          <div class="clay-card" style="padding: 16px;">
-            <strong>${u.name}</strong> (${u.email}) - <span style="color:var(--color-primary)">${u.role}</span>
+        const res = await api.get('/admin/users');
+        const users = res.data.users || [];
+
+        container.innerHTML = users.map((u) => `
+          <div class="list-card-row" style="padding:10px 4px; border-bottom:1px solid rgba(0,0,0,0.05);">
+            <div>
+              <strong>${u.name}</strong> <span class="text-muted text-sm">(${u.email})</span>
+              <span class="badge" style="margin-left:8px;">${u.role}</span>
+              ${!u.id_verified ? '<span class="badge badge-disabled" style="margin-left:6px;">Suspended</span>' : ''}
+            </div>
+            ${u.role !== 'admin' && u.id_verified ? `<button class="clay-btn suspend-btn" data-id="${u.user_id}" style="padding:6px 14px; font-size:0.8rem;">Suspend</button>` : ''}
           </div>
         `).join('');
+
+        container.querySelectorAll('.suspend-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            if (!confirm('Suspend this user? They will be unable to book or list new spaces.')) return;
+            try {
+              await api.patch(`/admin/users/${btn.dataset.id}/suspend`);
+              showToast('User suspended.', 'success');
+              loadUsers();
+            } catch (err) {
+              showToast(apiErrorMessage(err), 'error');
+            }
+          });
+        });
       } catch (err) {
-        console.error(err);
-        document.getElementById('users-list').innerHTML = '<p class="text-muted">Error loading users (Admin endpoint may not exist).</p>';
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err)}</p>`;
       }
     }
 
-    window.approveListing = async (id) => {
-      try {
-        await api.patch(`/admin/listings/${id}/approve`);
-        alert('Listing approved!');
-        loadPending();
-      } catch (err) {
-        alert('Failed to approve');
-      }
-    };
-
-    loadPending();
-    loadUsers();
+    if (user) {
+      loadReport();
+      loadPending();
+      loadDisputes();
+      loadUsers();
+    }
   </script>
 </body>
 </html>
