@@ -1,12 +1,4 @@
--- ============================================================
--- ParkSlot — PostgreSQL Schema
--- Peer-to-peer smart parking marketplace
--- Enable PostGIS if available (optional — Haversine fallback
--- is used in application code if this extension is absent).
--- ============================================================
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
--- CREATE EXTENSION IF NOT EXISTS postgis; -- uncomment if PostGIS is installed
 
 -- ---------- ENUM TYPES ----------
 CREATE TYPE user_role         AS ENUM ('driver', 'host', 'business_host', 'admin');
@@ -95,11 +87,6 @@ CREATE TABLE bookings (
 CREATE INDEX idx_bookings_slot_time ON bookings (slot_id, start_time, end_time);
 CREATE INDEX idx_bookings_user ON bookings (user_id);
 
--- Prevent double-booking of an overlapping window on the same slot
--- (requires btree_gist for exclusion constraint; using a partial unique
---  approach + application-level transaction lock as the primary guard,
---  documented in booking.model.js)
-
 -- ---------- PAYMENTS ----------
 CREATE TABLE payments (
     payment_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -166,10 +153,3 @@ BEGIN
     RETURN r * 2 * asin(sqrt(a));
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
-
--- Example nearby-search query (used by listings.model.js):
--- SELECT *, haversine_km(:lat, :lng, latitude, longitude) AS distance_km
--- FROM locations
--- WHERE is_verified = true
--- AND haversine_km(:lat, :lng, latitude, longitude) < :radius_km
--- ORDER BY distance_km ASC;
