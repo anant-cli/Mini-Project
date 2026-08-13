@@ -53,14 +53,6 @@ npm run dev
 
 Set `VITE_API_URL=http://localhost:5000/api` if the frontend is not being proxied to the backend.
 
-## Demo Credentials
-
-After loading `database/seed.sql`:
-
-- Driver: `asha.driver@example.com`
-- Host: `vikram.host@example.com`
-- Admin: `admin@parkshare.app`
-- Password: `Password123!`
 
 ## System Architecture
 
