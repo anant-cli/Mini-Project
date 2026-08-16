@@ -29,6 +29,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      const path = window.location.pathname;
+      const publicPages = ['/login.html', '/signup.html', '/index.html', '/'];
+      if (!publicPages.includes(path)) {
+        window.location.href = '/login.html';
+      }
     }
     return Promise.reject(error);
   }

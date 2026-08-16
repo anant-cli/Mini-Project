@@ -4,7 +4,7 @@ export const createUser = async ({ name, email, passwordHash, phone, role }) => 
   const { rows } = await query(
     `INSERT INTO users (name, email, password_hash, phone, role)
      VALUES ($1, $2, $3, $4, $5)
-     RETURNING user_id, name, email, phone, role, avg_rating, id_verified, created_at`,
+     RETURNING user_id, name, email, phone, role, avg_rating, id_verified, is_suspended, created_at`,
     [name, email, passwordHash, phone, role || 'driver']
   );
   return rows[0];
@@ -17,14 +17,13 @@ export const findUserByEmail = async (email) => {
 
 export const findUserById = async (userId) => {
   const { rows } = await query(
-    `SELECT user_id, name, email, phone, role, avg_rating, id_verified, created_at
+    `SELECT user_id, name, email, phone, role, avg_rating, id_verified, is_suspended, created_at
      FROM users WHERE user_id = $1`,
     [userId]
   );
   return rows[0];
 };
 
-// Recompute a user's average rating after a new review is added.
 export const recomputeUserRating = async (userId) => {
   await query(
     `UPDATE users SET avg_rating = COALESCE((

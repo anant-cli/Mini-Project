@@ -6,7 +6,6 @@
   <title>Search Parking - ParkSlot</title>
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
   <style>
     #map {
       height: 600px;
@@ -75,12 +74,19 @@
     import { showToast } from '/js/toast.js';
     import { watchLocations, unwatchLocations, onSlotUpdated } from '/js/socket.js';
     import L from 'leaflet';
+    import 'leaflet/dist/leaflet.css';
+    import 'leaflet.markercluster/dist/MarkerCluster.css';
+    import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+    import markerIcon from 'leaflet/dist/images/marker-icon.png';
+    import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+    import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+    import 'leaflet.markercluster';
 
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconUrl: markerIcon,
+      iconRetinaUrl: markerIcon2x,
+      shadowUrl: markerShadow,
     });
 
     let center = { lat: 12.9716, lng: 77.5946 }; // sensible default; overridden by geolocation below
@@ -92,9 +98,16 @@
     }).addTo(map);
 
     let markers = [];
+    let clusterGroup = L.markerClusterGroup();
+    map.addLayer(clusterGroup);
     let watchedIds = [];
 
     function priceStr(l) { return `₹${Number(l.price_per_hour).toFixed(0)}/hr`; }
+
+    function ratingBadge(l) {
+      if (!l.avg_rating) return '';
+      return `<span style="font-size:0.8rem; color:#92600a;">⭐ ${l.avg_rating} <span class="text-muted">(${l.review_count})</span></span>`;
+    }
 
     function renderResults(listings) {
       const summary = document.getElementById('results-summary');
@@ -116,6 +129,7 @@
             </span>
             <span class="font-semibold">${priceStr(l)}</span>
           </div>
+          ${l.avg_rating ? `<div class="mt-2">${ratingBadge(l)}</div>` : ''}
         </a>
       `).join('');
     }
@@ -142,18 +156,19 @@
         watchedIds = listings.map((l) => l.location_id);
         watchLocations(watchedIds);
 
-        markers.forEach((m) => map.removeLayer(m));
+        clusterGroup.clearLayers();
         markers = [];
 
         listings.forEach((listing) => {
-          const marker = L.marker([listing.latitude, listing.longitude]).addTo(map);
+          const marker = L.marker([listing.latitude, listing.longitude]);
           marker.bindPopup(`
             <strong>${listing.name}</strong><br>
-            ${priceStr(listing)} &middot; ${listing.available_slots} available<br>
+            ${priceStr(listing)} &middot; ${listing.available_slots} available${listing.avg_rating ? `<br>⭐ ${listing.avg_rating} (${listing.review_count} reviews)` : ''}<br>
             <a href="/listing.html?id=${listing.location_id}" style="color:#5c8df6; font-weight:bold;">View Details</a>
           `);
           marker.locationId = listing.location_id;
           markers.push(marker);
+          clusterGroup.addLayer(marker);
         });
 
         renderResults(listings);

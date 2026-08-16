@@ -41,6 +41,8 @@ export const login = async (req, res, next) => {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) throw new ApiError(401, 'Invalid email or password');
 
+    if (user.is_suspended) throw new ApiError(403, 'Your account has been suspended. Contact support.');
+
     const token = signToken(user);
     delete user.password_hash;
     res.json({ user, token });

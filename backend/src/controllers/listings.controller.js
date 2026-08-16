@@ -14,7 +14,7 @@ const listingSchema = z.object({
   longitude: z.number(),
   total_slots: z.number().int().positive(),
   price_per_hour: z.number().positive(),
-  vehicle_types_allowed: z.array(z.string().max(30)).nonempty(),
+  vehicle_types_allowed: z.array(z.enum(['two_wheeler', 'car', 'suv', 'ev_car', 'ev_two_wheeler'])).nonempty(),
   has_ev_charging: z.boolean().optional(),
   operating_hours: z.object({ open: z.string().max(5), close: z.string().max(5) }).optional(),
   photos: z.array(z.string().max(500)).optional(),

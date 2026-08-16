@@ -20,6 +20,7 @@ export default defineConfig({
         admin: resolve(__dirname, 'admin.html'),
         bookings: resolve(__dirname, 'bookings.html'),
         saved: resolve(__dirname, 'saved.html'),
+        notFound: resolve(__dirname, '404.html'),
       }
     }
   }

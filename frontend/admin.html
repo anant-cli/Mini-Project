@@ -165,9 +165,9 @@
             <div>
               <strong>${u.name}</strong> <span class="text-muted text-sm">(${u.email})</span>
               <span class="badge" style="margin-left:8px;">${u.role}</span>
-              ${!u.id_verified ? '<span class="badge badge-disabled" style="margin-left:6px;">Suspended</span>' : ''}
+              ${u.is_suspended ? '<span class="badge badge-disabled" style="margin-left:6px;">Suspended</span>' : ''}
             </div>
-            ${u.role !== 'admin' && u.id_verified ? `<button class="clay-btn suspend-btn" data-id="${u.user_id}" style="padding:6px 14px; font-size:0.8rem;">Suspend</button>` : ''}
+            ${u.role !== 'admin' && !u.is_suspended ? `<button class="clay-btn suspend-btn" data-id="${u.user_id}" style="padding:6px 14px; font-size:0.8rem;">Suspend</button>` : ''}
           </div>
         `).join('');
 

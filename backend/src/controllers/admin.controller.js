@@ -48,10 +48,8 @@ export const resolveDispute = async (req, res, next) => {
 
 export const suspendUser = async (req, res, next) => {
   try {
-    // A minimal "suspend" flag could be added to the users table; kept
-    // simple here via id_verified=false to block new bookings/listings.
     const { rows } = await query(
-      `UPDATE users SET id_verified = false WHERE user_id = $1 RETURNING user_id, name, email, role, id_verified`,
+      `UPDATE users SET is_suspended = true WHERE user_id = $1 RETURNING user_id, name, email, role, is_suspended`,
       [req.params.id]
     );
     res.json({ user: rows[0] });
@@ -63,8 +61,8 @@ export const suspendUser = async (req, res, next) => {
 export const listUsers = async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT user_id, name, email, phone, role, id_verified, avg_rating, created_at 
-       FROM users 
+      `SELECT user_id, name, email, phone, role, id_verified, is_suspended, avg_rating, created_at
+       FROM users
        ORDER BY created_at DESC`
     );
     res.json({ users: rows });

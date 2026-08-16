@@ -6,6 +6,12 @@
   <title>Host Dashboard - ParkSlot</title>
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    #listing-map { height: 340px; border-radius: 16px; margin-bottom: 16px; z-index: 1; }
+    #qr-video-wrap { position: relative; width: 100%; max-width: 340px; margin: 0 auto; }
+    #qr-video-wrap video { width: 100%; border-radius: 16px; display: block; }
+    #qr-reader-stop { position: absolute; top: 8px; right: 8px; }
+  </style>
 </head>
 <body>
   <nav class="navbar">
@@ -53,17 +59,17 @@
           <label class="form-label" for="address">Address</label>
           <input type="text" id="address" class="clay-input" required />
         </div>
-        <div class="grid grid-2">
+
+        <div class="form-group">
+          <label class="form-label">Pin the location on the map</label>
           <div class="form-group">
-            <label class="form-label" for="lat">Latitude</label>
-            <input type="number" step="any" id="lat" class="clay-input" required />
+            <input type="text" id="map-search" class="clay-input" placeholder="Search an address (press Enter)…" />
           </div>
-          <div class="form-group">
-            <label class="form-label" for="lng">Longitude</label>
-            <input type="number" step="any" id="lng" class="clay-input" required />
-          </div>
+          <div id="listing-map"></div>
+          <input type="hidden" id="lat" required />
+          <input type="hidden" id="lng" required />
+          <p class="text-muted text-sm mt-2" id="map-coords-display">No location selected yet.</p>
         </div>
-        <button type="button" id="use-location-btn" class="clay-btn mb-4">Use my current location</button>
 
         <div class="grid grid-2">
           <div class="form-group">
@@ -136,11 +142,16 @@
 
     <div class="clay-card mb-8">
       <h2 class="text-2xl mb-4">Check-in / Check-out</h2>
-      <p class="text-muted text-sm mb-4">Ask the driver to show their QR pass, then enter the code shown beneath it (or scan it with any QR app first).</p>
+      <p class="text-muted text-sm mb-4">Ask the driver to show their QR pass, then scan it or paste the token below.</p>
       <div class="flex gap-4" style="flex-wrap:wrap;">
         <input type="text" id="qr-token-input" class="clay-input" style="flex:1; min-width:200px;" placeholder="Paste QR token here" />
+        <button id="scan-qr-btn" class="clay-btn">📷 Scan QR</button>
         <button id="checkin-btn" class="clay-btn clay-btn-primary">Check In</button>
         <button id="checkout-btn" class="clay-btn clay-btn-secondary">Check Out</button>
+      </div>
+      <div id="qr-video-wrap" style="display:none; margin-top:16px;">
+        <video id="qr-video" playsinline muted></video>
+        <button id="qr-reader-stop" class="clay-btn" style="padding:6px 12px; font-size:0.8rem;">Stop</button>
       </div>
       <p id="checkin-result" class="text-sm mt-4"></p>
     </div>
@@ -153,18 +164,37 @@
     </div>
   </main>
 
+  <div id="driver-review-modal" class="modal-backdrop" style="display:none;">
+    <div class="clay-card modal-box">
+      <h2 class="text-xl mb-4">Rate this driver</h2>
+      <div id="driver-star-widget" class="star-input mb-4" style="justify-content:center; font-size:2rem;"></div>
+      <textarea id="driver-review-comment" class="clay-input mb-4" placeholder="Optional comment…"></textarea>
+      <button id="driver-review-submit" class="clay-btn clay-btn-primary w-full" disabled>Submit Review</button>
+      <button id="driver-review-cancel" class="clay-btn w-full mt-2">Cancel</button>
+    </div>
+  </div>
+
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
     import api, { apiErrorMessage } from '/js/api.js';
     import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
     import { watchLocations, onSlotUpdated } from '/js/socket.js';
+    import L from 'leaflet';
+    import 'leaflet/dist/leaflet.css';
+    import markerIcon from 'leaflet/dist/images/marker-icon.png';
+    import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+    import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
 
     const user = requireAuth(['host', 'business_host']);
     if (user) document.getElementById('page-root').style.display = 'block';
 
     document.getElementById('add-listing-btn').addEventListener('click', () => {
       document.getElementById('add-listing-form').style.display = 'block';
+      initListingMap();
     });
     document.getElementById('cancel-listing-btn').addEventListener('click', () => {
       document.getElementById('add-listing-form').style.display = 'none';
@@ -172,15 +202,68 @@
     document.getElementById('has-ev').addEventListener('change', (e) => {
       document.getElementById('ev-fields').style.display = e.target.checked ? 'block' : 'none';
     });
-    document.getElementById('use-location-btn').addEventListener('click', () => {
-      if (!navigator.geolocation) return showToast('Geolocation not supported.', 'error');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
-          document.getElementById('lng').value = pos.coords.longitude.toFixed(6);
-        },
-        () => showToast('Could not get your location.', 'error')
-      );
+
+    let listingMap = null;
+    let listingMarker = null;
+
+    function initListingMap() {
+      if (listingMap) { listingMap.invalidateSize(); return; }
+
+      const DEFAULT = [12.9716, 77.5946];
+      listingMap = L.map('listing-map').setView(DEFAULT, 13);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors',
+      }).addTo(listingMap);
+
+      listingMarker = L.marker(DEFAULT, { draggable: true }).addTo(listingMap);
+      setLatLng(DEFAULT[0], DEFAULT[1]);
+
+      listingMarker.on('dragend', () => {
+        const { lat, lng } = listingMarker.getLatLng();
+        setLatLng(lat, lng);
+      });
+
+      listingMap.on('click', (e) => {
+        listingMarker.setLatLng(e.latlng);
+        setLatLng(e.latlng.lat, e.latlng.lng);
+      });
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const ll = [pos.coords.latitude, pos.coords.longitude];
+            listingMap.setView(ll, 15);
+            listingMarker.setLatLng(ll);
+            setLatLng(ll[0], ll[1]);
+          },
+          () => {}
+        );
+      }
+    }
+
+    function setLatLng(lat, lng) {
+      document.getElementById('lat').value = lat.toFixed(6);
+      document.getElementById('lng').value = lng.toFixed(6);
+      document.getElementById('map-coords-display').textContent =
+        `Selected: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    }
+
+    document.getElementById('map-search').addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const q = e.target.value.trim();
+      if (!q) return;
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data || data.length === 0) { showToast('No matching location found.', 'error'); return; }
+          const ll = [Number(data[0].lat), Number(data[0].lon)];
+          listingMap.setView(ll, 15);
+          listingMarker.setLatLng(ll);
+          setLatLng(ll[0], ll[1]);
+        })
+        .catch(() => showToast('Location search failed.', 'error'));
     });
 
     function money(n) { return `₹${Number(n).toFixed(0)}`; }
@@ -237,11 +320,20 @@
       e.preventDefault();
       const submitBtn = document.getElementById('create-submit');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Saving...';
+      submitBtn.textContent = 'Saving…';
 
       const vehicleTypes = Array.from(document.querySelectorAll('input[name="vtype"]:checked')).map((cb) => cb.value);
       if (vehicleTypes.length === 0) {
         showToast('Select at least one vehicle type.', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Listing';
+        return;
+      }
+
+      const lat = document.getElementById('lat').value;
+      const lng = document.getElementById('lng').value;
+      if (!lat || !lng) {
+        showToast('Pin a location on the map first.', 'error');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Save Listing';
         return;
@@ -253,8 +345,8 @@
         const res = await api.post('/listings', {
           name: document.getElementById('name').value.trim(),
           address: document.getElementById('address').value.trim(),
-          latitude: Number(document.getElementById('lat').value),
-          longitude: Number(document.getElementById('lng').value),
+          latitude: Number(lat),
+          longitude: Number(lng),
           total_slots: Number(document.getElementById('total-slots').value),
           price_per_hour: Number(document.getElementById('price').value),
           vehicle_types_allowed: vehicleTypes,
@@ -285,6 +377,9 @@
         document.getElementById('create-listing-form').reset();
         document.getElementById('add-listing-form').style.display = 'none';
         document.getElementById('ev-fields').style.display = 'none';
+        document.getElementById('map-coords-display').textContent = 'No location selected yet.';
+        listingMap = null;
+        listingMarker = null;
         loadListings();
       } catch (err) {
         showToast(apiErrorMessage(err, 'Failed to create listing.'), 'error');
@@ -330,22 +425,74 @@
         `).join('');
 
         document.querySelectorAll('.rate-driver-btn').forEach((btn) => {
-          btn.addEventListener('click', async () => {
-            const rating = prompt('Rate this driver 1-5:', '5');
-            if (!rating) return;
-            try {
-              await api.post('/reviews/driver', { booking_id: btn.dataset.booking, rating: Number(rating) });
-              showToast('Review submitted.', 'success');
-              loadBookings();
-            } catch (err) {
-              showToast(apiErrorMessage(err), 'error');
-            }
-          });
+          btn.addEventListener('click', () => openDriverReviewModal(btn.dataset.booking));
         });
       } catch (err) {
         container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load bookings.')}</p>`;
       }
     }
+
+    function buildStarWidget(container, onSelect) {
+      container.innerHTML = '';
+      let selected = 0;
+      const stars = Array.from({ length: 5 }, (_, i) => {
+        const span = document.createElement('span');
+        span.textContent = '★';
+        span.dataset.val = i + 1;
+        span.style.cursor = 'pointer';
+        container.appendChild(span);
+        return span;
+      });
+
+      function paint(n) {
+        stars.forEach((s) => s.classList.toggle('active', Number(s.dataset.val) <= n));
+      }
+
+      stars.forEach((s) => {
+        s.addEventListener('mouseenter', () => paint(Number(s.dataset.val)));
+        s.addEventListener('mouseleave', () => paint(selected));
+        s.addEventListener('click', () => {
+          selected = Number(s.dataset.val);
+          paint(selected);
+          onSelect(selected);
+        });
+      });
+    }
+
+    let driverReviewBookingId = null;
+    let driverReviewRating = 0;
+
+    function openDriverReviewModal(bookingId) {
+      driverReviewBookingId = bookingId;
+      driverReviewRating = 0;
+      document.getElementById('driver-review-comment').value = '';
+      document.getElementById('driver-review-submit').disabled = true;
+      buildStarWidget(document.getElementById('driver-star-widget'), (r) => {
+        driverReviewRating = r;
+        document.getElementById('driver-review-submit').disabled = false;
+      });
+      document.getElementById('driver-review-modal').style.display = 'flex';
+    }
+
+    document.getElementById('driver-review-submit').addEventListener('click', async () => {
+      const comment = document.getElementById('driver-review-comment').value.trim() || undefined;
+      try {
+        await api.post('/reviews/driver', {
+          booking_id: driverReviewBookingId,
+          rating: driverReviewRating,
+          comment,
+        });
+        showToast('Review submitted.', 'success');
+        document.getElementById('driver-review-modal').style.display = 'none';
+        loadBookings();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    });
+
+    document.getElementById('driver-review-cancel').addEventListener('click', () => {
+      document.getElementById('driver-review-modal').style.display = 'none';
+    });
 
     async function handleScan(action) {
       const token = document.getElementById('qr-token-input').value.trim();
@@ -367,6 +514,42 @@
 
     document.getElementById('checkin-btn').addEventListener('click', () => handleScan('checkin'));
     document.getElementById('checkout-btn').addEventListener('click', () => handleScan('checkout'));
+
+    let activeQrScanner = null;
+
+    document.getElementById('scan-qr-btn').addEventListener('click', async () => {
+      try {
+        const { default: QrScanner } = await import('qr-scanner');
+        const video = document.getElementById('qr-video');
+        const wrap = document.getElementById('qr-video-wrap');
+        wrap.style.display = 'block';
+
+        activeQrScanner = new QrScanner(
+          video,
+          (result) => {
+            document.getElementById('qr-token-input').value = result.data;
+            stopQrScanner();
+            showToast('QR code scanned!', 'success');
+          },
+          { returnDetailedScanResult: true }
+        );
+        await activeQrScanner.start();
+      } catch (err) {
+        if (err && (err.name === 'NotAllowedError' || String(err).includes('permission'))) {
+          showToast('Camera permission denied. Paste the token manually.', 'error');
+        } else {
+          showToast('Could not start camera scanner.', 'error');
+        }
+        stopQrScanner();
+      }
+    });
+
+    function stopQrScanner() {
+      if (activeQrScanner) { activeQrScanner.stop(); activeQrScanner.destroy(); activeQrScanner = null; }
+      document.getElementById('qr-video-wrap').style.display = 'none';
+    }
+
+    document.getElementById('qr-reader-stop').addEventListener('click', stopQrScanner);
 
     if (user) {
       loadListings();

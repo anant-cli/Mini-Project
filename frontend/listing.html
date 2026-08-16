@@ -23,7 +23,7 @@
     <div class="clay-card">
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 12px;">
         <div>
-          <h1 class="text-3xl mb-2" data-field="name"></h1>
+          <h1 class="text-3xl mb-2"><span data-field="name"></span> <span data-field="rating" style="font-size: 1rem; color: #92600a; vertical-align: middle; font-weight: normal;"></span></h1>
           <p class="text-muted text-xl" data-field="address"></p>
           <p class="text-sm text-muted mt-2">Hosted by <span data-field="host_name"></span></p>
         </div>
@@ -131,6 +131,9 @@
         const hours = location.operating_hours || {};
         tpl.querySelector('[data-field="hours"]').textContent =
           hours.open && hours.close ? `${hours.open} – ${hours.close}` : '24 hours';
+        if (location.avg_rating) {
+          tpl.querySelector('[data-field="rating"]').innerHTML = `⭐ ${location.avg_rating} <span class="text-muted text-sm">(${location.review_count})</span>`;
+        }
 
         const evBadge = tpl.querySelector('[data-field="ev-badge"]');
         if (location.has_ev_charging) {
@@ -247,6 +250,15 @@
     }
 
     function setupBookingForm() {
+      const startInput = document.getElementById('start-time');
+      function refreshMin() {
+        const now = new Date();
+        now.setSeconds(0, 0);
+        startInput.min = now.toISOString().slice(0, 16);
+      }
+      refreshMin();
+      startInput.addEventListener('focus', refreshMin);
+
       document.getElementById('start-time').addEventListener('input', updateEstimate);
       document.getElementById('end-time').addEventListener('input', updateEstimate);
 

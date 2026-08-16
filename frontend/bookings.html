@@ -33,6 +33,16 @@
     </div>
   </div>
 
+  <div id="review-modal" class="modal-backdrop" style="display:none;">
+    <div class="clay-card modal-box">
+      <h2 class="text-xl mb-4">Rate this parking spot</h2>
+      <div id="review-star-widget" class="star-input mb-4" style="justify-content:center; font-size:2rem;"></div>
+      <textarea id="review-comment" class="clay-input mb-4" placeholder="Optional comment…"></textarea>
+      <button id="review-submit" class="clay-btn clay-btn-primary w-full" disabled>Submit Review</button>
+      <button id="review-cancel" class="clay-btn w-full mt-2">Cancel</button>
+    </div>
+  </div>
+
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
     import api, { apiErrorMessage } from '/js/api.js';
@@ -104,20 +114,63 @@
     }
 
     async function leaveReview(bookingId) {
-      const rating = prompt('Rate this parking spot 1-5:', '5');
-      if (!rating) return;
-      const comment = prompt('Add a comment (optional):', '') || undefined;
-      try {
-        await api.post('/reviews/location', { booking_id: bookingId, rating: Number(rating), comment });
-        showToast('Thanks for the review!', 'success');
-        loadBookings();
-      } catch (err) {
-        showToast(apiErrorMessage(err), 'error');
-      }
+      reviewBookingId = bookingId;
+      reviewRating = 0;
+      document.getElementById('review-comment').value = '';
+      document.getElementById('review-submit').disabled = true;
+      buildStarWidget(document.getElementById('review-star-widget'), (r) => {
+        reviewRating = r;
+        document.getElementById('review-submit').disabled = false;
+      });
+      document.getElementById('review-modal').style.display = 'flex';
     }
 
     document.getElementById('qr-close').addEventListener('click', () => {
       document.getElementById('qr-modal').style.display = 'none';
+    });
+
+    function buildStarWidget(container, onSelect) {
+      container.innerHTML = '';
+      let selected = 0;
+      const stars = Array.from({ length: 5 }, (_, i) => {
+        const span = document.createElement('span');
+        span.textContent = '★';
+        span.dataset.val = i + 1;
+        span.style.cursor = 'pointer';
+        container.appendChild(span);
+        return span;
+      });
+      function paint(n) {
+        stars.forEach((s) => s.classList.toggle('active', Number(s.dataset.val) <= n));
+      }
+      stars.forEach((s) => {
+        s.addEventListener('mouseenter', () => paint(Number(s.dataset.val)));
+        s.addEventListener('mouseleave', () => paint(selected));
+        s.addEventListener('click', () => {
+          selected = Number(s.dataset.val);
+          paint(selected);
+          onSelect(selected);
+        });
+      });
+    }
+
+    let reviewBookingId = null;
+    let reviewRating = 0;
+
+    document.getElementById('review-submit').addEventListener('click', async () => {
+      const comment = document.getElementById('review-comment').value.trim() || undefined;
+      try {
+        await api.post('/reviews/location', { booking_id: reviewBookingId, rating: reviewRating, comment });
+        showToast('Thanks for the review!', 'success');
+        document.getElementById('review-modal').style.display = 'none';
+        loadBookings();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    });
+
+    document.getElementById('review-cancel').addEventListener('click', () => {
+      document.getElementById('review-modal').style.display = 'none';
     });
 
     if (user) loadBookings();

@@ -11,9 +11,11 @@
   "dependencies": {
     "axios": "^1.7.2",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
+    "qr-scanner": "^1.4.2",
     "socket.io-client": "^4.7.5"
   },
   "devDependencies": {
-    "vite": "^5.3.3"
+    "vite": "^8.2.1"
   }
 }

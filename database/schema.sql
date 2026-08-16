@@ -20,6 +20,7 @@ CREATE TABLE users (
     role            user_role NOT NULL DEFAULT 'driver',
     avg_rating      NUMERIC(2,1) DEFAULT 5.0 CHECK (avg_rating BETWEEN 0 AND 5),
     id_verified     BOOLEAN NOT NULL DEFAULT FALSE,
+    is_suspended    BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -80,7 +81,7 @@ CREATE TABLE bookings (
     estimated_amount NUMERIC(9,2) NOT NULL,
     total_amount     NUMERIC(9,2),
     overtime_amount  NUMERIC(9,2) DEFAULT 0,
-    status           booking_status NOT NULL DEFAULT 'pending',
+    status           booking_status NOT NULL DEFAULT 'pending', -- Note: 'pending' is currently unused in the frontend flow as bookings are created straight to 'confirmed' with held payments.
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT valid_window CHECK (end_time > start_time)
 );

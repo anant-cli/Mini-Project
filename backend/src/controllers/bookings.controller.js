@@ -56,6 +56,9 @@ export const createBooking = async (req, res, next) => {
     if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
       throw new ApiError(400, 'start_time and end_time must be valid dates');
     }
+    if (startTime.getTime() < Date.now() - 2 * 60 * 1000) {
+      throw new ApiError(400, 'Start time cannot be in the past');
+    }
     if (endTime <= startTime) throw new ApiError(400, 'end_time must be after start_time');
 
     const result = await withTransaction(async (client) => {
