@@ -10,7 +10,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">ParkSlot Admin</a>
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -19,26 +19,26 @@
     <h1 class="text-3xl mb-8">Admin Dashboard</h1>
 
     <div class="grid grid-3 mb-8" id="report-stats">
-      <div class="clay-card text-center"><p class="text-muted text-sm">Gross Volume</p><p class="text-3xl" id="stat-volume">₹0</p></div>
-      <div class="clay-card text-center"><p class="text-muted text-sm">Captured Transactions</p><p class="text-3xl" id="stat-transactions">0</p></div>
-      <div class="clay-card text-center"><p class="text-muted text-sm">Total Users</p><p class="text-3xl" id="stat-users">0</p></div>
+      <div class="glass-card text-center"><p class="text-muted text-sm">Gross Volume</p><p class="text-3xl" id="stat-volume">₹0</p></div>
+      <div class="glass-card text-center"><p class="text-muted text-sm">Captured Transactions</p><p class="text-3xl" id="stat-transactions">0</p></div>
+      <div class="glass-card text-center"><p class="text-muted text-sm">Total Users</p><p class="text-3xl" id="stat-users">0</p></div>
     </div>
 
-    <div class="clay-card mb-8">
+    <div class="glass-card mb-8">
       <h2 class="text-2xl mb-4">Pending Listing Approvals</h2>
       <div id="pending-list" class="flex flex-col gap-3">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <div class="clay-card mb-8">
+    <div class="glass-card mb-8">
       <h2 class="text-2xl mb-4">Open Disputes</h2>
       <div id="disputes-list" class="flex flex-col gap-3">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <div class="clay-card">
+    <div class="glass-card">
       <h2 class="text-2xl mb-4">All Users</h2>
       <div id="users-list" class="flex flex-col gap-2">
         <div class="state-msg"><div class="spinner"></div></div>
@@ -81,7 +81,7 @@
         }
 
         container.innerHTML = listings.map((l) => `
-          <div class="clay-card list-card">
+          <div class="glass-card list-card">
             <div class="list-card-row">
               <div>
                 <strong>${l.name}</strong>
@@ -89,8 +89,8 @@
                 <p class="text-sm">${money(l.price_per_hour)}/hr &middot; ${l.total_slots} slots</p>
               </div>
               <div class="flex gap-2">
-                <button class="clay-btn clay-btn-primary approve-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Approve</button>
-                <button class="clay-btn reject-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Reject</button>
+                <button class="btn btn-primary approve-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Approve</button>
+                <button class="btn reject-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Reject</button>
               </div>
             </div>
           </div>
@@ -125,14 +125,14 @@
         }
 
         container.innerHTML = disputes.map((d) => `
-          <div class="clay-card list-card">
+          <div class="glass-card list-card">
             <div>
               <strong>${d.vehicle_number || 'Booking'} &middot; ${money(d.total_amount || 0)}</strong>
               <p class="text-sm text-muted mt-2">${d.reason}</p>
             </div>
             <div class="flex gap-2 mt-2">
-              <input type="text" class="clay-input resolution-input" data-id="${d.dispute_id}" placeholder="Resolution note..." style="flex:1;" />
-              <button class="clay-btn clay-btn-primary resolve-btn" data-id="${d.dispute_id}" style="padding:10px 16px; font-size:0.85rem;">Resolve</button>
+              <input type="text" class="glass-input resolution-input" data-id="${d.dispute_id}" placeholder="Resolution note..." style="flex:1;" />
+              <button class="btn btn-primary resolve-btn" data-id="${d.dispute_id}" style="padding:10px 16px; font-size:0.85rem;">Resolve</button>
             </div>
           </div>
         `).join('');
@@ -167,7 +167,7 @@
               <span class="badge" style="margin-left:8px;">${u.role}</span>
               ${u.is_suspended ? '<span class="badge badge-disabled" style="margin-left:6px;">Suspended</span>' : ''}
             </div>
-            ${u.role !== 'admin' && !u.is_suspended ? `<button class="clay-btn suspend-btn" data-id="${u.user_id}" style="padding:6px 14px; font-size:0.8rem;">Suspend</button>` : ''}
+            ${u.role !== 'admin' && !u.is_suspended ? `<button class="btn suspend-btn" data-id="${u.user_id}" style="padding:6px 14px; font-size:0.8rem;">Suspend</button>` : ''}
           </div>
         `).join('');
 

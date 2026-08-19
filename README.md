@@ -7,13 +7,13 @@ ParkSlot connects drivers with verified parking spaces listed by hosts. Features
 - **Frontend:** Plain HTML5 + vanilla JS, Vite bundler, multi-page (no SPA framework), Leaflet + OpenStreetMap + Nominatim, Socket.io client
 - **Backend:** Node.js, Express, Socket.io, PostgreSQL (via Neon)
 - **Auth:** JWT (jsonwebtoken) + bcrypt password hashing
-- **Database:** PostgreSQL — schema in `database/schema.sql` (no seed file; see below)
+- **Database:** PostgreSQL — schema in `database/schema.sql` and seed data in `database/seed.sql`
 
 ## Project Layout
 
 ```
 backend/    Express API, Socket.io, route controllers, models, middleware
-database/   PostgreSQL schema (schema.sql)
+database/   PostgreSQL schema (schema.sql) and seed script (seed.sql)
 frontend/   HTML pages, vanilla JS modules, CSS, Vite config
 ```
 
@@ -26,13 +26,18 @@ frontend/   HTML pages, vanilla JS modules, CSS, Vite config
 
 ### 2. Database
 
-Apply the schema against your database:
+Apply the schema and seed mock data against your database:
 
 ```bash
 psql "$DATABASE_URL" -f database/schema.sql
+psql "$DATABASE_URL" -f database/seed.sql
 ```
 
-There is no seed file. To test locally, sign up through the UI, then manually set `role = 'admin'` for your admin account in the DB if needed:
+Or run via npm inside the `backend` directory:
+```bash
+npm run migrate
+npm run seed
+```
 
 ```sql
 UPDATE users SET role = 'admin' WHERE email = 'you@example.com';

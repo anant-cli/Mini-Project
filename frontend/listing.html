@@ -10,7 +10,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <a href="/index.html" class="navbar-brand">⚡ ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -20,19 +20,19 @@
   </main>
 
   <template id="listing-template">
-    <div class="clay-card">
+    <div class="glass-card">
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 12px;">
         <div>
           <h1 class="text-3xl mb-2"><span data-field="name"></span> <span data-field="rating" style="font-size: 1rem; color: #92600a; vertical-align: middle; font-weight: normal;"></span></h1>
           <p class="text-muted text-xl" data-field="address"></p>
           <p class="text-sm text-muted mt-2">Hosted by <span data-field="host_name"></span></p>
         </div>
-        <button id="fav-btn" class="clay-btn" style="white-space:nowrap;">&#9825; Save</button>
+        <button id="fav-btn" class="btn" style="white-space:nowrap;">&#9825; Save</button>
       </div>
 
       <div class="flex gap-8 mt-4" style="flex-wrap: wrap;">
         <div style="flex: 2; min-width: 280px;">
-          <div class="clay-card" style="background:#e6eef4;">
+          <div class="glass-card" style="background:#e6eef4;">
             <div class="flex justify-between items-center mb-2">
               <h2 class="text-2xl" data-field="price"></h2>
               <span class="badge" data-field="ev-badge"></span>
@@ -51,27 +51,27 @@
         </div>
 
         <div style="flex: 1; min-width: 280px;">
-          <div class="clay-card">
+          <div class="glass-card">
             <h2 class="text-xl mb-4">Book this spot</h2>
             <form id="booking-form">
               <div class="form-group">
                 <label class="form-label" for="slot-select">Slot</label>
-                <select id="slot-select" class="clay-input" style="padding:14px 20px;" required></select>
+                <select id="slot-select" class="glass-input" style="padding:14px 20px;" required></select>
               </div>
               <div class="form-group">
                 <label class="form-label" for="vehicle-number">Vehicle number</label>
-                <input type="text" id="vehicle-number" class="clay-input" placeholder="e.g. KA01AB1234" required />
+                <input type="text" id="vehicle-number" class="glass-input" placeholder="e.g. KA01AB1234" required />
               </div>
               <div class="form-group">
                 <label class="form-label" for="start-time">Start Time</label>
-                <input type="datetime-local" id="start-time" class="clay-input" required />
+                <input type="datetime-local" id="start-time" class="glass-input" required />
               </div>
               <div class="form-group">
                 <label class="form-label" for="end-time">End Time</label>
-                <input type="datetime-local" id="end-time" class="clay-input" required />
+                <input type="datetime-local" id="end-time" class="glass-input" required />
               </div>
               <p id="estimate" class="text-muted mb-2"></p>
-              <button type="submit" id="book-submit" class="clay-btn clay-btn-primary w-full mt-2">Book Now</button>
+              <button type="submit" id="book-submit" class="btn btn-primary w-full mt-2">Book Now</button>
             </form>
           </div>
         </div>
@@ -80,11 +80,11 @@
   </template>
 
   <div id="qr-modal" class="modal-backdrop" style="display:none;">
-    <div class="clay-card modal-box">
+    <div class="glass-card modal-box">
       <h2 class="text-xl mb-4">Booking confirmed!</h2>
       <img id="qr-image" src="" alt="QR pass" />
       <p class="text-muted text-sm mt-4">Show this QR code to the host when you arrive.</p>
-      <button id="qr-close" class="clay-btn clay-btn-primary w-full mt-4">Go to My Bookings</button>
+      <button id="qr-close" class="btn btn-primary w-full mt-4">Go to My Bookings</button>
     </div>
   </div>
 
@@ -112,7 +112,7 @@
 
     async function loadListing() {
       if (!listingId) {
-        root.innerHTML = '<div class="clay-card state-msg">Listing not found.</div>';
+        root.innerHTML = '<div class="glass-card state-msg">Listing not found.</div>';
         return;
       }
       try {
@@ -155,7 +155,7 @@
 
         watchLocations([listingId]);
       } catch (err) {
-        root.innerHTML = `<div class="clay-card state-msg text-danger">${apiErrorMessage(err, 'Could not load this listing.')}</div>`;
+        root.innerHTML = `<div class="glass-card state-msg text-danger">${apiErrorMessage(err, 'Could not load this listing.')}</div>`;
       }
     }
 
@@ -198,7 +198,7 @@
           return;
         }
         el.innerHTML = reviews.map((r) => `
-          <div class="clay-card" style="padding:12px 16px;">
+          <div class="glass-card" style="padding:12px 16px;">
             <div class="flex justify-between">
               <strong>${r.author_name}</strong>
               <span>${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>

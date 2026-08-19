@@ -16,7 +16,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <a href="/index.html" class="navbar-brand">⚡ ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -24,46 +24,46 @@
   <main class="container mt-8" id="page-root" style="display:none;">
     <div class="flex justify-between items-center mb-8" style="flex-wrap:wrap; gap:12px;">
       <h1 class="text-3xl">Host Dashboard</h1>
-      <button id="add-listing-btn" class="clay-btn clay-btn-primary">+ Add New Listing</button>
+      <button id="add-listing-btn" class="btn btn-primary">+ Add New Listing</button>
     </div>
 
     <div class="grid grid-3 mb-8">
-      <div class="clay-card text-center">
+      <div class="glass-card text-center">
         <p class="text-muted text-sm">Total Listings</p>
         <p class="text-3xl" id="stat-listings">0</p>
       </div>
-      <div class="clay-card text-center">
+      <div class="glass-card text-center">
         <p class="text-muted text-sm">Completed Bookings</p>
         <p class="text-3xl" id="stat-bookings">0</p>
       </div>
-      <div class="clay-card text-center">
+      <div class="glass-card text-center">
         <p class="text-muted text-sm">Est. Payout (after 15% commission)</p>
         <p class="text-3xl" id="stat-earnings">₹0</p>
       </div>
     </div>
 
-    <div class="clay-card mb-8" id="add-listing-form" style="display: none;">
+    <div class="glass-card mb-8" id="add-listing-form" style="display: none;">
       <h2 class="text-2xl mb-4">Create Listing</h2>
       <form id="create-listing-form">
         <div class="grid grid-2">
           <div class="form-group">
             <label class="form-label" for="name">Listing Name</label>
-            <input type="text" id="name" class="clay-input" placeholder="e.g. Koramangala Driveway" required />
+            <input type="text" id="name" class="glass-input" placeholder="e.g. Koramangala Driveway" required />
           </div>
           <div class="form-group">
             <label class="form-label" for="price">Price Per Hour (₹)</label>
-            <input type="number" id="price" class="clay-input" min="1" step="0.01" required />
+            <input type="number" id="price" class="glass-input" min="1" step="0.01" required />
           </div>
         </div>
         <div class="form-group">
           <label class="form-label" for="address">Address</label>
-          <input type="text" id="address" class="clay-input" required />
+          <input type="text" id="address" class="glass-input" required />
         </div>
 
         <div class="form-group">
           <label class="form-label">Pin the location on the map</label>
           <div class="form-group">
-            <input type="text" id="map-search" class="clay-input" placeholder="Search an address (press Enter)…" />
+            <input type="text" id="map-search" class="glass-input" placeholder="Search an address (press Enter)…" />
           </div>
           <div id="listing-map"></div>
           <input type="hidden" id="lat" required />
@@ -74,13 +74,13 @@
         <div class="grid grid-2">
           <div class="form-group">
             <label class="form-label" for="total-slots">Total Slots</label>
-            <input type="number" id="total-slots" class="clay-input" min="1" value="1" required />
+            <input type="number" id="total-slots" class="glass-input" min="1" value="1" required />
           </div>
           <div class="form-group">
             <label class="form-label">Operating Hours</label>
             <div class="flex gap-4">
-              <input type="time" id="open-time" class="clay-input" value="00:00" />
-              <input type="time" id="close-time" class="clay-input" value="23:59" />
+              <input type="time" id="open-time" class="glass-input" value="00:00" />
+              <input type="time" id="close-time" class="glass-input" value="23:59" />
             </div>
           </div>
         </div>
@@ -105,13 +105,13 @@
           <div class="grid grid-2">
             <div class="form-group">
               <label class="form-label" for="ev-connector">Connector Type</label>
-              <select id="ev-connector" class="clay-input" style="padding:14px 20px;">
+              <select id="ev-connector" class="glass-input" style="padding:14px 20px;">
                 <option>Type-1</option><option>Type-2</option><option>CCS</option><option>CHAdeMO</option>
               </select>
             </div>
             <div class="form-group">
               <label class="form-label" for="ev-current">Current Type</label>
-              <select id="ev-current" class="clay-input" style="padding:14px 20px;">
+              <select id="ev-current" class="glass-input" style="padding:14px 20px;">
                 <option>AC</option><option>DC</option>
               </select>
             </div>
@@ -119,44 +119,44 @@
           <div class="grid grid-2">
             <div class="form-group">
               <label class="form-label" for="ev-power">Power (kW)</label>
-              <input type="number" id="ev-power" class="clay-input" min="0.1" step="0.1" />
+              <input type="number" id="ev-power" class="glass-input" min="0.1" step="0.1" />
             </div>
             <div class="form-group">
               <label class="form-label" for="ev-price">Price / kWh (₹)</label>
-              <input type="number" id="ev-price" class="clay-input" min="0.1" step="0.1" />
+              <input type="number" id="ev-price" class="glass-input" min="0.1" step="0.1" />
             </div>
           </div>
         </div>
 
-        <button type="submit" id="create-submit" class="clay-btn clay-btn-primary">Save Listing</button>
-        <button type="button" class="clay-btn clay-btn-secondary" id="cancel-listing-btn">Cancel</button>
+        <button type="submit" id="create-submit" class="btn btn-primary">Save Listing</button>
+        <button type="button" class="btn btn-secondary" id="cancel-listing-btn">Cancel</button>
       </form>
     </div>
 
-    <div class="clay-card mb-8">
+    <div class="glass-card mb-8">
       <h2 class="text-2xl mb-4">Your Listings</h2>
       <div id="host-listings" class="flex flex-col gap-4">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <div class="clay-card mb-8">
+    <div class="glass-card mb-8">
       <h2 class="text-2xl mb-4">Check-in / Check-out</h2>
       <p class="text-muted text-sm mb-4">Ask the driver to show their QR pass, then scan it or paste the token below.</p>
       <div class="flex gap-4" style="flex-wrap:wrap;">
-        <input type="text" id="qr-token-input" class="clay-input" style="flex:1; min-width:200px;" placeholder="Paste QR token here" />
-        <button id="scan-qr-btn" class="clay-btn">📷 Scan QR</button>
-        <button id="checkin-btn" class="clay-btn clay-btn-primary">Check In</button>
-        <button id="checkout-btn" class="clay-btn clay-btn-secondary">Check Out</button>
+        <input type="text" id="qr-token-input" class="glass-input" style="flex:1; min-width:200px;" placeholder="Paste QR token here" />
+        <button id="scan-qr-btn" class="btn">📷 Scan QR</button>
+        <button id="checkin-btn" class="btn btn-primary">Check In</button>
+        <button id="checkout-btn" class="btn btn-secondary">Check Out</button>
       </div>
       <div id="qr-video-wrap" style="display:none; margin-top:16px;">
         <video id="qr-video" playsinline muted></video>
-        <button id="qr-reader-stop" class="clay-btn" style="padding:6px 12px; font-size:0.8rem;">Stop</button>
+        <button id="qr-reader-stop" class="btn" style="padding:6px 12px; font-size:0.8rem;">Stop</button>
       </div>
       <p id="checkin-result" class="text-sm mt-4"></p>
     </div>
 
-    <div class="clay-card">
+    <div class="glass-card">
       <h2 class="text-2xl mb-4">Bookings</h2>
       <div id="host-bookings" class="flex flex-col gap-3">
         <div class="state-msg"><div class="spinner"></div></div>
@@ -165,12 +165,12 @@
   </main>
 
   <div id="driver-review-modal" class="modal-backdrop" style="display:none;">
-    <div class="clay-card modal-box">
+    <div class="glass-card modal-box">
       <h2 class="text-xl mb-4">Rate this driver</h2>
       <div id="driver-star-widget" class="star-input mb-4" style="justify-content:center; font-size:2rem;"></div>
-      <textarea id="driver-review-comment" class="clay-input mb-4" placeholder="Optional comment…"></textarea>
-      <button id="driver-review-submit" class="clay-btn clay-btn-primary w-full" disabled>Submit Review</button>
-      <button id="driver-review-cancel" class="clay-btn w-full mt-2">Cancel</button>
+      <textarea id="driver-review-comment" class="glass-input mb-4" placeholder="Optional comment…"></textarea>
+      <button id="driver-review-submit" class="btn btn-primary w-full" disabled>Submit Review</button>
+      <button id="driver-review-cancel" class="btn w-full mt-2">Cancel</button>
     </div>
   </div>
 
@@ -281,7 +281,7 @@
         }
 
         container.innerHTML = listings.map((l) => `
-          <div class="clay-card" style="padding:18px 20px;" data-location="${l.location_id}">
+          <div class="glass-card" style="padding:18px 20px;" data-location="${l.location_id}">
             <div class="list-card-row">
               <div>
                 <strong>${l.name}</strong>
@@ -406,7 +406,7 @@
         }
 
         container.innerHTML = bookings.map((b) => `
-          <div class="clay-card" style="padding:14px 18px;">
+          <div class="glass-card" style="padding:14px 18px;">
             <div class="list-card-row">
               <div>
                 <strong>${b.location_name}</strong> &middot; Slot ${b.slot_number}
@@ -419,7 +419,7 @@
               </div>
             </div>
             ${b.status === 'completed' && !b.driver_review_id ? `
-              <button class="clay-btn mt-2 rate-driver-btn" data-booking="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Rate this driver</button>
+              <button class="btn mt-2 rate-driver-btn" data-booking="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Rate this driver</button>
             ` : ''}
           </div>
         `).join('');
@@ -500,9 +500,13 @@
       if (!token) { showToast('Enter a QR token first.', 'error'); return; }
       try {
         const res = await api.post(`/bookings/${action}`, { qr_token: token });
-        resultEl.textContent = `${action === 'checkin' ? 'Checked in' : 'Checked out'}: ${res.data.booking.vehicle_number} — status ${res.data.booking.status}`;
-        resultEl.className = 'text-sm mt-4 text-success';
-        showToast('Success!', 'success');
+        if (action === 'checkout') {
+          showToast(`Checked out! Driver paid ₹${res.data.booking.total_amount}. You earned ₹${res.data.hostPayout} (Fee: ₹${res.data.platformCut})`, 'success');
+        } else {
+          resultEl.textContent = `Checked in: ${res.data.booking.vehicle_number} — status ${res.data.booking.status}`;
+          resultEl.className = 'text-sm mt-4 text-success';
+          showToast('Success!', 'success');
+        }
         document.getElementById('qr-token-input').value = '';
         loadListings();
         loadBookings();

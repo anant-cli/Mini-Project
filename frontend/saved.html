@@ -10,7 +10,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <a href="/index.html" class="navbar-brand">⚡ ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -18,7 +18,7 @@
   <main class="container mt-8" id="page-root" style="display:none;">
     <h1 class="text-3xl mb-8">Saved Listings</h1>
 
-    <div class="clay-card">
+    <div class="glass-card">
       <div id="saved-list" class="flex flex-col gap-4">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
@@ -48,15 +48,15 @@
         }
 
         container.innerHTML = listings.map((l) => `
-          <div class="clay-card list-card" style="padding:16px 20px;" data-id="${l.location_id}">
+          <div class="glass-card list-card" style="padding:16px 20px;" data-id="${l.location_id}">
             <div>
               <strong>${l.name}</strong>
               <p class="text-muted text-sm">${l.address}</p>
               <p class="text-sm mt-2">${money(l.price_per_hour)}/hr &middot; ${l.available_slots} available</p>
             </div>
             <div class="flex gap-2">
-              <a href="/listing.html?id=${l.location_id}" class="clay-btn clay-btn-primary" style="padding:8px 16px; font-size:0.85rem;">View</a>
-              <button class="clay-btn remove-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Remove</button>
+              <a href="/listing.html?id=${l.location_id}" class="btn btn-primary" style="padding:8px 16px; font-size:0.85rem;">View</a>
+              <button class="btn remove-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Remove</button>
             </div>
           </div>
         `).join('');
