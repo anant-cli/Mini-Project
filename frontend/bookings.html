@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Bookings - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -48,6 +49,7 @@
     import api, { apiErrorMessage } from '/js/api.js';
     import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
 
     const user = requireAuth();
     if (user) document.getElementById('page-root').style.display = 'block';
@@ -69,10 +71,11 @@
           <div class="glass-card list-card" style="padding:16px 20px;">
             <div class="list-card-row">
               <div>
-                <strong>${b.location_name}</strong>
-                <p class="text-sm text-muted">${b.address}</p>
+                <strong>${escapeHtml(b.location_name)}</strong>
+                <p class="text-sm text-muted">${escapeHtml(b.address)}</p>
                 <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} &rarr; ${new Date(b.end_time).toLocaleString()}</p>
                 <p class="text-sm mt-2">${money(b.total_amount || b.estimated_amount)}${b.overtime_amount > 0 ? ` (incl. ${money(b.overtime_amount)} overtime)` : ''}</p>
+                ${b.status === 'cancelled' ? `<p class="text-sm text-success mt-1" style="color:#10b981;">${money(b.total_amount || b.estimated_amount)} refunded to your original payment method</p>` : ''}
               </div>
               <span class="badge badge-${b.status}">${b.status.replace('_', ' ')}</span>
             </div>

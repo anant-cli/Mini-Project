@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Host Dashboard - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -179,15 +180,10 @@
     import api, { apiErrorMessage } from '/js/api.js';
     import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
     import { watchLocations, onSlotUpdated } from '/js/socket.js';
-    import L from 'leaflet';
-    import 'leaflet/dist/leaflet.css';
-    import markerIcon from 'leaflet/dist/images/marker-icon.png';
-    import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-    import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
+    import maplibregl from 'maplibre-gl';
+    import 'maplibre-gl/dist/maplibre-gl.css';
 
     const user = requireAuth(['host', 'business_host']);
     if (user) document.getElementById('page-root').style.display = 'block';
@@ -207,35 +203,39 @@
     let listingMarker = null;
 
     function initListingMap() {
-      if (listingMap) { listingMap.invalidateSize(); return; }
+      if (listingMap) { listingMap.resize(); return; }
 
       const DEFAULT = [12.9716, 77.5946];
-      listingMap = L.map('listing-map').setView(DEFAULT, 13);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors',
-      }).addTo(listingMap);
+      listingMap = new maplibregl.Map({
+        container: 'listing-map',
+        style: 'https://tiles.openfreemap.org/styles/liberty',
+        center: [DEFAULT[1], DEFAULT[0]],
+        zoom: 13
+      });
 
-      listingMarker = L.marker(DEFAULT, { draggable: true }).addTo(listingMap);
+      listingMarker = new maplibregl.Marker({ draggable: true })
+        .setLngLat([DEFAULT[1], DEFAULT[0]])
+        .addTo(listingMap);
       setLatLng(DEFAULT[0], DEFAULT[1]);
 
       listingMarker.on('dragend', () => {
-        const { lat, lng } = listingMarker.getLatLng();
-        setLatLng(lat, lng);
+        const lngLat = listingMarker.getLngLat();
+        setLatLng(lngLat.lat, lngLat.lng);
       });
 
       listingMap.on('click', (e) => {
-        listingMarker.setLatLng(e.latlng);
-        setLatLng(e.latlng.lat, e.latlng.lng);
+        listingMarker.setLngLat(e.lngLat);
+        setLatLng(e.lngLat.lat, e.lngLat.lng);
       });
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
-            const ll = [pos.coords.latitude, pos.coords.longitude];
-            listingMap.setView(ll, 15);
-            listingMarker.setLatLng(ll);
-            setLatLng(ll[0], ll[1]);
+            const ll = [pos.coords.longitude, pos.coords.latitude];
+            listingMap.setCenter(ll);
+            listingMap.setZoom(15);
+            listingMarker.setLngLat(ll);
+            setLatLng(pos.coords.latitude, pos.coords.longitude);
           },
           () => {}
         );
@@ -258,10 +258,11 @@
         .then((r) => r.json())
         .then((data) => {
           if (!data || data.length === 0) { showToast('No matching location found.', 'error'); return; }
-          const ll = [Number(data[0].lat), Number(data[0].lon)];
-          listingMap.setView(ll, 15);
-          listingMarker.setLatLng(ll);
-          setLatLng(ll[0], ll[1]);
+          const ll = [Number(data[0].lon), Number(data[0].lat)];
+          listingMap.setCenter(ll);
+          listingMap.setZoom(15);
+          listingMarker.setLngLat(ll);
+          setLatLng(Number(data[0].lat), Number(data[0].lon));
         })
         .catch(() => showToast('Location search failed.', 'error'));
     });
@@ -284,8 +285,8 @@
           <div class="glass-card" style="padding:18px 20px;" data-location="${l.location_id}">
             <div class="list-card-row">
               <div>
-                <strong>${l.name}</strong>
-                <p class="text-muted text-sm">${l.address}</p>
+                <strong>${escapeHtml(l.name)}</strong>
+                <p class="text-muted text-sm">${escapeHtml(l.address)}</p>
                 <p class="text-sm mt-2">${money(l.price_per_hour)}/hr &middot; ${l.available_slots}/${l.total_slots} available</p>
               </div>
               <span class="badge ${l.is_verified ? 'badge-available' : 'badge-pending'}">${l.is_verified ? 'Verified' : 'Pending review'}</span>
@@ -314,6 +315,14 @@
 
     onSlotUpdated(() => {
       document.querySelectorAll('[data-slotgrid]').forEach((el) => refreshSlotGrid(el.dataset.slotgrid));
+    });
+
+    document.getElementById('has-ev').addEventListener('change', (e) => {
+      const isEv = e.target.checked;
+      document.getElementById('ev-connector').required = isEv;
+      document.getElementById('ev-current').required = isEv;
+      document.getElementById('ev-power').required = isEv;
+      document.getElementById('ev-price').required = isEv;
     });
 
     document.getElementById('create-listing-form').addEventListener('submit', async (e) => {
@@ -409,8 +418,8 @@
           <div class="glass-card" style="padding:14px 18px;">
             <div class="list-card-row">
               <div>
-                <strong>${b.location_name}</strong> &middot; Slot ${b.slot_number}
-                <p class="text-sm text-muted">${b.driver_name} (${b.driver_email}) &middot; ${b.vehicle_number}</p>
+                <strong>${escapeHtml(b.location_name)}</strong> &middot; Slot ${b.slot_number}
+                <p class="text-sm text-muted">${escapeHtml(b.driver_name)} (${escapeHtml(b.driver_email)}) &middot; ${escapeHtml(b.vehicle_number)}</p>
                 <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} &rarr; ${new Date(b.end_time).toLocaleString()}</p>
               </div>
               <div class="text-center">

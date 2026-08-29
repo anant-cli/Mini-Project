@@ -29,7 +29,7 @@ export const signup = async (req, res, next) => {
 
 const loginSchema = z.object({
   email: z.string().email().max(160),
-  password: z.string().min(1).max(128),
+  password: z.string().min(8).max(128),
 });
 
 export const login = async (req, res, next) => {

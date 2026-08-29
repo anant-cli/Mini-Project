@@ -18,6 +18,21 @@ export const requireAuth = async (req, res, next) => {
   }
 };
 
+export const optionalAuth = async (req, res, next) => {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (!token) return next();
+
+  try {
+    const decoded = verifyToken(token);
+    const user = await findUserById(decoded.sub);
+    if (!user || user.is_suspended) return next();
+    req.user = { user_id: user.user_id, role: user.role, email: user.email };
+  } catch {
+  }
+  next();
+};
+
 export const requireRole = (...roles) => (req, res, next) => {
   if (!req.user || !roles.includes(req.user.role)) {
     return res.status(403).json({ error: 'Insufficient permissions' });

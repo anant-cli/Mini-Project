@@ -7,8 +7,8 @@ const chargerSchema = z.object({
   location_id: z.string().uuid(),
   connector_type: z.enum(['Type-1', 'Type-2', 'CCS', 'CHAdeMO']),
   current_type: z.enum(['AC', 'DC']).default('AC'),
-  power_kw: z.number().positive(),
-  price_per_kwh: z.number().positive(),
+  power_kw: z.number().positive().max(1000),
+  price_per_kwh: z.number().positive().max(100000),
 });
 
 // A host may only manage chargers on locations they own. Admins can manage any.

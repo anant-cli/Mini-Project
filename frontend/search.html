@@ -4,26 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Search Parking - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    #map {
-      height: 600px;
-      width: 100%;
+    .map-layout {
+      display: flex;
+      flex-direction: row;
+      height: calc(100vh - 100px);
       border-radius: 24px;
-      z-index: 1;
+      overflow: hidden;
     }
-    .map-container { position: relative; }
-    .search-overlay {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 1000;
-      width: 300px;
-      max-height: calc(100% - 40px);
+    .search-panel {
+      width: 400px;
+      padding: 20px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .filter-row { display: flex; gap: 10px; align-items: center; }
+    #map {
+      flex: 1;
+      height: 100%;
+    }
+    @media (max-width: 768px) {
+      .map-layout { flex-direction: column; }
+      .search-panel { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+    }
   </style>
 </head>
 <body>
@@ -34,9 +41,9 @@
     </div>
   </nav>
 
-  <main class="container mt-4">
-    <div class="glass-card p-0 map-container">
-      <div class="search-overlay glass-card">
+  <main class="container mt-4" style="max-width: 100%; padding: 0 20px;">
+    <div class="glass-card p-0 map-layout">
+      <div class="search-panel">
         <h2 class="text-xl font-bold mb-4">Find Parking</h2>
         <div class="form-group">
           <input type="text" id="location-search" class="glass-input" placeholder="Search a place (city, address)..." />
@@ -72,34 +79,107 @@
   <script type="module">
     import api, { apiErrorMessage } from '/js/api.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
     import { watchLocations, unwatchLocations, onSlotUpdated } from '/js/socket.js';
-    import L from 'leaflet';
-    import 'leaflet/dist/leaflet.css';
-    import 'leaflet.markercluster/dist/MarkerCluster.css';
-    import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-    import markerIcon from 'leaflet/dist/images/marker-icon.png';
-    import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-    import markerShadow from 'leaflet/dist/images/marker-shadow.png';
-    import 'leaflet.markercluster';
+    import maplibregl from 'maplibre-gl';
+    import 'maplibre-gl/dist/maplibre-gl.css';
 
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconUrl: markerIcon,
-      iconRetinaUrl: markerIcon2x,
-      shadowUrl: markerShadow,
-    });
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('evOnly') === 'true') {
+      document.getElementById('ev-only').checked = true;
+    }
 
     let center = { lat: 12.9716, lng: 77.5946 }; // sensible default; overridden by geolocation below
-    const map = L.map('map').setView([center.lat, center.lng], 13);
+    const map = new maplibregl.Map({
+      container: 'map',
+      style: 'https://tiles.openfreemap.org/styles/liberty',
+      center: [center.lng, center.lat],
+      zoom: 13
+    });
+    map.addControl(new maplibregl.NavigationControl());
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
+    map.on('load', () => {
+      map.addSource('listings', {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50
+      });
 
-    let markers = [];
-    let clusterGroup = L.markerClusterGroup();
-    map.addLayer(clusterGroup);
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'listings',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#4264fb',
+          'circle-radius': 18,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'listings',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+          'text-size': 12
+        },
+        paint: {
+          'text-color': '#ffffff'
+        }
+      });
+
+      map.addLayer({
+        id: 'unclustered-point',
+        type: 'circle',
+        source: 'listings',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': '#fbbf24',
+          'circle-radius': 10,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      map.on('click', 'clusters', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+        const clusterId = features[0].properties.cluster_id;
+        map.getSource('listings').getClusterExpansionZoom(clusterId, (err, zoom) => {
+          if (err) return;
+          map.easeTo({
+            center: features[0].geometry.coordinates,
+            zoom: zoom
+          });
+        });
+      });
+
+      map.on('click', 'unclustered-point', (e) => {
+        const coordinates = e.features[0].geometry.coordinates.slice();
+        const props = e.features[0].properties;
+
+        new maplibregl.Popup()
+          .setLngLat(coordinates)
+          .setHTML(`
+            <strong>${escapeHtml(props.name)}</strong><br>
+            ${props.price_str} &middot; ${props.available_slots} available<br>
+            <a href="/listing.html?id=${props.location_id}" style="color:#5c8df6; font-weight:bold;">View Details</a>
+          `)
+          .addTo(map);
+      });
+
+      map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+      map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
+      map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
+    });
+
     let watchedIds = [];
 
     function priceStr(l) { return `₹${Number(l.price_per_hour).toFixed(0)}/hr`; }
@@ -121,8 +201,8 @@
 
       list.innerHTML = listings.map((l) => `
         <a href="/listing.html?id=${l.location_id}" class="glass-card list-card" style="display:block; text-decoration:none; color:inherit;">
-          <div class="font-semibold">${l.name}</div>
-          <div class="text-sm text-muted">${l.address}</div>
+          <div class="font-semibold">${escapeHtml(l.name)}</div>
+          <div class="text-sm text-muted">${escapeHtml(l.address)}</div>
           <div class="flex justify-between items-center mt-2">
             <span class="badge ${Number(l.available_slots) > 0 ? 'badge-available' : 'badge-disabled'}">
               ${l.available_slots} available
@@ -156,20 +236,26 @@
         watchedIds = listings.map((l) => l.location_id);
         watchLocations(watchedIds);
 
-        clusterGroup.clearLayers();
-        markers = [];
+        const geojsonData = {
+          type: 'FeatureCollection',
+          features: listings.map((listing) => ({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [Number(listing.longitude), Number(listing.latitude)]
+            },
+            properties: {
+              location_id: listing.location_id,
+              name: listing.name,
+              available_slots: listing.available_slots,
+              price_str: priceStr(listing)
+            }
+          }))
+        };
 
-        listings.forEach((listing) => {
-          const marker = L.marker([listing.latitude, listing.longitude]);
-          marker.bindPopup(`
-            <strong>${listing.name}</strong><br>
-            ${priceStr(listing)} &middot; ${listing.available_slots} available${listing.avg_rating ? `<br>⭐ ${listing.avg_rating} (${listing.review_count} reviews)` : ''}<br>
-            <a href="/listing.html?id=${listing.location_id}" style="color:#5c8df6; font-weight:bold;">View Details</a>
-          `);
-          marker.locationId = listing.location_id;
-          markers.push(marker);
-          clusterGroup.addLayer(marker);
-        });
+        if (map.getSource('listings')) {
+          map.getSource('listings').setData(geojsonData);
+        }
 
         renderResults(listings);
       } catch (err) {
@@ -194,7 +280,7 @@
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          map.setView([center.lat, center.lng], 14);
+          map.flyTo({ center: [center.lng, center.lat], zoom: 14 });
           loadListings();
         },
         () => showToast('Could not get your location. Using default area instead.', 'error')
@@ -211,7 +297,7 @@
         .then((data) => {
           if (data && data.length > 0) {
             center = { lat: Number(data[0].lat), lng: Number(data[0].lon) };
-            map.setView([center.lat, center.lng], 14);
+            map.flyTo({ center: [center.lng, center.lat], zoom: 14 });
             loadListings();
           } else {
             showToast('No matching location found.', 'error');
@@ -225,7 +311,7 @@
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          map.setView([center.lat, center.lng], 13);
+          map.flyTo({ center: [center.lng, center.lat], zoom: 13 });
           loadListings();
         },
         () => loadListings(),
@@ -271,8 +357,7 @@
           <div class="footer-title">Support & Admin</div>
           <ul class="footer-links">
             <li><a href="/admin.html">Admin Console</a></li>
-            <li><a href="/database/schema.sql">Database Schema</a></li>
-            <li><a href="https://github.com" target="_blank" rel="noreferrer">Developer Docs</a></li>
+            <li><a href="#">Developer Docs</a></li>
             <li><a href="#">Privacy & Terms</a></li>
           </ul>
         </div>

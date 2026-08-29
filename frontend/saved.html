@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Saved Listings - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -30,6 +31,7 @@
     import api, { apiErrorMessage } from '/js/api.js';
     import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
 
     const user = requireAuth(['driver']);
     if (user) document.getElementById('page-root').style.display = 'block';
@@ -50,8 +52,8 @@
         container.innerHTML = listings.map((l) => `
           <div class="glass-card list-card" style="padding:16px 20px;" data-id="${l.location_id}">
             <div>
-              <strong>${l.name}</strong>
-              <p class="text-muted text-sm">${l.address}</p>
+              <strong>${escapeHtml(l.name)}</strong>
+              <p class="text-muted text-sm">${escapeHtml(l.address)}</p>
               <p class="text-sm mt-2">${money(l.price_per_hour)}/hr &middot; ${l.available_slots} available</p>
             </div>
             <div class="flex gap-2">

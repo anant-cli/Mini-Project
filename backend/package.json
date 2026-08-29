@@ -7,8 +7,7 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
-    "migrate": "psql -d $PGDATABASE -f ../database/schema.sql",
-    "seed": "psql -d $PGDATABASE -f ../database/seed.sql"
+    "migrate": "psql -d $PGDATABASE -f ../database/schema.sql"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

@@ -1,7 +1,25 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import fs from 'fs';
+
+function copyImagesPlugin() {
+  const srcDir = resolve(import.meta.dirname, '../images');
+  const destDir = resolve(import.meta.dirname, 'public/images');
+  return {
+    name: 'copy-images',
+    buildStart() {
+      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+      if (fs.existsSync(srcDir)) {
+        for (const file of fs.readdirSync(srcDir)) {
+          fs.copyFileSync(resolve(srcDir, file), resolve(destDir, file));
+        }
+      }
+    }
+  };
+}
 
 export default defineConfig({
+  plugins: [copyImagesPlugin()],
   server: {
     port: 5173,
     proxy: {
@@ -11,16 +29,16 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        login: resolve(__dirname, 'login.html'),
-        signup: resolve(__dirname, 'signup.html'),
-        search: resolve(__dirname, 'search.html'),
-        listing: resolve(__dirname, 'listing.html'),
-        host: resolve(__dirname, 'host.html'),
-        admin: resolve(__dirname, 'admin.html'),
-        bookings: resolve(__dirname, 'bookings.html'),
-        saved: resolve(__dirname, 'saved.html'),
-        notFound: resolve(__dirname, '404.html'),
+        main: resolve(import.meta.dirname, 'index.html'),
+        login: resolve(import.meta.dirname, 'login.html'),
+        signup: resolve(import.meta.dirname, 'signup.html'),
+        search: resolve(import.meta.dirname, 'search.html'),
+        listing: resolve(import.meta.dirname, 'listing.html'),
+        host: resolve(import.meta.dirname, 'host.html'),
+        admin: resolve(import.meta.dirname, 'admin.html'),
+        bookings: resolve(import.meta.dirname, 'bookings.html'),
+        saved: resolve(import.meta.dirname, 'saved.html'),
+        notFound: resolve(import.meta.dirname, '404.html'),
       }
     }
   }

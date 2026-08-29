@@ -20,6 +20,11 @@ export const findBookingByQrToken = async (qrToken) => {
   return rows[0];
 };
 
+export const lockBookingByQrToken = async (client, qrToken) => {
+  const { rows } = await client.query(`SELECT * FROM bookings WHERE qr_token = $1 FOR UPDATE`, [qrToken]);
+  return rows[0];
+};
+
 export const findBookingById = async (bookingId) => {
   const { rows } = await query(`SELECT * FROM bookings WHERE booking_id = $1`, [bookingId]);
   return rows[0];
@@ -57,8 +62,9 @@ export const getBookingsForHost = async (ownerId) => {
   return rows;
 };
 
-export const recordCheckin = async (bookingId, method = 'qr') => {
-  const { rows } = await query(
+export const recordCheckin = async (bookingId, method = 'qr', client = null) => {
+  const runner = client ? client.query.bind(client) : query;
+  const { rows } = await runner(
     `UPDATE bookings
      SET checkin_time = now(), checkin_method = $2, status = 'checked_in'
      WHERE booking_id = $1 RETURNING *`,
@@ -69,8 +75,9 @@ export const recordCheckin = async (bookingId, method = 'qr') => {
 
 // Computes the final bill from the *actual* checkin→checkout duration,
 // charging overtime per minute past the booked end_time — see Section 4.2.
-export const recordCheckout = async (bookingId, pricePerHour) => {
-  const booking = await findBookingById(bookingId);
+export const recordCheckout = async (bookingId, pricePerHour, client = null, lockedBooking = null) => {
+  const runner = client ? client.query.bind(client) : query;
+  const booking = lockedBooking || await findBookingById(bookingId);
   if (!booking) throw new Error('Booking not found');
 
   const checkoutTime = new Date();
@@ -89,7 +96,7 @@ export const recordCheckout = async (bookingId, pricePerHour) => {
 
   const totalAmount = Number((baseAmount + overtimeAmount).toFixed(2));
 
-  const { rows } = await query(
+  const { rows } = await runner(
     `UPDATE bookings
      SET checkout_time = $2, total_amount = $3, overtime_amount = $4, status = 'completed'
      WHERE booking_id = $1 RETURNING *`,
@@ -98,8 +105,9 @@ export const recordCheckout = async (bookingId, pricePerHour) => {
   return { booking: rows[0], actualMinutes };
 };
 
-export const cancelBooking = async (bookingId) => {
-  const { rows } = await query(
+export const cancelBooking = async (bookingId, client = null) => {
+  const runner = client ? client.query.bind(client) : query;
+  const { rows } = await runner(
     `UPDATE bookings SET status = 'cancelled' WHERE booking_id = $1 RETURNING *`,
     [bookingId]
   );

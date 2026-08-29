@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ParkSlot — Peer-to-Peer Smart Parking & EV Charging Marketplace</title>
   <meta name="description" content="Find, reserve, and park in verified private driveways, EV fast charging bays, and smart garages. Earn passive income by hosting your space." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
@@ -67,6 +68,7 @@
         <div class="text-sm">Avg EV Charge Speed</div>
       </div>
     </section>
+    <div class="text-center text-sm text-muted mb-8">(Illustrative stats for demo purposes)</div>
 
     <!-- How It Works Section -->
     <section class="mt-8 mb-8 text-center">
@@ -192,7 +194,7 @@
           <span>How does the escrow payment protection work?</span>
           <span>▼</span>
         </div>
-        <div class="faq-answer">
+        <div class="faq-answer" style="display: none;">
           When you book a spot, your payment is held in escrow. Funds are only released to the host after you successfully check in and complete your parking session, ensuring complete protection against unavailable or misrepresented spots.
         </div>
       </div>
@@ -202,7 +204,7 @@
           <span>Can I charge my Electric Vehicle (EV) while parked?</span>
           <span>▼</span>
         </div>
-        <div class="faq-answer">
+        <div class="faq-answer" style="display: none;">
           Yes! Look for listings marked with the EV Charging badge. You can filter search results specifically for Type-1, Type-2, or CCS fast chargers, with transparent per-kWh billing.
         </div>
       </div>
@@ -212,8 +214,8 @@
           <span>What happens if someone else is parked in my reserved slot?</span>
           <span>▼</span>
         </div>
-        <div class="faq-answer">
-          You can raise an instant Dispute directly from your Bookings tab. Our admin support system immediately investigates, auto-refunds your escrow payment, and redirects you to a nearby backup slot.
+        <div class="faq-answer" style="display: none;">
+          You can raise an instant Dispute directly from your Bookings tab. Our admin support system immediately investigates, manually reviews and refunds your escrow payment if valid, and redirects you to a nearby backup slot.
         </div>
       </div>
 
@@ -222,7 +224,7 @@
           <span>How do host payouts work?</span>
           <span>▼</span>
         </div>
-        <div class="faq-answer">
+        <div class="faq-answer" style="display: none;">
           Earnings accumulate in your Host Dashboard after every completed driver checkout. Payouts are transferred automatically according to your payout preference minus the standard platform commission.
         </div>
       </div>
@@ -265,8 +267,7 @@
           <div class="footer-title">Support & Admin</div>
           <ul class="footer-links">
             <li><a href="/admin.html">Admin Console</a></li>
-            <li><a href="/database/schema.sql">Database Schema</a></li>
-            <li><a href="https://github.com" target="_blank" rel="noreferrer">Developer Docs</a></li>
+            <li><a href="#">Developer Docs</a></li>
             <li><a href="#">Privacy & Terms</a></li>
           </ul>
         </div>
@@ -275,5 +276,18 @@
   </footer>
 
   <script type="module" src="/js/auth.js"></script>
+  <script>
+    document.querySelectorAll('.faq-question').forEach(q => {
+      q.addEventListener('click', () => {
+        const answer = q.nextElementSibling;
+        const icon = q.querySelector('span:last-child');
+        const isVisible = answer.style.display === 'block';
+        answer.style.display = isVisible ? 'none' : 'block';
+        icon.style.display = 'inline-block';
+        icon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+        icon.style.transition = 'transform 0.2s';
+      });
+    });
+  </script>
 </body>
 </html>

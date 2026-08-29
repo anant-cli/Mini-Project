@@ -2,10 +2,10 @@ import { z } from 'zod';
 import { withTransaction, query } from '../config/db.js';
 import { lockSlotForUpdate, hasOverlappingBooking, setSlotStatus, countAvailableSlots } from '../models/slot.model.js';
 import {
-  createBookingRow, findBookingByQrToken, findBookingById,
+  createBookingRow, lockBookingByQrToken, findBookingById,
   getBookingsForUser, getBookingsForHost, recordCheckin, recordCheckout, cancelBooking,
 } from '../models/booking.model.js';
-import { createHeldPayment, releasePayment } from '../models/payment.model.js';
+import { createHeldPayment, releasePayment, reversePayment } from '../models/payment.model.js';
 import { generateQrToken, generateQrDataUrl } from '../utils/qrcode.js';
 import { emitSlotUpdate, emitBookingEvent } from '../config/socket.js';
 import { ApiError } from '../middleware/errorHandler.js';
@@ -30,6 +30,38 @@ const bookingSchema = z.object({
   end_time: z.string().max(40),
 });
 
+const quoteSchema = z.object({
+  slot_id: z.string().uuid(),
+  start_time: z.string().max(40),
+  end_time: z.string().max(40),
+});
+
+const parseBookingWindow = ({ start_time, end_time }) => {
+  const startTime = new Date(start_time);
+  const endTime = new Date(end_time);
+  if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
+    throw new ApiError(400, 'start_time and end_time must be valid dates');
+  }
+  if (startTime.getTime() < Date.now() - 2 * 60 * 1000) {
+    throw new ApiError(400, 'Start time cannot be in the past');
+  }
+  if (endTime <= startTime) throw new ApiError(400, 'end_time must be after start_time');
+  return { startTime, endTime };
+};
+
+const getSlotQuote = async (runner, slotId, startTime, endTime) => {
+  const { rows } = await runner(
+    `SELECT l.price_per_hour, l.location_id FROM locations l
+     JOIN slots s ON s.location_id = l.location_id WHERE s.slot_id = $1`,
+    [slotId]
+  );
+  if (!rows[0]) throw new ApiError(404, 'Location not found for slot');
+  const pricePerHour = Number(rows[0].price_per_hour);
+  const hours = (endTime - startTime) / 3600000;
+  const estimatedAmount = Number((pricePerHour * hours).toFixed(2));
+  return { locationId: rows[0].location_id, pricePerHour, hours, estimatedAmount };
+};
+
 const assertCanManageBooking = async (req, booking) => {
   if (req.user.role === 'admin') return;
 
@@ -51,15 +83,7 @@ const assertCanManageBooking = async (req, booking) => {
 export const createBooking = async (req, res, next) => {
   try {
     const data = bookingSchema.parse(req.body);
-    const startTime = new Date(data.start_time);
-    const endTime = new Date(data.end_time);
-    if (Number.isNaN(startTime.getTime()) || Number.isNaN(endTime.getTime())) {
-      throw new ApiError(400, 'start_time and end_time must be valid dates');
-    }
-    if (startTime.getTime() < Date.now() - 2 * 60 * 1000) {
-      throw new ApiError(400, 'Start time cannot be in the past');
-    }
-    if (endTime <= startTime) throw new ApiError(400, 'end_time must be after start_time');
+    const { startTime, endTime } = parseBookingWindow(data);
 
     const result = await withTransaction(async (client) => {
       const slot = await lockSlotForUpdate(client, data.slot_id);
@@ -69,16 +93,7 @@ export const createBooking = async (req, res, next) => {
       const overlap = await hasOverlappingBooking(client, data.slot_id, startTime, endTime);
       if (overlap) throw new ApiError(409, 'This slot is already booked for the selected time window');
 
-      // Fetch price from the parent location to compute the fare preview.
-      const { rows: locRows } = await client.query(
-        `SELECT l.price_per_hour, l.location_id FROM locations l
-         JOIN slots s ON s.location_id = l.location_id WHERE s.slot_id = $1`,
-        [data.slot_id]
-      );
-      if (!locRows[0]) throw new ApiError(404, 'Location not found for slot');
-      const pricePerHour = Number(locRows[0].price_per_hour);
-      const hours = (endTime - startTime) / 3600000;
-      const estimatedAmount = Number((pricePerHour * hours).toFixed(2));
+      const quote = await getSlotQuote(client.query.bind(client), data.slot_id, startTime, endTime);
 
       const qrToken = generateQrToken();
       const booking = await createBookingRow(client, {
@@ -88,19 +103,19 @@ export const createBooking = async (req, res, next) => {
         start_time: startTime,
         end_time: endTime,
         qr_token: qrToken,
-        estimated_amount: estimatedAmount,
+        estimated_amount: quote.estimatedAmount,
       });
 
       await setSlotStatus(data.slot_id, 'booked', client);
       const payment = await createHeldPayment(client, {
         booking_id: booking.booking_id,
-        amount: estimatedAmount,
+        amount: quote.estimatedAmount,
         payment_mode: 'card',
       });
 
-      const availableSlots = await countAvailableSlots(locRows[0].location_id, client);
+      const availableSlots = await countAvailableSlots(quote.locationId, client);
 
-      return { booking, payment, locationId: locRows[0].location_id, availableSlots, pricePerHour };
+      return { booking, payment, locationId: quote.locationId, availableSlots, pricePerHour: quote.pricePerHour };
     });
 
     const qrDataUrl = await generateQrDataUrl(result.booking.qr_token);
@@ -115,6 +130,21 @@ export const createBooking = async (req, res, next) => {
       booking: result.booking,
       payment: result.payment,
       qr_pass: qrDataUrl,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const quoteBooking = async (req, res, next) => {
+  try {
+    const data = quoteSchema.parse(req.query);
+    const { startTime, endTime } = parseBookingWindow(data);
+    const quote = await getSlotQuote(query, data.slot_id, startTime, endTime);
+    res.json({
+      price_per_hour: quote.pricePerHour,
+      hours: quote.hours,
+      estimated_amount: quote.estimatedAmount,
     });
   } catch (err) {
     next(err);
@@ -146,13 +176,15 @@ export const listHostBookings = listHostedBookings;
 export const checkin = async (req, res, next) => {
   try {
     const { qr_token } = req.body;
-    const booking = await findBookingByQrToken(qr_token);
-    if (!booking) throw new ApiError(404, 'Invalid QR code');
-    if (booking.status !== 'confirmed') throw new ApiError(400, `Booking is not in a checkin-eligible state (current: ${booking.status})`);
-    await assertCanManageBooking(req, booking);
-
-    const updated = await recordCheckin(booking.booking_id, 'qr');
-    await setSlotStatus(booking.slot_id, 'occupied');
+    const { booking, updated } = await withTransaction(async (client) => {
+      const booking = await lockBookingByQrToken(client, qr_token);
+      if (!booking) throw new ApiError(404, 'Invalid QR code');
+      if (booking.status !== 'confirmed') throw new ApiError(400, `Booking is not in a checkin-eligible state (current: ${booking.status})`);
+      await assertCanManageBooking(req, booking);
+      const updated = await recordCheckin(booking.booking_id, 'qr', client);
+      await setSlotStatus(booking.slot_id, 'occupied', client);
+      return { booking, updated };
+    });
 
     emitBookingEvent(booking.booking_id, { type: 'checked_in', checkin_time: updated.checkin_time });
     res.json({ booking: updated });
@@ -166,38 +198,34 @@ export const checkin = async (req, res, next) => {
 export const checkout = async (req, res, next) => {
   try {
     const { qr_token } = req.body;
-    const booking = await findBookingByQrToken(qr_token);
-    if (!booking) throw new ApiError(404, 'Invalid QR code');
-    if (booking.status !== 'checked_in') throw new ApiError(400, 'Booking has not been checked in yet');
-    await assertCanManageBooking(req, booking);
-
-    const { rows } = await query(
-      `SELECT l.price_per_hour, l.location_id FROM locations l
-       JOIN slots s ON s.location_id = l.location_id WHERE s.slot_id = $1`,
-      [booking.slot_id]
-    );
-    if (!rows[0]) throw new ApiError(404, 'Location not found for slot');
-    const pricePerHour = Number(rows[0].price_per_hour);
-
-    const { booking: completed, actualMinutes } = await recordCheckout(booking.booking_id, pricePerHour);
-    await setSlotStatus(booking.slot_id, 'available');
-    const availableSlots = await countAvailableSlots(rows[0].location_id);
-
     const commissionPercent = Number(process.env.PLATFORM_COMMISSION_PERCENT || 15);
-    const { platformCut, hostPayout } = await releasePayment(booking.booking_id, completed.total_amount, commissionPercent);
+    const result = await withTransaction(async (client) => {
+      const booking = await lockBookingByQrToken(client, qr_token);
+      if (!booking) throw new ApiError(404, 'Invalid QR code');
+      if (booking.status !== 'checked_in') throw new ApiError(400, 'Booking has not been checked in yet');
+      await assertCanManageBooking(req, booking);
 
-    emitSlotUpdate(rows[0].location_id, {
-      slot_id: booking.slot_id,
+      const quote = await getSlotQuote(client.query.bind(client), booking.slot_id, new Date(booking.start_time), new Date(booking.end_time));
+      const { booking: completed, actualMinutes } = await recordCheckout(booking.booking_id, quote.pricePerHour, client, booking);
+      await setSlotStatus(booking.slot_id, 'available', client);
+      const availableSlots = await countAvailableSlots(quote.locationId, client);
+      const { platformCut, hostPayout } = await releasePayment(booking.booking_id, completed.total_amount, commissionPercent, client);
+
+      return { booking, completed, actualMinutes, availableSlots, locationId: quote.locationId, platformCut, hostPayout };
+    });
+
+    emitSlotUpdate(result.locationId, {
+      slot_id: result.booking.slot_id,
       status: 'available',
-      available_slots: availableSlots,
+      available_slots: result.availableSlots,
     });
-    emitBookingEvent(booking.booking_id, {
+    emitBookingEvent(result.booking.booking_id, {
       type: 'checked_out',
-      total_amount: completed.total_amount,
-      overtime_amount: completed.overtime_amount,
+      total_amount: result.completed.total_amount,
+      overtime_amount: result.completed.overtime_amount,
     });
 
-    res.json({ booking: completed, actualMinutes, platformCut, hostPayout });
+    res.json({ booking: result.completed, actualMinutes: result.actualMinutes, platformCut: result.platformCut, hostPayout: result.hostPayout });
   } catch (err) {
     next(err);
   }
@@ -211,8 +239,12 @@ export const cancel = async (req, res, next) => {
     if (!['pending', 'confirmed'].includes(booking.status)) {
       throw new ApiError(400, 'Only pending/confirmed bookings can be cancelled');
     }
-    const cancelled = await cancelBooking(booking.booking_id);
-    await setSlotStatus(booking.slot_id, 'available');
+    const result = await withTransaction(async (client) => {
+      const cancelled = await cancelBooking(booking.booking_id, client);
+      const payment = await reversePayment(booking.booking_id, client);
+      await setSlotStatus(booking.slot_id, 'available', client);
+      return { cancelled, payment };
+    });
     const { rows } = await query(
       `SELECT location_id FROM slots WHERE slot_id = $1`,
       [booking.slot_id]
@@ -225,7 +257,7 @@ export const cancel = async (req, res, next) => {
         available_slots: availableSlots,
       });
     }
-    res.json({ booking: cancelled });
+    res.json({ booking: result.cancelled, payment: result.payment });
   } catch (err) {
     next(err);
   }

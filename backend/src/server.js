@@ -20,6 +20,10 @@ dotenv.config();
 
 const app = express();
 
+if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+  throw new Error('CORS_ORIGIN is required in production');
+}
+
 // CORS_ORIGIN may be a single origin or a comma-separated list (useful when
 // the frontend has both a production domain and Vercel preview URLs).
 const corsOrigin = process.env.CORS_ORIGIN || '*';
@@ -50,6 +54,9 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'parkslot-api' }));
+app.get('/api/config', (req, res) => {
+  res.json({ platform_commission_percent: Number(process.env.PLATFORM_COMMISSION_PERCENT || 15) });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingsRoutes);

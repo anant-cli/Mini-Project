@@ -156,6 +156,26 @@ a:hover {
 .btn-secondary:hover {
   box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
 }
+.btn-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+.btn-success:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6);
+}
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+.btn-danger:hover {
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+}
+
+.min-h-screen { min-height: 100vh; }
 
 /* Glass Input */
 .glass-input {
@@ -300,6 +320,7 @@ fieldset {
 .badge-occupied { background: rgba(0, 229, 255, 0.15); color: #00e5ff; border-color: rgba(0,229,255,0.3); }
 .badge-disabled, .badge-cancelled, .badge-disputed, .badge-out_of_service, .badge-failed { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239,68,68,0.3); }
 .badge-ev { background: rgba(189, 0, 255, 0.15); color: #d946ef; border-color: rgba(189,0,255,0.3); }
+.badge-in_use { background: rgba(168, 85, 247, 0.15); color: #c084fc; border-color: rgba(168, 85, 247, 0.3); }
 
 /* ---------- Slot status grid (host dashboard) ---------- */
 .slot-grid {

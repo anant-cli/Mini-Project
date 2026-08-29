@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Listing Details - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -71,13 +72,38 @@
                 <input type="datetime-local" id="end-time" class="glass-input" required />
               </div>
               <p id="estimate" class="text-muted mb-2"></p>
-              <button type="submit" id="book-submit" class="btn btn-primary w-full mt-2">Book Now</button>
+              <button type="submit" id="book-submit" class="btn btn-primary w-full mt-2">Proceed to Pay</button>
             </form>
           </div>
         </div>
       </div>
     </div>
   </template>
+
+  <div id="payment-modal" class="modal-backdrop" style="display:none;">
+    <div class="glass-card modal-box" style="text-align: left;">
+      <h2 class="text-xl mb-4">Complete Payment</h2>
+      <div id="payment-summary" class="glass-card mb-4" style="padding:12px; background:rgba(255,255,255,0.03);"></div>
+      <form id="payment-form">
+        <div class="form-group">
+          <label class="form-label">Card Number</label>
+          <input type="text" class="glass-input" placeholder="0000 0000 0000 0000" required maxlength="19" />
+        </div>
+        <div class="flex gap-4">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Expiry</label>
+            <input type="text" class="glass-input" placeholder="MM/YY" required maxlength="5" />
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">CVV</label>
+            <input type="password" class="glass-input" placeholder="123" required maxlength="4" />
+          </div>
+        </div>
+        <button type="submit" id="pay-submit" class="btn btn-primary w-full mt-4">Pay Now</button>
+        <button type="button" id="pay-cancel" class="btn w-full mt-2">Cancel</button>
+      </form>
+    </div>
+  </div>
 
   <div id="qr-modal" class="modal-backdrop" style="display:none;">
     <div class="glass-card modal-box">
@@ -93,6 +119,7 @@
     import api, { apiErrorMessage } from '/js/api.js';
     import { getUser } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
     import { watchLocations, onSlotUpdated } from '/js/socket.js';
 
     const urlParams = new URLSearchParams(window.location.search);
@@ -200,10 +227,10 @@
         el.innerHTML = reviews.map((r) => `
           <div class="glass-card" style="padding:12px 16px;">
             <div class="flex justify-between">
-              <strong>${r.author_name}</strong>
+              <strong>${escapeHtml(r.author_name)}</strong>
               <span>${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
             </div>
-            ${r.comment ? `<p class="text-sm text-muted mt-2">${r.comment}</p>` : ''}
+            ${r.comment ? `<p class="text-sm text-muted mt-2">${escapeHtml(r.comment)}</p>` : ''}
           </div>
         `).join('');
       } catch (err) {
@@ -288,22 +315,67 @@
 
         const submitBtn = document.getElementById('book-submit');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Booking...';
+        submitBtn.textContent = 'Calculating...';
 
         try {
-          const res = await api.post('/bookings', {
+          const res = await api.post('/bookings/quote', {
             slot_id: slotId,
-            vehicle_number: vehicleNumber,
             start_time: new Date(startTime).toISOString(),
             end_time: new Date(endTime).toISOString(),
           });
-          document.getElementById('qr-image').src = res.data.qr_pass;
-          document.getElementById('qr-modal').style.display = 'flex';
+          const quote = res.data;
+          
+          document.getElementById('payment-summary').innerHTML = `
+            <div class="flex justify-between mb-1"><span>Rate:</span> <span>${money(pricePerHour)}/hr</span></div>
+            <div class="flex justify-between mb-1"><span>Duration:</span> <span>${quote.hours.toFixed(1)} hrs</span></div>
+            <hr style="border-color:rgba(255,255,255,0.1); margin:8px 0;" />
+            <div class="flex justify-between font-bold"><span>Total:</span> <span>${money(quote.total_amount)}</span></div>
+          `;
+          
+          document.getElementById('payment-modal').style.display = 'flex';
+          
+          document.getElementById('payment-form').onsubmit = async (pe) => {
+            pe.preventDefault();
+            const payBtn = document.getElementById('pay-submit');
+            payBtn.disabled = true;
+            payBtn.textContent = 'Processing payment…';
+            
+            // Artificial delay
+            await new Promise(r => setTimeout(r, 1500));
+            
+            payBtn.textContent = '✓ Payment Successful';
+            payBtn.classList.replace('btn-primary', 'btn-success');
+            
+            await new Promise(r => setTimeout(r, 500));
+
+            try {
+              const bRes = await api.post('/bookings', {
+                slot_id: slotId,
+                vehicle_number: vehicleNumber,
+                start_time: new Date(startTime).toISOString(),
+                end_time: new Date(endTime).toISOString(),
+              });
+              document.getElementById('payment-modal').style.display = 'none';
+              document.getElementById('qr-image').src = bRes.data.qr_pass;
+              document.getElementById('qr-modal').style.display = 'flex';
+            } catch (err) {
+              showToast(apiErrorMessage(err, 'Could not create booking.'), 'error');
+            } finally {
+              payBtn.disabled = false;
+              payBtn.textContent = 'Pay Now';
+              payBtn.classList.replace('btn-success', 'btn-primary');
+            }
+          };
+
+          document.getElementById('pay-cancel').onclick = () => {
+            document.getElementById('payment-modal').style.display = 'none';
+          };
+          
         } catch (err) {
-          showToast(apiErrorMessage(err, 'Could not create booking.'), 'error');
+          showToast(apiErrorMessage(err, 'Could not get quote.'), 'error');
         } finally {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Book Now';
+          submitBtn.textContent = 'Proceed to Pay';
         }
       });
     }

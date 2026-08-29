@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Panel - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -51,6 +52,7 @@
     import api, { apiErrorMessage } from '/js/api.js';
     import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
 
     const user = requireAuth(['admin']);
     if (user) document.getElementById('page-root').style.display = 'block';
@@ -84,8 +86,8 @@
           <div class="glass-card list-card">
             <div class="list-card-row">
               <div>
-                <strong>${l.name}</strong>
-                <p class="text-muted text-sm">${l.address}</p>
+                <strong>${escapeHtml(l.name)}</strong>
+                <p class="text-muted text-sm">${escapeHtml(l.address)}</p>
                 <p class="text-sm">${money(l.price_per_hour)}/hr &middot; ${l.total_slots} slots</p>
               </div>
               <div class="flex gap-2">
@@ -127,8 +129,8 @@
         container.innerHTML = disputes.map((d) => `
           <div class="glass-card list-card">
             <div>
-              <strong>${d.vehicle_number || 'Booking'} &middot; ${money(d.total_amount || 0)}</strong>
-              <p class="text-sm text-muted mt-2">${d.reason}</p>
+              <strong>${escapeHtml(d.vehicle_number) || 'Booking'} &middot; ${money(d.total_amount || 0)}</strong>
+              <p class="text-sm text-muted mt-2">${escapeHtml(d.reason)}</p>
             </div>
             <div class="flex gap-2 mt-2">
               <input type="text" class="glass-input resolution-input" data-id="${d.dispute_id}" placeholder="Resolution note..." style="flex:1;" />
@@ -163,7 +165,7 @@
         container.innerHTML = users.map((u) => `
           <div class="list-card-row" style="padding:10px 4px; border-bottom:1px solid rgba(0,0,0,0.05);">
             <div>
-              <strong>${u.name}</strong> <span class="text-muted text-sm">(${u.email})</span>
+              <strong>${escapeHtml(u.name)}</strong> <span class="text-muted text-sm">(${escapeHtml(u.email)})</span>
               <span class="badge" style="margin-left:8px;">${u.role}</span>
               ${u.is_suspended ? '<span class="badge badge-disabled" style="margin-left:6px;">Suspended</span>' : ''}
             </div>

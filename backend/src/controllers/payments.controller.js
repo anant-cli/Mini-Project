@@ -49,7 +49,7 @@ export const raiseDispute = async (req, res, next) => {
 
     const { rows } = await query(
       `INSERT INTO disputes (booking_id, raised_by, reason) VALUES ($1,$2,$3) RETURNING *`,
-      [booking_id, req.user.user_id, reason.trim()]
+      [booking_id, req.user.user_id, reason.trim().replace(/\s+/g, ' ')]
     );
     await query(`UPDATE bookings SET status = 'disputed' WHERE booking_id = $1`, [booking_id]);
     res.status(201).json({ dispute: rows[0] });
