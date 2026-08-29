@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+﻿import { query } from '../config/db.js';
 import { getPaymentByBooking } from '../models/payment.model.js';
 import { findBookingById } from '../models/booking.model.js';
 import { ApiError } from '../middleware/errorHandler.js';
@@ -34,8 +34,6 @@ export const getPaymentForBooking = async (req, res, next) => {
   }
 };
 
-// Driver or host raises a dispute — decided using checkin/checkout logs
-// as evidence, per Section 4.4 of the plan.
 export const raiseDispute = async (req, res, next) => {
   try {
     const { booking_id, reason } = req.body;

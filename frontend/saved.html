@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,7 +11,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">⚡ ParkSlot</a>
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -36,7 +36,7 @@
     const user = requireAuth(['driver']);
     if (user) document.getElementById('page-root').style.display = 'block';
 
-    function money(n) { return `₹${Number(n).toFixed(0)}`; }
+    function money(n) { return `Rs ${Number(n).toFixed(0)}`; }
 
     async function loadSaved() {
       const container = document.getElementById('saved-list');
@@ -83,3 +83,4 @@
   </script>
 </body>
 </html>
+

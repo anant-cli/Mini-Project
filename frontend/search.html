@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -36,7 +36,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">⚡ ParkSlot</a>
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -66,7 +66,7 @@
           <label for="ev-only">EV charging only</label>
         </div>
         <button id="search-btn" class="btn btn-primary w-full mb-2">Search this area</button>
-        <button id="locate-btn" class="btn w-full">Use my location</button>
+        <button id="locate-btn" class="btn btn-primary w-full">Use my location</button>
 
         <div id="results-summary" class="text-muted text-sm mt-4"></div>
         <div id="results-list" class="flex flex-col gap-2 mt-2"></div>
@@ -98,10 +98,12 @@
     });
     map.addControl(new maplibregl.NavigationControl());
 
+    let lastMapData = { type: 'FeatureCollection', features: [] };
+
     map.on('load', () => {
       map.addSource('listings', {
         type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
+        data: lastMapData,
         cluster: true,
         clusterMaxZoom: 14,
         clusterRadius: 50
@@ -182,7 +184,7 @@
 
     let watchedIds = [];
 
-    function priceStr(l) { return `₹${Number(l.price_per_hour).toFixed(0)}/hr`; }
+    function priceStr(l) { return `Rs ${Number(l.price_per_hour).toFixed(0)}/hr`; }
 
     function ratingBadge(l) {
       if (!l.avg_rating) return '';
@@ -236,7 +238,7 @@
         watchedIds = listings.map((l) => l.location_id);
         watchLocations(watchedIds);
 
-        const geojsonData = {
+        lastMapData = {
           type: 'FeatureCollection',
           features: listings.map((listing) => ({
             type: 'Feature',
@@ -254,7 +256,7 @@
         };
 
         if (map.getSource('listings')) {
-          map.getSource('listings').setData(geojsonData);
+          map.getSource('listings').setData(lastMapData);
         }
 
         renderResults(listings);
@@ -326,7 +328,7 @@
     <div class="container">
       <div class="footer-grid">
         <div>
-          <a href="/index.html" class="navbar-brand mb-4" style="display: inline-block;">⚡ ParkSlot</a>
+          <a href="/index.html" class="navbar-brand mb-4" style="display: inline-block;">ParkSlot</a>
           <p class="text-sm text-muted mb-4" style="max-width: 320px;">
             The next-generation smart parking marketplace connecting drivers with verified hosts and EV charging stations worldwide.
           </p>
@@ -357,7 +359,7 @@
           <div class="footer-title">Support & Admin</div>
           <ul class="footer-links">
             <li><a href="/admin.html">Admin Console</a></li>
-            <li><a href="#">Developer Docs</a></li>
+            
             <li><a href="#">Privacy & Terms</a></li>
           </ul>
         </div>
@@ -366,3 +368,4 @@
   </footer>
 </body>
 </html>
+

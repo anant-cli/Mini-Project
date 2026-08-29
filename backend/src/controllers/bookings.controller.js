@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { withTransaction, query } from '../config/db.js';
 import { lockSlotForUpdate, hasOverlappingBooking, setSlotStatus, countAvailableSlots } from '../models/slot.model.js';
 import {
@@ -77,9 +77,6 @@ const assertCanManageBooking = async (req, booking) => {
   throw new ApiError(403, 'You do not have access to manage this booking');
 };
 
-// Step 1-4 of the "How a request flows end-to-end" example in the plan:
-// lock the slot row, verify no overlapping booking exists, hold funds,
-// write the booking, generate the QR pass.
 export const createBooking = async (req, res, next) => {
   try {
     const data = bookingSchema.parse(req.body);
@@ -138,13 +135,14 @@ export const createBooking = async (req, res, next) => {
 
 export const quoteBooking = async (req, res, next) => {
   try {
-    const data = quoteSchema.parse(req.query);
+    const data = quoteSchema.parse(req.method === 'GET' ? req.query : req.body);
     const { startTime, endTime } = parseBookingWindow(data);
     const quote = await getSlotQuote(query, data.slot_id, startTime, endTime);
     res.json({
       price_per_hour: quote.pricePerHour,
       hours: quote.hours,
       estimated_amount: quote.estimatedAmount,
+      total_amount: quote.estimatedAmount,
     });
   } catch (err) {
     next(err);
@@ -162,7 +160,7 @@ export const listMyBookings = async (req, res, next) => {
 
 export const listHostedBookings = async (req, res, next) => {
   try {
-    const bookings = await getBookingsForHost(req.user.user_id);
+    const bookings = await getBookingsForHost(req.user.user_id, req.user.role === 'admin');
     res.json({ bookings });
   } catch (err) {
     next(err);
@@ -172,7 +170,6 @@ export const listHostedBookings = async (req, res, next) => {
 export const listHostBookings = listHostedBookings;
 
 
-// Host/staff scans the driver's QR at the gate on arrival.
 export const checkin = async (req, res, next) => {
   try {
     const { qr_token } = req.body;
@@ -193,8 +190,6 @@ export const checkin = async (req, res, next) => {
   }
 };
 
-// Host/staff scans again on departure — computes final bill (incl.
-// overtime) and releases the escrowed payout to the host.
 export const checkout = async (req, res, next) => {
   try {
     const { qr_token } = req.body;

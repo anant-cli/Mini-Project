@@ -11,7 +11,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">⚡ ParkSlot</a>
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -23,15 +23,15 @@
       <form id="signup-form">
         <div class="form-group">
           <label class="form-label" for="name">Full Name</label>
-          <input type="text" id="name" class="glass-input" required minlength="2" autocomplete="name" />
+          <input type="text" id="name" class="glass-input" required minlength="5" autocomplete="name" />
         </div>
         <div class="form-group">
           <label class="form-label" for="email">Email</label>
           <input type="email" id="email" class="glass-input" required autocomplete="email" />
         </div>
         <div class="form-group">
-          <label class="form-label" for="phone">Phone (optional)</label>
-          <input type="tel" id="phone" class="glass-input" autocomplete="tel" />
+          <label class="form-label" for="phone">Phone</label>
+          <input type="tel" id="phone" class="glass-input" required autocomplete="tel" />
         </div>
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
@@ -41,8 +41,8 @@
         <div class="form-group">
           <label class="form-label" for="role">I want to...</label>
           <select id="role" class="glass-input" style="padding: 14px 20px;" required>
-            <option value="driver">Find parking (Driver)</option>
-            <option value="host">Host my space (Host)</option>
+            <option value="driver">Driver</option>
+            <option value="host">Host</option>
             <option value="business_host">Host a commercial lot (Business)</option>
           </select>
         </div>

@@ -1,9 +1,7 @@
-import { query } from '../config/db.js';
+﻿import { query } from '../config/db.js';
 
 const mockGatewayRef = () => `SIM-${Math.random().toString(36).slice(2, 10).toUpperCase()}${Date.now().toString(36).toUpperCase().slice(-6)}`;
 
-// "Hold" the estimated amount at booking time — the escrow mechanic from
-// Section 4.3: the driver pays the platform, not the host, up front.
 export const createHeldPayment = async (client, { booking_id, amount, payment_mode, gateway_ref }) => {
   const { rows } = await client.query(
     `INSERT INTO payments (booking_id, amount, payment_mode, payment_status, payout_status, gateway_ref)

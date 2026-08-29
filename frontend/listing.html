@@ -11,7 +11,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">⚡ ParkSlot</a>
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -135,7 +135,7 @@
     let currentSlots = [];
     let pricePerHour = 0;
 
-    function money(n) { return `₹${Number(n).toFixed(0)}`; }
+    function money(n) { return `Rs ${Number(n || 0).toFixed(0)}`; }
 
     async function loadListing() {
       if (!listingId) {
@@ -157,14 +157,14 @@
           (location.vehicle_types_allowed || []).map((v) => VEHICLE_LABELS[v] || v).join(', ') || 'Car';
         const hours = location.operating_hours || {};
         tpl.querySelector('[data-field="hours"]').textContent =
-          hours.open && hours.close ? `${hours.open} – ${hours.close}` : '24 hours';
+          hours.open && hours.close ? `${hours.open} to ${hours.close}` : '24 hours';
         if (location.avg_rating) {
           tpl.querySelector('[data-field="rating"]').innerHTML = `⭐ ${location.avg_rating} <span class="text-muted text-sm">(${location.review_count})</span>`;
         }
 
         const evBadge = tpl.querySelector('[data-field="ev-badge"]');
         if (location.has_ev_charging) {
-          evBadge.textContent = '⚡ EV Charging';
+          evBadge.textContent = 'EV Charging';
           evBadge.classList.add('badge-ev');
         } else {
           evBadge.remove();
@@ -329,7 +329,7 @@
             <div class="flex justify-between mb-1"><span>Rate:</span> <span>${money(pricePerHour)}/hr</span></div>
             <div class="flex justify-between mb-1"><span>Duration:</span> <span>${quote.hours.toFixed(1)} hrs</span></div>
             <hr style="border-color:rgba(255,255,255,0.1); margin:8px 0;" />
-            <div class="flex justify-between font-bold"><span>Total:</span> <span>${money(quote.total_amount)}</span></div>
+            <div class="flex justify-between font-bold"><span>Total:</span> <span>${money(quote.total_amount || quote.estimated_amount)}</span></div>
           `;
           
           document.getElementById('payment-modal').style.display = 'flex';
@@ -338,12 +338,11 @@
             pe.preventDefault();
             const payBtn = document.getElementById('pay-submit');
             payBtn.disabled = true;
-            payBtn.textContent = 'Processing payment…';
-            
-            // Artificial delay
+            payBtn.textContent = 'Processing payment...';
+
             await new Promise(r => setTimeout(r, 1500));
             
-            payBtn.textContent = '✓ Payment Successful';
+            payBtn.textContent = 'Payment Successful';
             payBtn.classList.replace('btn-primary', 'btn-success');
             
             await new Promise(r => setTimeout(r, 500));

@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+﻿import { query } from '../config/db.js';
 
 export const getSlotsByLocation = async (locationId) => {
   const { rows } = await query(`SELECT * FROM slots WHERE location_id = $1 ORDER BY slot_number`, [locationId]);
@@ -7,7 +7,6 @@ export const getSlotsByLocation = async (locationId) => {
 
 // Locks the slot row (FOR UPDATE) inside the caller's transaction so two
 // simultaneous bookings for the same slot/window can never both succeed —
-// this is the "real-time slot locking" mechanism described in the plan.
 export const lockSlotForUpdate = async (client, slotId) => {
   const { rows } = await client.query(`SELECT * FROM slots WHERE slot_id = $1 FOR UPDATE`, [slotId]);
   return rows[0];

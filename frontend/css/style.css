@@ -1,17 +1,17 @@
 :root {
   /* Color Palette - Premium Dark Glassmorphism */
-  --color-bg-base: #0b0f19;
+  --color-bg-base: #ffffff;
   --color-surface: rgba(255, 255, 255, 0.04);
   --color-surface-hover: rgba(255, 255, 255, 0.08);
-  --color-primary: #00e5ff; /* Neon cyan */
+  --color-primary: #00e5ff;
   --color-primary-glow: rgba(0, 229, 255, 0.4);
-  --color-secondary: #bd00ff; /* Neon purple */
+  --color-secondary: #bd00ff;
   --color-success: #10b981;
   --color-warning: #fbbf24;
   --color-danger: #ef4444;
   
-  --color-text: #f8fafc;
-  --color-text-muted: #94a3b8;
+  --color-text: black;
+  --color-text-muted: #9bacc5;
   --color-border: rgba(255, 255, 255, 0.1);
   
   --font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -25,8 +25,7 @@
 
 body {
   font-family: var(--font-family);
-  background: radial-gradient(circle at 15% 50%, rgba(0, 229, 255, 0.08), transparent 25%),
-              var(--color-bg-base);
+  background: linear-gradient(135deg, lightgrey, white 0%, lightgray 100%);
   background-attachment: fixed;
   color: var(--color-text);
   line-height: 1.6;
@@ -73,7 +72,7 @@ a:hover {
 .text-center { text-align: center; }
 .text-2xl { font-size: 1.5rem; font-weight: 600; }
 .text-3xl { font-size: 1.875rem; font-weight: 600; }
-.text-4xl { font-size: 2.5rem; font-weight: 700; background: -webkit-linear-gradient(45deg, var(--color-primary), var(--color-secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.text-4xl { font-size: 2.5rem; font-weight: 700; background: -webkit-linear-gradient(45deg, orange, red); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .font-bold { font-weight: bold; }
 .text-muted { color: var(--color-text-muted); }
 
@@ -207,7 +206,7 @@ a:hover {
   padding: 20px 0;
   top: 0;
   z-index: 100;
-  background: rgba(11, 15, 25, 0.7);
+  background: whitesmoke;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--color-border);
@@ -225,7 +224,7 @@ a:hover {
   color: #fff;
   text-decoration: none;
   letter-spacing: -0.5px;
-  background: -webkit-linear-gradient(45deg, #fff, var(--color-primary));
+  background: -webkit-linear-gradient(45deg, violet, var(--color-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -462,7 +461,7 @@ fieldset {
   display: block;
   height: 2px;
   border-radius: 2px;
-  background: #fff;
+  background: black;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 .nav-toggle-open span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
@@ -497,7 +496,7 @@ fieldset {
     top: 76px;
     right: 20px;
     left: 20px;
-    background: rgba(15, 23, 42, 0.95);
+    background: whitesmoke;
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 20px;
@@ -571,20 +570,6 @@ fieldset {
   transform: scale(1.03);
 }
 
-.hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(0, 229, 255, 0.1);
-  border: 1px solid rgba(0, 229, 255, 0.3);
-  color: var(--color-primary);
-  padding: 8px 18px;
-  border-radius: 99px;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 20px;
-}
-
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -604,7 +589,7 @@ fieldset {
 .stat-number {
   font-size: 2.25rem;
   font-weight: 800;
-  background: -webkit-linear-gradient(45deg, var(--color-primary), #fff);
+  background: -webkit-linear-gradient(45deg, var(--color-primary), violet);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   line-height: 1.2;
@@ -640,7 +625,6 @@ fieldset {
 }
 
 .faq-item {
-  border-bottom: 1px solid var(--color-border);
   padding: 20px 0;
 }
 
@@ -666,7 +650,7 @@ fieldset {
   margin-top: 80px;
   border-top: 1px solid var(--color-border);
   padding: 60px 0 30px 0;
-  background: rgba(7, 10, 18, 0.8);
+  background: whitesmoke;
   backdrop-filter: blur(12px);
 }
 
@@ -682,7 +666,7 @@ fieldset {
 }
 
 .footer-title {
-  color: #fff;
+  color: black;
   font-size: 1rem;
   font-weight: 700;
   margin-bottom: 16px;

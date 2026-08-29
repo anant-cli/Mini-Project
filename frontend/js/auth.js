@@ -52,7 +52,7 @@ export function updateNavbar() {
     document.getElementById('logout-btn').addEventListener('click', logout);
   } else {
     navLinks.innerHTML = `
-      <a href="/login.html" class="btn">Login</a>
+      <a href="/login.html" class="btn btn-primary">Login</a>
       <a href="/signup.html" class="btn btn-primary">Sign Up</a>
     `;
   }

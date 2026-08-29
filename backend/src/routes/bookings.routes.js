@@ -9,6 +9,7 @@ const router = Router();
 
 router.post('/', requireAuth, requireRole('driver'), createBooking);
 router.get('/quote', requireAuth, requireRole('driver'), quoteBooking);
+router.post('/quote', requireAuth, requireRole('driver'), quoteBooking);
 router.get('/mine', requireAuth, listMyBookings);
 router.get('/hosted', requireAuth, requireRole('host', 'business_host'), listHostedBookings);
 router.get('/host', requireAuth, requireRole('host', 'business_host', 'admin'), listHostBookings);

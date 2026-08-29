@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -11,7 +11,7 @@
 <body>
   <nav class="navbar">
     <div class="container flex justify-between items-center">
-      <a href="/index.html" class="navbar-brand">⚡ ParkSlot</a>
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
       <div class="nav-links" id="nav-links"></div>
     </div>
   </nav>
@@ -38,7 +38,7 @@
     <div class="glass-card modal-box">
       <h2 class="text-xl mb-4">Rate this parking spot</h2>
       <div id="review-star-widget" class="star-input mb-4" style="justify-content:center; font-size:2rem;"></div>
-      <textarea id="review-comment" class="glass-input mb-4" placeholder="Optional comment…"></textarea>
+      <textarea id="review-comment" class="glass-input mb-4" placeholder="Optional comment..."></textarea>
       <button id="review-submit" class="btn btn-primary w-full" disabled>Submit Review</button>
       <button id="review-cancel" class="btn w-full mt-2">Cancel</button>
     </div>
@@ -54,7 +54,7 @@
     const user = requireAuth();
     if (user) document.getElementById('page-root').style.display = 'block';
 
-    function money(n) { return `₹${Number(n).toFixed(0)}`; }
+    function money(n) { return `Rs ${Number(n || 0).toFixed(0)}`; }
 
     async function loadBookings() {
       const container = document.getElementById('bookings-list');
@@ -73,8 +73,9 @@
               <div>
                 <strong>${escapeHtml(b.location_name)}</strong>
                 <p class="text-sm text-muted">${escapeHtml(b.address)}</p>
-                <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} &rarr; ${new Date(b.end_time).toLocaleString()}</p>
+                <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} to ${new Date(b.end_time).toLocaleString()}</p>
                 <p class="text-sm mt-2">${money(b.total_amount || b.estimated_amount)}${b.overtime_amount > 0 ? ` (incl. ${money(b.overtime_amount)} overtime)` : ''}</p>
+                ${b.payment_status ? `<p class="text-sm text-muted">Payment: ${escapeHtml(b.payment_status)} &middot; Payout: ${escapeHtml(b.payout_status || 'held')}</p>` : ''}
                 ${b.status === 'cancelled' ? `<p class="text-sm text-success mt-1" style="color:#10b981;">${money(b.total_amount || b.estimated_amount)} refunded to your original payment method</p>` : ''}
               </div>
               <span class="badge badge-${b.status}">${b.status.replace('_', ' ')}</span>
@@ -82,6 +83,7 @@
             <div class="flex gap-2 mt-2" style="flex-wrap:wrap;">
               ${['pending', 'confirmed'].includes(b.status) ? `<button class="btn qr-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Show QR Pass</button>` : ''}
               ${['pending', 'confirmed'].includes(b.status) ? `<button class="btn cancel-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Cancel</button>` : ''}
+              ${['confirmed', 'checked_in', 'completed'].includes(b.status) ? `<button class="btn dispute-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Raise dispute</button>` : ''}
               ${b.status === 'completed' && !b.location_review_id ? `<button class="btn review-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Leave a review</button>` : ''}
             </div>
           </div>
@@ -89,6 +91,7 @@
 
         container.querySelectorAll('.qr-btn').forEach((btn) => btn.addEventListener('click', () => showQr(btn.dataset.id)));
         container.querySelectorAll('.cancel-btn').forEach((btn) => btn.addEventListener('click', () => cancelBooking(btn.dataset.id)));
+        container.querySelectorAll('.dispute-btn').forEach((btn) => btn.addEventListener('click', () => raiseDispute(btn.dataset.id)));
         container.querySelectorAll('.review-btn').forEach((btn) => btn.addEventListener('click', () => leaveReview(btn.dataset.id)));
       } catch (err) {
         container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load bookings.')}</p>`;
@@ -110,6 +113,18 @@
       try {
         await api.patch(`/bookings/${bookingId}/cancel`);
         showToast('Booking cancelled.', 'success');
+        loadBookings();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    }
+
+    async function raiseDispute(bookingId) {
+      const reason = prompt('Briefly describe the issue with this booking.');
+      if (!reason || !reason.trim()) return;
+      try {
+        await api.post('/payments/disputes', { booking_id: bookingId, reason: reason.trim() });
+        showToast('Dispute submitted for admin review.', 'success');
         loadBookings();
       } catch (err) {
         showToast(apiErrorMessage(err), 'error');
@@ -180,3 +195,4 @@
   </script>
 </body>
 </html>
+

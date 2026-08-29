@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -20,7 +20,7 @@
     <h1 class="text-3xl mb-8">Admin Dashboard</h1>
 
     <div class="grid grid-3 mb-8" id="report-stats">
-      <div class="glass-card text-center"><p class="text-muted text-sm">Gross Volume</p><p class="text-3xl" id="stat-volume">₹0</p></div>
+      <div class="glass-card text-center"><p class="text-muted text-sm">Gross Volume</p><p class="text-3xl" id="stat-volume">Rs 0</p></div>
       <div class="glass-card text-center"><p class="text-muted text-sm">Captured Transactions</p><p class="text-3xl" id="stat-transactions">0</p></div>
       <div class="glass-card text-center"><p class="text-muted text-sm">Total Users</p><p class="text-3xl" id="stat-users">0</p></div>
     </div>
@@ -57,7 +57,7 @@
     const user = requireAuth(['admin']);
     if (user) document.getElementById('page-root').style.display = 'block';
 
-    function money(n) { return `₹${Number(n).toFixed(0)}`; }
+    function money(n) { return `Rs ${Number(n).toFixed(0)}`; }
 
     async function loadReport() {
       try {
@@ -199,3 +199,4 @@
   </script>
 </body>
 </html>
+

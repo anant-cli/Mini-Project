@@ -1,4 +1,4 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 import { query } from '../config/db.js';
 import {
   addLocationReview, addDriverReview, getReviewsForLocation,
@@ -41,7 +41,6 @@ export const reviewLocation = async (req, res, next) => {
 };
 
 // Host reviews the driver — this is the "mutual trust" half described in
-// Section 4.4: bad-actor drivers become visible to future hosts.
 export const reviewDriver = async (req, res, next) => {
   try {
     const data = reviewSchema.parse(req.body);

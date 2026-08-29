@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+﻿import { query } from '../config/db.js';
 
 export const createBookingRow = async (client, data) => {
   const {
@@ -33,11 +33,13 @@ export const findBookingById = async (bookingId) => {
 export const getBookingsForUser = async (userId) => {
   const { rows } = await query(
     `SELECT b.*, l.name AS location_name, l.address,
-            lr.review_id AS location_review_id
+            lr.review_id AS location_review_id,
+            p.payment_status, p.payout_status, p.gateway_ref
      FROM bookings b
      JOIN slots s ON s.slot_id = b.slot_id
      JOIN locations l ON l.location_id = s.location_id
      LEFT JOIN reviews lr ON lr.booking_id = b.booking_id AND lr.location_id IS NOT NULL
+     LEFT JOIN payments p ON p.booking_id = b.booking_id
      WHERE b.user_id = $1
      ORDER BY b.start_time DESC`,
     [userId]
@@ -45,19 +47,21 @@ export const getBookingsForUser = async (userId) => {
   return rows;
 };
 
-export const getBookingsForHost = async (ownerId) => {
+export const getBookingsForHost = async (ownerId, includeAll = false) => {
   const { rows } = await query(
     `SELECT b.*, l.location_id, l.name AS location_name, l.address, s.slot_number,
             u.name AS driver_name, u.email AS driver_email,
-            dr.review_id AS driver_review_id
+            dr.review_id AS driver_review_id,
+            p.payment_status, p.payout_status, p.gateway_ref
      FROM bookings b
      JOIN slots s ON s.slot_id = b.slot_id
      JOIN locations l ON l.location_id = s.location_id
      JOIN users u ON u.user_id = b.user_id
      LEFT JOIN reviews dr ON dr.booking_id = b.booking_id AND dr.reviewed_user IS NOT NULL
-     WHERE l.owner_id = $1
+     LEFT JOIN payments p ON p.booking_id = b.booking_id
+     WHERE ($2::boolean = true OR l.owner_id = $1)
      ORDER BY b.start_time DESC`,
-    [ownerId]
+    [ownerId, includeAll]
   );
   return rows;
 };
@@ -74,7 +78,6 @@ export const recordCheckin = async (bookingId, method = 'qr', client = null) => 
 };
 
 // Computes the final bill from the *actual* checkin→checkout duration,
-// charging overtime per minute past the booked end_time — see Section 4.2.
 export const recordCheckout = async (bookingId, pricePerHour, client = null, lockedBooking = null) => {
   const runner = client ? client.query.bind(client) : query;
   const booking = lockedBooking || await findBookingById(bookingId);
