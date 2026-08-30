@@ -39,12 +39,20 @@ app.use(helmet({
       fontSrc: ["'self'", 'https:', 'data:'],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.tile.openstreetmap.org'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
       objectSrc: ["'none'"],
       scriptSrc: ["'self'"],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      connectSrc: ["'self'", apiOrigin, frontendOrigin, apiOrigin.replace(/^http/, 'ws'), frontendOrigin.replace(/^http/, 'ws')],
+      // Note: this CSP governs only the backend's own responses (the frontend
+      // is served from a different origin with its own headers), but is kept
+      // accurate to what the app actually calls in case they're ever combined:
+      // MapLibre/OpenFreeMap tiles and OpenStreetMap Nominatim for geocoding.
+      connectSrc: [
+        "'self'", apiOrigin, frontendOrigin,
+        apiOrigin.replace(/^http/, 'ws'), frontendOrigin.replace(/^http/, 'ws'),
+        'https://tiles.openfreemap.org', 'https://nominatim.openstreetmap.org',
+      ],
       upgradeInsecureRequests: [],
     },
   },

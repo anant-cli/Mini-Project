@@ -1,4 +1,4 @@
-﻿import { query } from '../config/db.js';
+import { query } from '../config/db.js';
 
 export const getSlotsByLocation = async (locationId) => {
   const { rows } = await query(`SELECT * FROM slots WHERE location_id = $1 ORDER BY slot_number`, [locationId]);

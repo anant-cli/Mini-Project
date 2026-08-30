@@ -1,4 +1,4 @@
-﻿import { query } from '../config/db.js';
+import { query } from '../config/db.js';
 import { getPaymentByBooking } from '../models/payment.model.js';
 import { findBookingById } from '../models/booking.model.js';
 import { ApiError } from '../middleware/errorHandler.js';

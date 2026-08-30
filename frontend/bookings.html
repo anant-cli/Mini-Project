@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,7 +6,7 @@
   <title>My Bookings - ParkSlot</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar">
@@ -19,7 +19,7 @@
   <main class="container mt-8" id="page-root" style="display:none;">
     <h1 class="text-3xl mb-8">My Bookings</h1>
 
-    <div class="glass-card">
+    <div class="card">
       <div id="bookings-list" class="flex flex-col gap-4">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
@@ -27,7 +27,7 @@
   </main>
 
   <div id="qr-modal" class="modal-backdrop" style="display:none;">
-    <div class="glass-card modal-box">
+    <div class="card modal-box">
       <h2 class="text-xl mb-4">Your QR Pass</h2>
       <img id="qr-image" src="" alt="QR pass" />
       <button id="qr-close" class="btn btn-primary w-full mt-4">Close</button>
@@ -35,10 +35,10 @@
   </div>
 
   <div id="review-modal" class="modal-backdrop" style="display:none;">
-    <div class="glass-card modal-box">
+    <div class="card modal-box">
       <h2 class="text-xl mb-4">Rate this parking spot</h2>
       <div id="review-star-widget" class="star-input mb-4" style="justify-content:center; font-size:2rem;"></div>
-      <textarea id="review-comment" class="glass-input mb-4" placeholder="Optional comment..."></textarea>
+      <textarea id="review-comment" class="input mb-4" placeholder="Optional comment..."></textarea>
       <button id="review-submit" class="btn btn-primary w-full" disabled>Submit Review</button>
       <button id="review-cancel" class="btn w-full mt-2">Cancel</button>
     </div>
@@ -54,7 +54,7 @@
     const user = requireAuth();
     if (user) document.getElementById('page-root').style.display = 'block';
 
-    function money(n) { return `Rs ${Number(n || 0).toFixed(0)}`; }
+    function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
 
     async function loadBookings() {
       const container = document.getElementById('bookings-list');
@@ -68,7 +68,7 @@
         }
 
         container.innerHTML = bookings.map((b) => `
-          <div class="glass-card list-card" style="padding:16px 20px;">
+          <div class="card list-card" style="padding:16px 20px;">
             <div class="list-card-row">
               <div>
                 <strong>${escapeHtml(b.location_name)}</strong>

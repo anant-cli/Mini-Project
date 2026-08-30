@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,7 +6,7 @@
   <title>Admin Panel - ParkSlot</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar">
@@ -20,26 +20,26 @@
     <h1 class="text-3xl mb-8">Admin Dashboard</h1>
 
     <div class="grid grid-3 mb-8" id="report-stats">
-      <div class="glass-card text-center"><p class="text-muted text-sm">Gross Volume</p><p class="text-3xl" id="stat-volume">Rs 0</p></div>
-      <div class="glass-card text-center"><p class="text-muted text-sm">Captured Transactions</p><p class="text-3xl" id="stat-transactions">0</p></div>
-      <div class="glass-card text-center"><p class="text-muted text-sm">Total Users</p><p class="text-3xl" id="stat-users">0</p></div>
+      <div class="card text-center"><p class="text-muted text-sm">Gross Volume</p><p class="text-3xl" id="stat-volume">₹0</p></div>
+      <div class="card text-center"><p class="text-muted text-sm">Captured Transactions</p><p class="text-3xl" id="stat-transactions">0</p></div>
+      <div class="card text-center"><p class="text-muted text-sm">Total Users</p><p class="text-3xl" id="stat-users">0</p></div>
     </div>
 
-    <div class="glass-card mb-8">
+    <div class="card mb-8">
       <h2 class="text-2xl mb-4">Pending Listing Approvals</h2>
       <div id="pending-list" class="flex flex-col gap-3">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <div class="glass-card mb-8">
+    <div class="card mb-8">
       <h2 class="text-2xl mb-4">Open Disputes</h2>
       <div id="disputes-list" class="flex flex-col gap-3">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <div class="glass-card">
+    <div class="card">
       <h2 class="text-2xl mb-4">All Users</h2>
       <div id="users-list" class="flex flex-col gap-2">
         <div class="state-msg"><div class="spinner"></div></div>
@@ -57,7 +57,7 @@
     const user = requireAuth(['admin']);
     if (user) document.getElementById('page-root').style.display = 'block';
 
-    function money(n) { return `Rs ${Number(n).toFixed(0)}`; }
+    function money(n) { return `₹${Number(n).toFixed(0)}`; }
 
     async function loadReport() {
       try {
@@ -83,7 +83,7 @@
         }
 
         container.innerHTML = listings.map((l) => `
-          <div class="glass-card list-card">
+          <div class="card list-card">
             <div class="list-card-row">
               <div>
                 <strong>${escapeHtml(l.name)}</strong>
@@ -127,13 +127,13 @@
         }
 
         container.innerHTML = disputes.map((d) => `
-          <div class="glass-card list-card">
+          <div class="card list-card">
             <div>
               <strong>${escapeHtml(d.vehicle_number) || 'Booking'} &middot; ${money(d.total_amount || 0)}</strong>
               <p class="text-sm text-muted mt-2">${escapeHtml(d.reason)}</p>
             </div>
             <div class="flex gap-2 mt-2">
-              <input type="text" class="glass-input resolution-input" data-id="${d.dispute_id}" placeholder="Resolution note..." style="flex:1;" />
+              <input type="text" class="input resolution-input" data-id="${d.dispute_id}" placeholder="Resolution note..." style="flex:1;" />
               <button class="btn btn-primary resolve-btn" data-id="${d.dispute_id}" style="padding:10px 16px; font-size:0.85rem;">Resolve</button>
             </div>
           </div>
@@ -163,13 +163,14 @@
         const users = res.data.users || [];
 
         container.innerHTML = users.map((u) => `
-          <div class="list-card-row" style="padding:10px 4px; border-bottom:1px solid rgba(0,0,0,0.05);">
+          <div class="list-card-row" style="padding:10px 4px; border-bottom:1px solid var(--color-border);">
             <div>
               <strong>${escapeHtml(u.name)}</strong> <span class="text-muted text-sm">(${escapeHtml(u.email)})</span>
               <span class="badge" style="margin-left:8px;">${u.role}</span>
               ${u.is_suspended ? '<span class="badge badge-disabled" style="margin-left:6px;">Suspended</span>' : ''}
             </div>
             ${u.role !== 'admin' && !u.is_suspended ? `<button class="btn suspend-btn" data-id="${u.user_id}" style="padding:6px 14px; font-size:0.8rem;">Suspend</button>` : ''}
+            ${u.role !== 'admin' && u.is_suspended ? `<button class="btn btn-primary unsuspend-btn" data-id="${u.user_id}" style="padding:6px 14px; font-size:0.8rem;">Unsuspend</button>` : ''}
           </div>
         `).join('');
 
@@ -179,6 +180,18 @@
             try {
               await api.patch(`/admin/users/${btn.dataset.id}/suspend`);
               showToast('User suspended.', 'success');
+              loadUsers();
+            } catch (err) {
+              showToast(apiErrorMessage(err), 'error');
+            }
+          });
+        });
+
+        container.querySelectorAll('.unsuspend-btn').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            try {
+              await api.patch(`/admin/users/${btn.dataset.id}/unsuspend`);
+              showToast('User unsuspended.', 'success');
               loadUsers();
             } catch (err) {
               showToast(apiErrorMessage(err), 'error');

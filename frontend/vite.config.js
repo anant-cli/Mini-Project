@@ -1,25 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import fs from 'fs';
-
-function copyImagesPlugin() {
-  const srcDir = resolve(import.meta.dirname, '../images');
-  const destDir = resolve(import.meta.dirname, 'public/images');
-  return {
-    name: 'copy-images',
-    buildStart() {
-      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-      if (fs.existsSync(srcDir)) {
-        for (const file of fs.readdirSync(srcDir)) {
-          fs.copyFileSync(resolve(srcDir, file), resolve(destDir, file));
-        }
-      }
-    }
-  };
-}
 
 export default defineConfig({
-  plugins: [copyImagesPlugin()],
   server: {
     port: 5173,
     proxy: {

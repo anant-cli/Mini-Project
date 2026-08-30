@@ -39,9 +39,19 @@ api.interceptors.response.use(
   }
 );
 
-// Pulls a readable message out of an API error response.
+// Pulls a readable message out of an API error response. Network failures
+// (backend not running, no internet, CORS misconfig) don't get a
+// `response` at all, so surface that distinctly instead of a vague
+// "Something went wrong" that reads like a wrong-password error.
 export function apiErrorMessage(err, fallback = 'Something went wrong. Please try again.') {
-  return err?.response?.data?.error || err?.message || fallback;
+  if (err?.response?.data?.error) return err.response.data.error;
+  const status = err?.response?.status;
+  const isUnreachable =
+    err?.code === 'ERR_NETWORK' || err?.message === 'Network Error' || status === 502 || status === 503 || status === 504;
+  if (isUnreachable) {
+    return 'Cannot reach the server. Make sure the backend is running and try again.';
+  }
+  return err?.message || fallback;
 }
 
 export default api;

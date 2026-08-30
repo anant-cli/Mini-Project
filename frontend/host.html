@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -6,7 +6,7 @@
   <title>Host Dashboard - ParkSlot</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <style>
     #listing-map { height: 340px; border-radius: 16px; margin-bottom: 16px; z-index: 1; }
     #qr-video-wrap { position: relative; width: 100%; max-width: 340px; margin: 0 auto; }
@@ -29,42 +29,42 @@
     </div>
 
     <div class="grid grid-3 mb-8">
-      <div class="glass-card text-center">
+      <div class="card text-center">
         <p class="text-muted text-sm">Total Listings</p>
         <p class="text-3xl" id="stat-listings">0</p>
       </div>
-      <div class="glass-card text-center">
+      <div class="card text-center">
         <p class="text-muted text-sm">Completed Bookings</p>
         <p class="text-3xl" id="stat-bookings">0</p>
       </div>
-      <div class="glass-card text-center">
+      <div class="card text-center">
         <p class="text-muted text-sm">Est. Payout (after 15% commission)</p>
-        <p class="text-3xl" id="stat-earnings">Rs 0</p>
+        <p class="text-3xl" id="stat-earnings">₹0</p>
       </div>
     </div>
 
-    <div class="glass-card mb-8" id="add-listing-form" style="display: none;">
+    <div class="card mb-8" id="add-listing-form" style="display: none;">
       <h2 class="text-2xl mb-4">Create Listing</h2>
       <form id="create-listing-form">
         <div class="grid grid-2">
           <div class="form-group">
             <label class="form-label" for="name">Listing Name</label>
-            <input type="text" id="name" class="glass-input" placeholder="e.g. Koramangala Driveway" required />
+            <input type="text" id="name" class="input" placeholder="e.g. Koramangala Driveway" required />
           </div>
           <div class="form-group">
-            <label class="form-label" for="price">Price Per Hour (Rs )</label>
-            <input type="number" id="price" class="glass-input" min="1" step="0.01" required />
+            <label class="form-label" for="price">Price Per Hour (₹/hr)</label>
+            <input type="number" id="price" class="input" min="1" step="0.01" required />
           </div>
         </div>
         <div class="form-group">
           <label class="form-label" for="address">Address</label>
-          <input type="text" id="address" class="glass-input" required />
+          <input type="text" id="address" class="input" required />
         </div>
 
         <div class="form-group">
           <label class="form-label">Pin the location on the map</label>
           <div class="form-group">
-            <input type="text" id="map-search" class="glass-input" placeholder="Search an address (press Enter)..." />
+            <input type="text" id="map-search" class="input" placeholder="Search an address (press Enter)..." />
           </div>
           <div id="listing-map"></div>
           <input type="hidden" id="lat" required />
@@ -75,13 +75,13 @@
         <div class="grid grid-2">
           <div class="form-group">
             <label class="form-label" for="total-slots">Total Slots</label>
-            <input type="number" id="total-slots" class="glass-input" min="1" value="1" required />
+            <input type="number" id="total-slots" class="input" min="1" value="1" required />
           </div>
           <div class="form-group">
             <label class="form-label">Operating Hours</label>
             <div class="flex gap-4">
-              <input type="time" id="open-time" class="glass-input" value="00:00" />
-              <input type="time" id="close-time" class="glass-input" value="23:59" />
+              <input type="time" id="open-time" class="input" value="00:00" />
+              <input type="time" id="close-time" class="input" value="23:59" />
             </div>
           </div>
         </div>
@@ -106,13 +106,13 @@
           <div class="grid grid-2">
             <div class="form-group">
               <label class="form-label" for="ev-connector">Connector Type</label>
-              <select id="ev-connector" class="glass-input" style="padding:14px 20px;">
+              <select id="ev-connector" class="input" style="padding:14px 20px;">
                 <option>Type-1</option><option>Type-2</option><option>CCS</option><option>CHAdeMO</option>
               </select>
             </div>
             <div class="form-group">
               <label class="form-label" for="ev-current">Current Type</label>
-              <select id="ev-current" class="glass-input" style="padding:14px 20px;">
+              <select id="ev-current" class="input" style="padding:14px 20px;">
                 <option>AC</option><option>DC</option>
               </select>
             </div>
@@ -120,11 +120,11 @@
           <div class="grid grid-2">
             <div class="form-group">
               <label class="form-label" for="ev-power">Power (kW)</label>
-              <input type="number" id="ev-power" class="glass-input" min="0.1" step="0.1" />
+              <input type="number" id="ev-power" class="input" min="0.1" step="0.1" />
             </div>
             <div class="form-group">
-              <label class="form-label" for="ev-price">Price / kWh (Rs )</label>
-              <input type="number" id="ev-price" class="glass-input" min="0.1" step="0.1" />
+              <label class="form-label" for="ev-price">Price / kWh (₹)</label>
+              <input type="number" id="ev-price" class="input" min="0.1" step="0.1" />
             </div>
           </div>
         </div>
@@ -134,18 +134,18 @@
       </form>
     </div>
 
-    <div class="glass-card mb-8">
+    <div class="card mb-8">
       <h2 class="text-2xl mb-4">Your Listings</h2>
       <div id="host-listings" class="flex flex-col gap-4">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
     </div>
 
-    <div class="glass-card mb-8">
+    <div class="card mb-8">
       <h2 class="text-2xl mb-4">Check-in / Check-out</h2>
       <p class="text-muted text-sm mb-4">Ask the driver to show their QR pass, then scan it or paste the token below.</p>
       <div class="flex gap-4" style="flex-wrap:wrap;">
-        <input type="text" id="qr-token-input" class="glass-input" style="flex:1; min-width:200px;" placeholder="Paste QR token here" />
+        <input type="text" id="qr-token-input" class="input" style="flex:1; min-width:200px;" placeholder="Paste QR token here" />
         <button id="scan-qr-btn" class="btn">Scan QR</button>
         <button id="checkin-btn" class="btn btn-primary">Check In</button>
         <button id="checkout-btn" class="btn btn-secondary">Check Out</button>
@@ -157,7 +157,7 @@
       <p id="checkin-result" class="text-sm mt-4"></p>
     </div>
 
-    <div class="glass-card">
+    <div class="card">
       <h2 class="text-2xl mb-4">Bookings</h2>
       <div id="host-bookings" class="flex flex-col gap-3">
         <div class="state-msg"><div class="spinner"></div></div>
@@ -166,10 +166,10 @@
   </main>
 
   <div id="driver-review-modal" class="modal-backdrop" style="display:none;">
-    <div class="glass-card modal-box">
+    <div class="card modal-box">
       <h2 class="text-xl mb-4">Rate this driver</h2>
       <div id="driver-star-widget" class="star-input mb-4" style="justify-content:center; font-size:2rem;"></div>
-      <textarea id="driver-review-comment" class="glass-input mb-4" placeholder="Optional comment..."></textarea>
+      <textarea id="driver-review-comment" class="input mb-4" placeholder="Optional comment..."></textarea>
       <button id="driver-review-submit" class="btn btn-primary w-full" disabled>Submit Review</button>
       <button id="driver-review-cancel" class="btn w-full mt-2">Cancel</button>
     </div>
@@ -267,7 +267,7 @@
         .catch(() => showToast('Location search failed.', 'error'));
     });
 
-    function money(n) { return `Rs ${Number(n || 0).toFixed(0)}`; }
+    function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
 
     async function loadListings() {
       const container = document.getElementById('host-listings');
@@ -282,7 +282,7 @@
         }
 
         container.innerHTML = listings.map((l) => `
-          <div class="glass-card" style="padding:18px 20px;" data-location="${l.location_id}">
+          <div class="card" style="padding:18px 20px;" data-location="${l.location_id}">
             <div class="list-card-row">
               <div>
                 <strong>${escapeHtml(l.name)}</strong>
@@ -415,7 +415,7 @@
         }
 
         container.innerHTML = bookings.map((b) => `
-          <div class="glass-card" style="padding:14px 18px;">
+          <div class="card" style="padding:14px 18px;">
             <div class="list-card-row">
               <div>
                 <strong>${escapeHtml(b.location_name)}</strong> &middot; Slot ${b.slot_number}

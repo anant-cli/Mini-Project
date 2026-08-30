@@ -1,4 +1,4 @@
-﻿import { z } from 'zod';
+import { z } from 'zod';
 import { withTransaction, query } from '../config/db.js';
 import { lockSlotForUpdate, hasOverlappingBooking, setSlotStatus, countAvailableSlots } from '../models/slot.model.js';
 import {

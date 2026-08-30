@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -7,7 +7,7 @@
   <meta name="description" content="Find, reserve, and park in verified private driveways, EV fast charging bays, and smart garages. Earn passive income by hosting your space." />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 </head>
 <body>
   <!-- Navigation Header -->
@@ -46,26 +46,6 @@
       </div>
     </section>
 
-    <!-- Platform Live Statistics Bar -->
-    <section class="stats-grid">
-      <div class="glass-card stat-card">
-        <div class="stat-number">50,000+</div>
-        <div class="text-sm">Hours Parked Safely</div>
-      </div>
-      <div class="glass-card stat-card">
-        <div class="stat-number">1,250+</div>
-        <div class="text-sm">Verified Hosts</div>
-      </div>
-      <div class="glass-card stat-card">
-        <div class="stat-number">99.8%</div>
-        <div class="text-sm">Reservation Accuracy</div>
-      </div>
-      <div class="glass-card stat-card">
-        <div class="stat-number">15 Min</div>
-        <div class="text-sm">Avg EV Charge Speed</div>
-      </div>
-    </section>
-
     <!-- How It Works Section -->
     <section class="mt-8 mb-8 text-center">
       <h2 class="text-3xl mb-2">How ParkSlot Works</h2>
@@ -74,7 +54,7 @@
       </p>
 
       <div class="grid grid-3">
-        <div class="glass-card text-left">
+        <div class="card text-left">
           <div class="step-circle">1</div>
           <h3 class="text-xl font-bold mb-2">Search & Filter</h3>
           <p class="text-sm text-muted">
@@ -82,7 +62,7 @@
           </p>
         </div>
 
-        <div class="glass-card text-left">
+        <div class="card text-left">
           <div class="step-circle">2</div>
           <h3 class="text-xl font-bold mb-2">Instant Reserve & Escrow</h3>
           <p class="text-sm text-muted">
@@ -90,7 +70,7 @@
           </p>
         </div>
 
-        <div class="glass-card text-left">
+        <div class="card text-left">
           <div class="step-circle">3</div>
           <h3 class="text-xl font-bold mb-2">Scan QR & Park</h3>
           <p class="text-sm text-muted">
@@ -103,7 +83,7 @@
     <!-- Dual Feature Showcase: Drivers & Hosts -->
     <section class="mt-8 mb-8">
       <div class="grid grid-2">
-        <div class="glass-card flex flex-col justify-between">
+        <div class="card flex flex-col justify-between">
           <div>
             <div class="feature-card-media">
               <img src="/images/driver_feature.png" alt="Driver App Features" />
@@ -122,7 +102,7 @@
           <a href="/search.html" class="btn btn-primary w-full">Explore Nearby Spots</a>
         </div>
 
-        <div class="glass-card flex flex-col justify-between">
+        <div class="card flex flex-col justify-between">
           <div>
             <div class="feature-card-media">
               <img src="/images/host_earnings.png" alt="Host Earnings & Monetization" />
@@ -143,46 +123,8 @@
       </div>
     </section>
 
-    <!-- Testimonials & Reviews Showcase -->
-    <section class="mt-8 mb-8">
-      <h2 class="text-3xl text-center mb-2">Loved by Drivers & Hosts Alike</h2>
-      <p class="text-muted text-center mb-8">See why thousands trust ParkSlot for urban mobility.</p>
-
-      <div class="grid grid-3">
-        <div class="glass-card">
-          <div class="flex items-center gap-2 mb-4">
-            <span style="color: #fbbf24; font-size: 1.2rem;">⭐⭐⭐⭐⭐</span>
-          </div>
-          <p class="text-sm text-muted mb-4" style="font-style: italic;">
-            "Found an EV charging driveway just 2 blocks from MG Road during peak weekend hours. Charged my SUV while shopping. Absolute lifesaver!"
-          </p>
-          <div class="font-semibold text-sm">Alex R. — Electric SUV Driver</div>
-        </div>
-
-        <div class="glass-card">
-          <div class="flex items-center gap-2 mb-4">
-            <span style="color: #fbbf24; font-size: 1.2rem;">⭐⭐⭐⭐⭐</span>
-          </div>
-          <p class="text-sm text-muted mb-4" style="font-style: italic;">
-            "Listing my Indiranagar driveway has earned me over Rs 14,000 every month without lifting a finger. The QR check-in makes it completely seamless."
-          </p>
-          <div class="font-semibold text-sm">Sarah J. — Residential Host</div>
-        </div>
-
-        <div class="glass-card">
-          <div class="flex items-center gap-2 mb-4">
-            <span style="color: #fbbf24; font-size: 1.2rem;">⭐⭐⭐⭐⭐</span>
-          </div>
-          <p class="text-sm text-muted mb-4" style="font-style: italic;">
-            "The real-time map update is super snappy. You actually see when a spot opens up live on live. Best parking app interface I've used."
-          </p>
-          <div class="font-semibold text-sm">Priya S. — Daily Commuter</div>
-        </div>
-      </div>
-    </section>
-
     <!-- FAQ Section -->
-    <section class="mt-8 mb-8 glass-card">
+    <section class="mt-8 mb-8 card">
       <h2 class="text-3xl mb-6 text-center">Frequently Asked Questions</h2>
 
       <div class="faq-item">
@@ -260,10 +202,8 @@
         </div>
 
         <div>
-          <div class="footer-title">Support & Admin</div>
+          <div class="footer-title">Support</div>
           <ul class="footer-links">
-            <li><a href="/admin.html">Admin Console</a></li>
-            
             <li><a href="#">Privacy & Terms</a></li>
           </ul>
         </div>
