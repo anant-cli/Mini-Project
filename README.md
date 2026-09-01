@@ -1,28 +1,53 @@
 # ParkSlot - Peer-to-Peer Smart Parking Marketplace
 
-ParkSlot connects drivers with verified parking spaces listed by hosts. It includes live slot availability, QR-based check-in/check-out, escrow-style mock payments, EV charger metadata, saved listings, reviews, and basic admin approval.
+ParkSlot connects drivers with verified parking spaces listed by hosts. Features include live slot availability via Socket.io, MapLibre/OpenFreeMap maps, QR-based check-in/check-out, escrow-style mock payments, EV charger metadata, saved listings, reviews, and admin approval.
 
 ## Tech Stack
 
-- Frontend: React, Vite, Tailwind CSS, React Router, Leaflet, Socket.io client
-- Backend: Node.js, Express, PostgreSQL, Socket.io
-- Auth: JWT with bcrypt password hashing
-- Data: SQL schema and seed files in `database/`
+- **Frontend:** Plain HTML5 + vanilla JS, Vite bundler, multi-page (no SPA framework), MapLibre + OpenFreeMap + Nominatim, Socket.io client
+- **Backend:** Node.js, Express, Socket.io, PostgreSQL (via Neon)
+- **Auth:** JWT (jsonwebtoken) + bcrypt password hashing
+- **Database:** PostgreSQL, schema in `database/schema.sql`
+
+## Project Layout
+
+```text
+backend/    Express API, Socket.io, route controllers, models, middleware
+database/   PostgreSQL schema (schema.sql)
+frontend/   HTML pages, vanilla JS modules, CSS, Vite config
+```
 
 ## Run Locally
 
 ### 1. Prerequisites
 
 - Node.js 18+
-- PostgreSQL 14+
+- A PostgreSQL database (local install, or a free cloud instance on Neon)
 
 ### 2. Database
 
-Create a PostgreSQL database named `parkslot`, then run:
+Apply the schema against your database:
 
 ```bash
-psql -d parkslot -f database/schema.sql
-psql -d parkslot -f database/seed.sql
+psql "$DATABASE_URL" -f database/schema.sql
+```
+
+Or run via npm inside the `backend` directory:
+
+```bash
+npm run migrate
+```
+
+Admin bootstrapping is manual. Create a normal user first, then promote it in SQL:
+
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'you@example.com';
+```
+
+After deploying to Neon for the first time, also run the `ALTER TABLE` migration if the column isn't in your live schema yet:
+
+```sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN NOT NULL DEFAULT false;
 ```
 
 ### 3. Backend
@@ -30,18 +55,19 @@ psql -d parkslot -f database/seed.sql
 ```bash
 cd backend
 npm install
+cp .env.example .env
 npm start
 ```
 
-Common environment variables:
+Key environment variables:
 
-```env
-PORT=5000
-DATABASE_URL=postgres://user:password@localhost:5432/parkslot
-JWT_SECRET=change-me
-CORS_ORIGIN=http://localhost:5173
-PLATFORM_COMMISSION_PERCENT=15
-```
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Postgres connection string (Neon or local) |
+| `JWT_SECRET` | Long random string for JWT signing |
+| `CORS_ORIGIN` | Frontend origin(s), comma-separated. Required in production. |
+| `PORT` | API port (default 5000) |
+| `PLATFORM_COMMISSION_PERCENT` | Host payout commission (default 15) |
 
 ### 4. Frontend
 
@@ -49,45 +75,29 @@ PLATFORM_COMMISSION_PERCENT=15
 cd frontend
 npm install
 npm run dev
+npm run preview
 ```
 
-Set `VITE_API_URL=http://localhost:5000/api` if the frontend is not being proxied to the backend.
+Set `VITE_API_URL=https://your-render-url.onrender.com/api` in Vercel environment variables so the built frontend hits the deployed backend.
 
-## Demo Credentials
+## API Notes
 
-After loading `database/seed.sql`:
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/bookings/quote?slot_id=...&start_time=...&end_time=...` | Returns `{ price_per_hour, hours, estimated_amount }` for the checkout summary. |
+| `PATCH` | `/api/admin/users/:id/unsuspend` | Reverses an admin user suspension. |
+| `GET` | `/api/config` | Returns public non-secret config such as `platform_commission_percent`. |
 
-- Driver: `asha.driver@example.com`
-- Host: `vikram.host@example.com`
-- Admin: `admin@parkshare.app`
-- Password: `Password123!`
+## Deployment
 
-## System Architecture
+| Service | Config |
+|---|---|
+| **Vercel** | Root directory: `frontend`. Set `VITE_API_URL` env var. |
+| **Render** | Root directory: `backend`. Start command: `node src/server.js`. Set all backend env vars. |
+| **Neon** | Free Postgres. Paste `DATABASE_URL` into Render. |
 
-```mermaid
-flowchart LR
-  Driver[Driver browser] --> Frontend[React + Vite frontend]
-  Host[Host browser] --> Frontend
-  Admin[Admin browser] --> Frontend
+## Security Notes
 
-  Frontend -->|REST /api| API[Express API]
-  Frontend <-->|Socket.io| Realtime[Socket.io server]
-  Realtime --- API
+Helmet's `contentSecurityPolicy` block in `backend/src/server.js` applies to Render API responses. The static frontend also defines its own CSP through Vercel response headers in `frontend/vercel.json`, so browser-loaded HTML is protected at the edge.
 
-  API --> Auth[Auth middleware + JWT]
-  API --> Routes[Route controllers]
-  Routes --> Models[Database models]
-  Models --> DB[(PostgreSQL)]
-
-  Routes --> QR[QR token/data URL utility]
-  Routes --> Payments[Escrow-style payment records]
-  Routes --> Reviews[Reviews + favorites]
-```
-
-## Project Layout
-
-```text
-backend/   Express API, Socket.io, route controllers, models, middleware
-database/  PostgreSQL schema and seed data
-frontend/  React pages, components, auth context, API client
-```
+Payments are a fully mocked escrow simulation. No real Razorpay or Stripe calls are made.

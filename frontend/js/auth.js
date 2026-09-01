@@ -46,14 +46,14 @@ export function updateNavbar() {
       <a href="/bookings.html">Bookings</a>
       ${user.role === 'driver' ? '<a href="/saved.html">Saved</a>' : ''}
       <span class="nav-user" title="${user.email}">Hi, ${user.name.split(' ')[0]}</span>
-      <button id="logout-btn" class="clay-btn">Logout</button>
+      <button id="logout-btn" class="btn">Logout</button>
     `;
 
     document.getElementById('logout-btn').addEventListener('click', logout);
   } else {
     navLinks.innerHTML = `
-      <a href="/login.html" class="clay-btn">Login</a>
-      <a href="/signup.html" class="clay-btn clay-btn-primary">Sign Up</a>
+      <a href="/login.html" class="btn btn-primary">Login</a>
+      <a href="/signup.html" class="btn btn-primary">Sign Up</a>
     `;
   }
 }

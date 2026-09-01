@@ -14,8 +14,8 @@ export const createLocation = async (owner_id, data) => {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
      RETURNING *`,
     [owner_id, name, address, latitude, longitude, total_slots,
-     price_per_hour, vehicle_types_allowed, has_ev_charging,
-     JSON.stringify(operating_hours || {}), photos || []]
+     price_per_hour, vehicle_types_allowed, Boolean(has_ev_charging),
+     JSON.stringify(operating_hours || { open: '00:00', close: '23:59' }), photos || []]
   );
 
   // Auto-create the physical slot rows for this listing.
@@ -56,7 +56,9 @@ export const findNearbyLocations = async ({ lat, lng, radiusKm = 5, vehicleType,
 
   const { rows } = await query(
     `SELECT l.*, haversine_km($1, $2, l.latitude, l.longitude) AS distance_km,
-            (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id AND s.status = 'available') AS available_slots
+            (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id AND s.status = 'available') AS available_slots,
+            (SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.location_id = l.location_id) AS avg_rating,
+            (SELECT COUNT(*) FROM reviews r WHERE r.location_id = l.location_id) AS review_count
      FROM locations l
      WHERE ${conditions.join(' AND ')}
        AND haversine_km($1, $2, l.latitude, l.longitude) < $3
@@ -68,7 +70,9 @@ export const findNearbyLocations = async ({ lat, lng, radiusKm = 5, vehicleType,
 
 export const getLocationById = async (locationId) => {
   const { rows } = await query(
-    `SELECT l.*, u.name AS host_name
+    `SELECT l.*, u.name AS host_name,
+            (SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.location_id = l.location_id) AS avg_rating,
+            (SELECT COUNT(*) FROM reviews r WHERE r.location_id = l.location_id) AS review_count
      FROM locations l
      JOIN users u ON u.user_id = l.owner_id
      WHERE l.location_id = $1`,

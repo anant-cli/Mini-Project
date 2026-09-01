@@ -7,14 +7,16 @@ import { getSlotsByLocation } from '../models/slot.model.js';
 import { query } from '../config/db.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
+const normalizeText = (value) => value.trim().replace(/\s+/g, ' ');
+
 const listingSchema = z.object({
-  name: z.string().min(2).max(100),
-  address: z.string().min(4).max(300),
+  name: z.string().min(2).max(100).transform(normalizeText),
+  address: z.string().min(4).max(300).transform(normalizeText),
   latitude: z.number(),
   longitude: z.number(),
-  total_slots: z.number().int().positive(),
-  price_per_hour: z.number().positive(),
-  vehicle_types_allowed: z.array(z.string().max(30)).nonempty(),
+  total_slots: z.number().int().positive().max(200),
+  price_per_hour: z.number().positive().max(100000),
+  vehicle_types_allowed: z.array(z.enum(['two_wheeler', 'car', 'suv', 'ev_car', 'ev_two_wheeler'])).nonempty(),
   has_ev_charging: z.boolean().optional(),
   operating_hours: z.object({ open: z.string().max(5), close: z.string().max(5) }).optional(),
   photos: z.array(z.string().max(500)).optional(),
@@ -53,6 +55,11 @@ export const getListing = async (req, res, next) => {
   try {
     const location = await getLocationById(req.params.id);
     if (!location) throw new ApiError(404, 'Listing not found');
+    const isOwner = req.user?.user_id && location.owner_id === req.user.user_id;
+    const isAdmin = req.user?.role === 'admin';
+    if (!location.is_verified && !isOwner && !isAdmin) {
+      throw new ApiError(404, 'Listing not found');
+    }
     const slots = await getSlotsByLocation(location.location_id);
 
     // Include charger details so the frontend's EV info panel reflects

@@ -4,27 +4,33 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Search Parking - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
   <style>
-    #map {
-      height: 600px;
-      width: 100%;
+    .map-layout {
+      display: flex;
+      flex-direction: row;
+      height: calc(100vh - 100px);
       border-radius: 24px;
-      z-index: 1;
+      overflow: hidden;
     }
-    .map-container { position: relative; }
-    .search-overlay {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 1000;
-      width: 300px;
-      max-height: calc(100% - 40px);
+    .search-panel {
+      width: 400px;
+      padding: 20px;
       overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--color-border);
     }
-    .filter-row { display: flex; gap: 10px; align-items: center; }
+    #map {
+      flex: 1;
+      height: 100%;
+    }
+    @media (max-width: 768px) {
+      .map-layout { flex-direction: column; }
+      .search-panel { border-right: none; border-bottom: 1px solid var(--color-border); }
+    }
   </style>
 </head>
 <body>
@@ -35,15 +41,15 @@
     </div>
   </nav>
 
-  <main class="container mt-4">
-    <div class="clay-card p-0 map-container">
-      <div class="search-overlay clay-card">
+  <main class="container mt-4" id="page-root" style="max-width: 100%; padding: 0 20px; display: none;">
+    <div class="card p-0 map-layout">
+      <div class="search-panel">
         <h2 class="text-xl font-bold mb-4">Find Parking</h2>
         <div class="form-group">
-          <input type="text" id="location-search" class="clay-input" placeholder="Search a place (city, address)..." />
+          <input type="text" id="location-search" class="input" placeholder="Search a place (city, address)..." />
         </div>
         <div class="form-group">
-          <select id="vehicle-filter" class="clay-input" style="padding: 14px 20px;">
+          <select id="vehicle-filter" class="input" style="padding: 14px 20px;">
             <option value="">Any vehicle type</option>
             <option value="two_wheeler">Two-wheeler</option>
             <option value="car">Car</option>
@@ -53,14 +59,14 @@
           </select>
         </div>
         <div class="form-group">
-          <input type="number" id="max-price" class="clay-input" placeholder="Max price / hr" min="0" />
+          <input type="number" id="max-price" class="input" placeholder="Max price / hr" min="0" />
         </div>
         <div class="form-group checkbox-row">
           <input type="checkbox" id="ev-only" />
           <label for="ev-only">EV charging only</label>
         </div>
-        <button id="search-btn" class="clay-btn clay-btn-primary w-full mb-2">Search this area</button>
-        <button id="locate-btn" class="clay-btn w-full">Use my location</button>
+        <button id="search-btn" class="btn btn-primary w-full mb-2">Search this area</button>
+        <button id="locate-btn" class="btn btn-primary w-full">Use my location</button>
 
         <div id="results-summary" class="text-muted text-sm mt-4"></div>
         <div id="results-list" class="flex flex-col gap-2 mt-2"></div>
@@ -72,153 +78,301 @@
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
     import api, { apiErrorMessage } from '/js/api.js';
+    import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
     import { watchLocations, unwatchLocations, onSlotUpdated } from '/js/socket.js';
-    import L from 'leaflet';
+    import maplibregl from 'maplibre-gl';
+    import 'maplibre-gl/dist/maplibre-gl.css';
 
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    });
+    const currentUser = requireAuth();
+    if (currentUser) document.getElementById('page-root').style.display = 'block';
 
-    let center = { lat: 12.9716, lng: 77.5946 }; // sensible default; overridden by geolocation below
-    const map = L.map('map').setView([center.lat, center.lng], 13);
+    if (currentUser) {
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(map);
-
-    let markers = [];
-    let watchedIds = [];
-
-    function priceStr(l) { return `₹${Number(l.price_per_hour).toFixed(0)}/hr`; }
-
-    function renderResults(listings) {
-      const summary = document.getElementById('results-summary');
-      const list = document.getElementById('results-list');
-      summary.textContent = `${listings.length} spot${listings.length === 1 ? '' : 's'} found nearby`;
-
-      if (listings.length === 0) {
-        list.innerHTML = '<p class="text-muted text-sm">No parking found here. Try widening your search or removing filters.</p>';
-        return;
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('evOnly') === 'true') {
+        document.getElementById('ev-only').checked = true;
       }
 
-      list.innerHTML = listings.map((l) => `
-        <a href="/listing.html?id=${l.location_id}" class="clay-card list-card" style="display:block; text-decoration:none; color:inherit;">
-          <div class="font-semibold">${l.name}</div>
-          <div class="text-sm text-muted">${l.address}</div>
-          <div class="flex justify-between items-center mt-2">
-            <span class="badge ${Number(l.available_slots) > 0 ? 'badge-available' : 'badge-disabled'}">
-              ${l.available_slots} available
-            </span>
-            <span class="font-semibold">${priceStr(l)}</span>
-          </div>
-        </a>
-      `).join('');
-    }
+      let center = { lat: 12.9716, lng: 77.5946 }; // sensible default; overridden by geolocation below
+      const map = new maplibregl.Map({
+        container: 'map',
+        style: 'https://tiles.openfreemap.org/styles/liberty',
+        center: [center.lng, center.lat],
+        zoom: 13
+      });
+      map.addControl(new maplibregl.NavigationControl());
 
-    async function loadListings() {
-      try {
-        const params = {
-          lat: center.lat,
-          lng: center.lng,
-          radiusKm: 15,
-        };
-        const vehicleType = document.getElementById('vehicle-filter').value;
-        const maxPrice = document.getElementById('max-price').value;
-        const evOnly = document.getElementById('ev-only').checked;
-        if (vehicleType) params.vehicleType = vehicleType;
-        if (maxPrice) params.maxPrice = maxPrice;
-        if (evOnly) params.evOnly = 'true';
+      let lastMapData = { type: 'FeatureCollection', features: [] };
 
-        const res = await api.get('/listings/search', { params });
-        const listings = res.data.results || [];
-
-        // Stop watching old locations, start watching the new set for live updates.
-        unwatchLocations(watchedIds);
-        watchedIds = listings.map((l) => l.location_id);
-        watchLocations(watchedIds);
-
-        markers.forEach((m) => map.removeLayer(m));
-        markers = [];
-
-        listings.forEach((listing) => {
-          const marker = L.marker([listing.latitude, listing.longitude]).addTo(map);
-          marker.bindPopup(`
-            <strong>${listing.name}</strong><br>
-            ${priceStr(listing)} &middot; ${listing.available_slots} available<br>
-            <a href="/listing.html?id=${listing.location_id}" style="color:#5c8df6; font-weight:bold;">View Details</a>
-          `);
-          marker.locationId = listing.location_id;
-          markers.push(marker);
+      map.on('load', () => {
+        map.addSource('listings', {
+          type: 'geojson',
+          data: lastMapData,
+          cluster: true,
+          clusterMaxZoom: 14,
+          clusterRadius: 50
         });
 
-        renderResults(listings);
-      } catch (err) {
-        showToast(apiErrorMessage(err, 'Could not load nearby parking.'), 'error');
-      }
-    }
-
-    // Live slot availability — badge text/marker popups refresh without a reload.
-    onSlotUpdated(({ slot_id, available_slots, status } = {}) => {
-      loadListings();
-    });
-
-    document.getElementById('search-btn').addEventListener('click', loadListings);
-    document.getElementById('vehicle-filter').addEventListener('change', loadListings);
-    document.getElementById('ev-only').addEventListener('change', loadListings);
-
-    document.getElementById('locate-btn').addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        showToast('Geolocation is not supported by this browser.', 'error');
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          map.setView([center.lat, center.lng], 14);
-          loadListings();
-        },
-        () => showToast('Could not get your location. Using default area instead.', 'error')
-      );
-    });
-
-    document.getElementById('location-search').addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      e.preventDefault();
-      const query = e.target.value.trim();
-      if (!query) return;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
-        .then((r) => r.json())
-        .then((data) => {
-          if (data && data.length > 0) {
-            center = { lat: Number(data[0].lat), lng: Number(data[0].lon) };
-            map.setView([center.lat, center.lng], 14);
-            loadListings();
-          } else {
-            showToast('No matching location found.', 'error');
+        map.addLayer({
+          id: 'clusters',
+          type: 'circle',
+          source: 'listings',
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': '#4264fb',
+            'circle-radius': 18,
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#fff'
           }
-        })
-        .catch(() => showToast('Location search failed.', 'error'));
-    });
+        });
 
-    // Try to center on the user automatically on first load; fall back to default.
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          map.setView([center.lat, center.lng], 13);
-          loadListings();
-        },
-        () => loadListings(),
-        { timeout: 4000 }
-      );
-    } else {
-      loadListings();
+        map.addLayer({
+          id: 'cluster-count',
+          type: 'symbol',
+          source: 'listings',
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-size': 12
+          },
+          paint: {
+            'text-color': '#ffffff'
+          }
+        });
+
+        map.addLayer({
+          id: 'unclustered-point',
+          type: 'circle',
+          source: 'listings',
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-color': '#fbbf24',
+            'circle-radius': 10,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#fff'
+          }
+        });
+
+        map.on('click', 'clusters', (e) => {
+          const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+          const clusterId = features[0].properties.cluster_id;
+          map.getSource('listings').getClusterExpansionZoom(clusterId, (err, zoom) => {
+            if (err) return;
+            map.easeTo({
+              center: features[0].geometry.coordinates,
+              zoom: zoom
+            });
+          });
+        });
+
+        map.on('click', 'unclustered-point', (e) => {
+          const coordinates = e.features[0].geometry.coordinates.slice();
+          const props = e.features[0].properties;
+
+          new maplibregl.Popup()
+            .setLngLat(coordinates)
+            .setHTML(`
+              <strong>${escapeHtml(props.name)}</strong><br>
+              ${props.price_str} &middot; ${props.available_slots} available<br>
+              <a href="/listing.html?id=${props.location_id}" style="color:#5c8df6; font-weight:bold;">View Details</a>
+            `)
+            .addTo(map);
+        });
+
+        map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+        map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
+      });
+
+      let watchedIds = [];
+
+      function priceStr(l) { return `₹${Number(l.price_per_hour).toFixed(0)}/hr`; }
+
+      function ratingBadge(l) {
+        if (!l.avg_rating) return '';
+        return `<span style="font-size:0.8rem; color:#92600a;">⭐ ${l.avg_rating} <span class="text-muted">(${l.review_count})</span></span>`;
+      }
+
+      function renderResults(listings) {
+        const summary = document.getElementById('results-summary');
+        const list = document.getElementById('results-list');
+        summary.textContent = `${listings.length} spot${listings.length === 1 ? '' : 's'} found nearby`;
+
+        if (listings.length === 0) {
+          list.innerHTML = '<p class="text-muted text-sm">No parking found here. Try widening your search or removing filters.</p>';
+          return;
+        }
+
+        list.innerHTML = listings.map((l) => `
+          <a href="/listing.html?id=${l.location_id}" class="card list-card" style="display:block; text-decoration:none; color:inherit;">
+            <div class="font-semibold">${escapeHtml(l.name)}</div>
+            <div class="text-sm text-muted">${escapeHtml(l.address)}</div>
+            <div class="flex justify-between items-center mt-2">
+              <span class="badge ${Number(l.available_slots) > 0 ? 'badge-available' : 'badge-disabled'}">
+                ${l.available_slots} available
+              </span>
+              <span class="font-semibold">${priceStr(l)}</span>
+            </div>
+            ${l.avg_rating ? `<div class="mt-2">${ratingBadge(l)}</div>` : ''}
+          </a>
+        `).join('');
+      }
+
+      async function loadListings() {
+        try {
+          const params = {
+            lat: center.lat,
+            lng: center.lng,
+            radiusKm: 15,
+          };
+          const vehicleType = document.getElementById('vehicle-filter').value;
+          const maxPrice = document.getElementById('max-price').value;
+          const evOnly = document.getElementById('ev-only').checked;
+          if (vehicleType) params.vehicleType = vehicleType;
+          if (maxPrice) params.maxPrice = maxPrice;
+          if (evOnly) params.evOnly = 'true';
+
+          const res = await api.get('/listings/search', { params });
+          const listings = res.data.results || [];
+
+          // Stop watching old locations, start watching the new set for live updates.
+          unwatchLocations(watchedIds);
+          watchedIds = listings.map((l) => l.location_id);
+          watchLocations(watchedIds);
+
+          lastMapData = {
+            type: 'FeatureCollection',
+            features: listings.map((listing) => ({
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [Number(listing.longitude), Number(listing.latitude)]
+              },
+              properties: {
+                location_id: listing.location_id,
+                name: listing.name,
+                available_slots: listing.available_slots,
+                price_str: priceStr(listing)
+              }
+            }))
+          };
+
+          if (map.getSource('listings')) {
+            map.getSource('listings').setData(lastMapData);
+          }
+
+          renderResults(listings);
+        } catch (err) {
+          showToast(apiErrorMessage(err, 'Could not load nearby parking.'), 'error');
+        }
+      }
+
+      // Live slot availability — badge text/marker popups refresh without a reload.
+      onSlotUpdated(({ slot_id, available_slots, status } = {}) => {
+        loadListings();
+      });
+
+      document.getElementById('search-btn').addEventListener('click', loadListings);
+      document.getElementById('vehicle-filter').addEventListener('change', loadListings);
+      document.getElementById('ev-only').addEventListener('change', loadListings);
+
+      document.getElementById('locate-btn').addEventListener('click', () => {
+        if (!navigator.geolocation) {
+          showToast('Geolocation is not supported by this browser.', 'error');
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            map.flyTo({ center: [center.lng, center.lat], zoom: 14 });
+            loadListings();
+          },
+          () => showToast('Could not get your location. Using default area instead.', 'error')
+        );
+      });
+
+      document.getElementById('location-search').addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const query = e.target.value.trim();
+        if (!query) return;
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+          .then((r) => r.json())
+          .then((data) => {
+            if (data && data.length > 0) {
+              center = { lat: Number(data[0].lat), lng: Number(data[0].lon) };
+              map.flyTo({ center: [center.lng, center.lat], zoom: 14 });
+              loadListings();
+            } else {
+              showToast('No matching location found.', 'error');
+            }
+          })
+          .catch(() => showToast('Location search failed.', 'error'));
+      });
+
+      // Try to center on the user automatically on first load; fall back to default.
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            center = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            map.flyTo({ center: [center.lng, center.lat], zoom: 13 });
+            loadListings();
+          },
+          () => loadListings(),
+          { timeout: 4000 }
+        );
+      } else {
+        loadListings();
+      }
     }
   </script>
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a href="/index.html" class="navbar-brand mb-4" style="display: inline-block;">ParkSlot</a>
+          <p class="text-sm text-muted mb-4" style="max-width: 320px;">
+            The next-generation smart parking marketplace connecting drivers with verified hosts and EV charging stations worldwide.
+          </p>
+          <div class="text-sm text-muted">© 2026 ParkSlot Technologies. All rights reserved.</div>
+        </div>
+
+        <div>
+          <div class="footer-title">Marketplace</div>
+          <ul class="footer-links">
+            <li><a href="/search.html">Find Parking</a></li>
+            <li><a href="/search.html?evOnly=true">EV Charging Stations</a></li>
+            <li><a href="/signup.html">List Your Garage</a></li>
+            <li><a href="/host.html">Host Dashboard</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-title">Account</div>
+          <ul class="footer-links">
+            <li><a href="/login.html">Sign In</a></li>
+            <li><a href="/signup.html">Register Account</a></li>
+            <li><a href="/bookings.html">My Bookings</a></li>
+            <li><a href="/saved.html">Saved Locations</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-title">Support & Admin</div>
+          <ul class="footer-links">
+            <li><a href="/admin.html">Admin Console</a></li>
+            
+            <li><a href="#">Privacy & Terms</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
+

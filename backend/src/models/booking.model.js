@@ -20,6 +20,11 @@ export const findBookingByQrToken = async (qrToken) => {
   return rows[0];
 };
 
+export const lockBookingByQrToken = async (client, qrToken) => {
+  const { rows } = await client.query(`SELECT * FROM bookings WHERE qr_token = $1 FOR UPDATE`, [qrToken]);
+  return rows[0];
+};
+
 export const findBookingById = async (bookingId) => {
   const { rows } = await query(`SELECT * FROM bookings WHERE booking_id = $1`, [bookingId]);
   return rows[0];
@@ -28,11 +33,13 @@ export const findBookingById = async (bookingId) => {
 export const getBookingsForUser = async (userId) => {
   const { rows } = await query(
     `SELECT b.*, l.name AS location_name, l.address,
-            lr.review_id AS location_review_id
+            lr.review_id AS location_review_id,
+            p.payment_status, p.payout_status, p.gateway_ref
      FROM bookings b
      JOIN slots s ON s.slot_id = b.slot_id
      JOIN locations l ON l.location_id = s.location_id
      LEFT JOIN reviews lr ON lr.booking_id = b.booking_id AND lr.location_id IS NOT NULL
+     LEFT JOIN payments p ON p.booking_id = b.booking_id
      WHERE b.user_id = $1
      ORDER BY b.start_time DESC`,
     [userId]
@@ -40,25 +47,28 @@ export const getBookingsForUser = async (userId) => {
   return rows;
 };
 
-export const getBookingsForHost = async (ownerId) => {
+export const getBookingsForHost = async (ownerId, includeAll = false) => {
   const { rows } = await query(
     `SELECT b.*, l.location_id, l.name AS location_name, l.address, s.slot_number,
             u.name AS driver_name, u.email AS driver_email,
-            dr.review_id AS driver_review_id
+            dr.review_id AS driver_review_id,
+            p.payment_status, p.payout_status, p.gateway_ref
      FROM bookings b
      JOIN slots s ON s.slot_id = b.slot_id
      JOIN locations l ON l.location_id = s.location_id
      JOIN users u ON u.user_id = b.user_id
      LEFT JOIN reviews dr ON dr.booking_id = b.booking_id AND dr.reviewed_user IS NOT NULL
-     WHERE l.owner_id = $1
+     LEFT JOIN payments p ON p.booking_id = b.booking_id
+     WHERE ($2::boolean = true OR l.owner_id = $1)
      ORDER BY b.start_time DESC`,
-    [ownerId]
+    [ownerId, includeAll]
   );
   return rows;
 };
 
-export const recordCheckin = async (bookingId, method = 'qr') => {
-  const { rows } = await query(
+export const recordCheckin = async (bookingId, method = 'qr', client = null) => {
+  const runner = client ? client.query.bind(client) : query;
+  const { rows } = await runner(
     `UPDATE bookings
      SET checkin_time = now(), checkin_method = $2, status = 'checked_in'
      WHERE booking_id = $1 RETURNING *`,
@@ -67,10 +77,10 @@ export const recordCheckin = async (bookingId, method = 'qr') => {
   return rows[0];
 };
 
-// Computes the final bill from the *actual* checkin→checkout duration,
-// charging overtime per minute past the booked end_time — see Section 4.2.
-export const recordCheckout = async (bookingId, pricePerHour) => {
-  const booking = await findBookingById(bookingId);
+// Computes the final bill from the actual checkin-to-checkout duration, adding overtime if the driver stayed past the booked end time.
+export const recordCheckout = async (bookingId, pricePerHour, client = null, lockedBooking = null) => {
+  const runner = client ? client.query.bind(client) : query;
+  const booking = lockedBooking || await findBookingById(bookingId);
   if (!booking) throw new Error('Booking not found');
 
   const checkoutTime = new Date();
@@ -89,7 +99,7 @@ export const recordCheckout = async (bookingId, pricePerHour) => {
 
   const totalAmount = Number((baseAmount + overtimeAmount).toFixed(2));
 
-  const { rows } = await query(
+  const { rows } = await runner(
     `UPDATE bookings
      SET checkout_time = $2, total_amount = $3, overtime_amount = $4, status = 'completed'
      WHERE booking_id = $1 RETURNING *`,
@@ -98,8 +108,9 @@ export const recordCheckout = async (bookingId, pricePerHour) => {
   return { booking: rows[0], actualMinutes };
 };
 
-export const cancelBooking = async (bookingId) => {
-  const { rows } = await query(
+export const cancelBooking = async (bookingId, client = null) => {
+  const runner = client ? client.query.bind(client) : query;
+  const { rows } = await runner(
     `UPDATE bookings SET status = 'cancelled' WHERE booking_id = $1 RETURNING *`,
     [bookingId]
   );

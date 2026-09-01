@@ -20,6 +20,10 @@ dotenv.config();
 
 const app = express();
 
+if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
+  throw new Error('CORS_ORIGIN is required in production');
+}
+
 // CORS_ORIGIN may be a single origin or a comma-separated list (useful when
 // the frontend has both a production domain and Vercel preview URLs).
 const corsOrigin = process.env.CORS_ORIGIN || '*';
@@ -35,12 +39,20 @@ app.use(helmet({
       fontSrc: ["'self'", 'https:', 'data:'],
       formAction: ["'self'"],
       frameAncestors: ["'self'"],
-      imgSrc: ["'self'", 'data:', 'blob:', 'https://*.tile.openstreetmap.org'],
+      imgSrc: ["'self'", 'data:', 'blob:'],
       objectSrc: ["'none'"],
       scriptSrc: ["'self'"],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      connectSrc: ["'self'", apiOrigin, frontendOrigin, apiOrigin.replace(/^http/, 'ws'), frontendOrigin.replace(/^http/, 'ws')],
+      // Note: this CSP governs only the backend's own responses (the frontend
+      // is served from a different origin with its own headers), but is kept
+      // accurate to what the app actually calls in case they're ever combined:
+      // MapLibre/OpenFreeMap tiles and OpenStreetMap Nominatim for geocoding.
+      connectSrc: [
+        "'self'", apiOrigin, frontendOrigin,
+        apiOrigin.replace(/^http/, 'ws'), frontendOrigin.replace(/^http/, 'ws'),
+        'https://tiles.openfreemap.org', 'https://nominatim.openstreetmap.org',
+      ],
       upgradeInsecureRequests: [],
     },
   },
@@ -50,6 +62,9 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'parkslot-api' }));
+app.get('/api/config', (req, res) => {
+  res.json({ platform_commission_percent: Number(process.env.PLATFORM_COMMISSION_PERCENT || 15) });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingsRoutes);

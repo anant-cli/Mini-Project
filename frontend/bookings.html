@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>My Bookings - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar">
@@ -18,7 +19,7 @@
   <main class="container mt-8" id="page-root" style="display:none;">
     <h1 class="text-3xl mb-8">My Bookings</h1>
 
-    <div class="clay-card">
+    <div class="card">
       <div id="bookings-list" class="flex flex-col gap-4">
         <div class="state-msg"><div class="spinner"></div></div>
       </div>
@@ -26,10 +27,20 @@
   </main>
 
   <div id="qr-modal" class="modal-backdrop" style="display:none;">
-    <div class="clay-card modal-box">
+    <div class="card modal-box">
       <h2 class="text-xl mb-4">Your QR Pass</h2>
       <img id="qr-image" src="" alt="QR pass" />
-      <button id="qr-close" class="clay-btn clay-btn-primary w-full mt-4">Close</button>
+      <button id="qr-close" class="btn btn-primary w-full mt-4">Close</button>
+    </div>
+  </div>
+
+  <div id="review-modal" class="modal-backdrop" style="display:none;">
+    <div class="card modal-box">
+      <h2 class="text-xl mb-4">Rate this parking spot</h2>
+      <div id="review-star-widget" class="star-input mb-4" style="justify-content:center; font-size:2rem;"></div>
+      <textarea id="review-comment" class="input mb-4" placeholder="Optional comment..."></textarea>
+      <button id="review-submit" class="btn btn-primary w-full" disabled>Submit Review</button>
+      <button id="review-cancel" class="btn w-full mt-2">Cancel</button>
     </div>
   </div>
 
@@ -38,11 +49,12 @@
     import api, { apiErrorMessage } from '/js/api.js';
     import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
 
     const user = requireAuth();
     if (user) document.getElementById('page-root').style.display = 'block';
 
-    function money(n) { return `₹${Number(n).toFixed(0)}`; }
+    function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
 
     async function loadBookings() {
       const container = document.getElementById('bookings-list');
@@ -56,26 +68,30 @@
         }
 
         container.innerHTML = bookings.map((b) => `
-          <div class="clay-card list-card" style="padding:16px 20px;">
+          <div class="card list-card" style="padding:16px 20px;">
             <div class="list-card-row">
               <div>
-                <strong>${b.location_name}</strong>
-                <p class="text-sm text-muted">${b.address}</p>
-                <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} &rarr; ${new Date(b.end_time).toLocaleString()}</p>
+                <strong>${escapeHtml(b.location_name)}</strong>
+                <p class="text-sm text-muted">${escapeHtml(b.address)}</p>
+                <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} to ${new Date(b.end_time).toLocaleString()}</p>
                 <p class="text-sm mt-2">${money(b.total_amount || b.estimated_amount)}${b.overtime_amount > 0 ? ` (incl. ${money(b.overtime_amount)} overtime)` : ''}</p>
+                ${b.payment_status ? `<p class="text-sm text-muted">Payment: ${escapeHtml(b.payment_status)} &middot; Payout: ${escapeHtml(b.payout_status || 'held')}</p>` : ''}
+                ${b.status === 'cancelled' ? `<p class="text-sm text-success mt-1" style="color:#10b981;">${money(b.total_amount || b.estimated_amount)} refunded to your original payment method</p>` : ''}
               </div>
               <span class="badge badge-${b.status}">${b.status.replace('_', ' ')}</span>
             </div>
             <div class="flex gap-2 mt-2" style="flex-wrap:wrap;">
-              ${['pending', 'confirmed'].includes(b.status) ? `<button class="clay-btn qr-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Show QR Pass</button>` : ''}
-              ${['pending', 'confirmed'].includes(b.status) ? `<button class="clay-btn cancel-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Cancel</button>` : ''}
-              ${b.status === 'completed' && !b.location_review_id ? `<button class="clay-btn review-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Leave a review</button>` : ''}
+              ${['pending', 'confirmed'].includes(b.status) ? `<button class="btn qr-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Show QR Pass</button>` : ''}
+              ${['pending', 'confirmed'].includes(b.status) ? `<button class="btn cancel-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Cancel</button>` : ''}
+              ${['confirmed', 'checked_in', 'completed'].includes(b.status) ? `<button class="btn dispute-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Raise dispute</button>` : ''}
+              ${b.status === 'completed' && !b.location_review_id ? `<button class="btn review-btn" data-id="${b.booking_id}" style="padding:8px 16px; font-size:0.85rem;">Leave a review</button>` : ''}
             </div>
           </div>
         `).join('');
 
         container.querySelectorAll('.qr-btn').forEach((btn) => btn.addEventListener('click', () => showQr(btn.dataset.id)));
         container.querySelectorAll('.cancel-btn').forEach((btn) => btn.addEventListener('click', () => cancelBooking(btn.dataset.id)));
+        container.querySelectorAll('.dispute-btn').forEach((btn) => btn.addEventListener('click', () => raiseDispute(btn.dataset.id)));
         container.querySelectorAll('.review-btn').forEach((btn) => btn.addEventListener('click', () => leaveReview(btn.dataset.id)));
       } catch (err) {
         container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load bookings.')}</p>`;
@@ -103,24 +119,80 @@
       }
     }
 
-    async function leaveReview(bookingId) {
-      const rating = prompt('Rate this parking spot 1-5:', '5');
-      if (!rating) return;
-      const comment = prompt('Add a comment (optional):', '') || undefined;
+    async function raiseDispute(bookingId) {
+      const reason = prompt('Briefly describe the issue with this booking.');
+      if (!reason || !reason.trim()) return;
       try {
-        await api.post('/reviews/location', { booking_id: bookingId, rating: Number(rating), comment });
-        showToast('Thanks for the review!', 'success');
+        await api.post('/payments/disputes', { booking_id: bookingId, reason: reason.trim() });
+        showToast('Dispute submitted for admin review.', 'success');
         loadBookings();
       } catch (err) {
         showToast(apiErrorMessage(err), 'error');
       }
     }
 
+    async function leaveReview(bookingId) {
+      reviewBookingId = bookingId;
+      reviewRating = 0;
+      document.getElementById('review-comment').value = '';
+      document.getElementById('review-submit').disabled = true;
+      buildStarWidget(document.getElementById('review-star-widget'), (r) => {
+        reviewRating = r;
+        document.getElementById('review-submit').disabled = false;
+      });
+      document.getElementById('review-modal').style.display = 'flex';
+    }
+
     document.getElementById('qr-close').addEventListener('click', () => {
       document.getElementById('qr-modal').style.display = 'none';
+    });
+
+    function buildStarWidget(container, onSelect) {
+      container.innerHTML = '';
+      let selected = 0;
+      const stars = Array.from({ length: 5 }, (_, i) => {
+        const span = document.createElement('span');
+        span.textContent = '★';
+        span.dataset.val = i + 1;
+        span.style.cursor = 'pointer';
+        container.appendChild(span);
+        return span;
+      });
+      function paint(n) {
+        stars.forEach((s) => s.classList.toggle('active', Number(s.dataset.val) <= n));
+      }
+      stars.forEach((s) => {
+        s.addEventListener('mouseenter', () => paint(Number(s.dataset.val)));
+        s.addEventListener('mouseleave', () => paint(selected));
+        s.addEventListener('click', () => {
+          selected = Number(s.dataset.val);
+          paint(selected);
+          onSelect(selected);
+        });
+      });
+    }
+
+    let reviewBookingId = null;
+    let reviewRating = 0;
+
+    document.getElementById('review-submit').addEventListener('click', async () => {
+      const comment = document.getElementById('review-comment').value.trim() || undefined;
+      try {
+        await api.post('/reviews/location', { booking_id: reviewBookingId, rating: reviewRating, comment });
+        showToast('Thanks for the review!', 'success');
+        document.getElementById('review-modal').style.display = 'none';
+        loadBookings();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    });
+
+    document.getElementById('review-cancel').addEventListener('click', () => {
+      document.getElementById('review-modal').style.display = 'none';
     });
 
     if (user) loadBookings();
   </script>
 </body>
 </html>
+

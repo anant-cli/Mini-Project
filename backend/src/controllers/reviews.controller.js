@@ -11,7 +11,7 @@ import { ApiError } from '../middleware/errorHandler.js';
 const reviewSchema = z.object({
   booking_id: z.string().uuid(),
   rating: z.number().int().min(1).max(5),
-  comment: z.string().max(1000).optional(),
+  comment: z.string().max(1000).transform((value) => value.trim().replace(/\s+/g, ' ')).optional(),
 });
 
 // Driver reviews the parking space after a completed booking.
@@ -40,8 +40,7 @@ export const reviewLocation = async (req, res, next) => {
   }
 };
 
-// Host reviews the driver — this is the "mutual trust" half described in
-// Section 4.4: bad-actor drivers become visible to future hosts.
+// Host reviews the driver after a completed booking (mutual trust rating).
 export const reviewDriver = async (req, res, next) => {
   try {
     const data = reviewSchema.parse(req.body);

@@ -3,43 +3,228 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ParkSlot - Smart Parking</title>
+  <title>ParkSlot — Peer-to-Peer Smart Parking & EV Charging Marketplace</title>
+  <meta name="description" content="Find, reserve, and park in verified private driveways, EV fast charging bays, and smart garages. Earn passive income by hosting your space." />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 </head>
 <body>
+  <!-- Navigation Header -->
   <nav class="navbar">
     <div class="container flex justify-between items-center">
       <a href="/index.html" class="navbar-brand">ParkSlot</a>
       <div class="nav-links" id="nav-links">
-        <!-- Injected by auth.js -->
+        <!-- Dynamic links injected by auth.js -->
       </div>
     </div>
   </nav>
 
-  <main class="container mt-8">
-    <div class="clay-card text-center mb-8">
-      <h1 class="text-4xl mb-4">Find Parking. Fast.</h1>
-      <p class="text-xl text-muted mb-8">Discover and book parking spaces instantly using our beautiful Claymorphism interface.</p>
-      
-      <div class="flex justify-center gap-4">
-        <a href="/search.html" class="clay-btn clay-btn-primary">Find a Spot</a>
-        <a href="/signup.html" class="clay-btn clay-btn-secondary">Host a Spot</a>
-      </div>
-    </div>
+  <main class="container">
+    <!-- Hero Section -->
+    <section class="hero-section">
+      <div>
+        <h1 class="text-4xl mb-4" style="font-size: 3rem; line-height: 1.15;">
+          Smart Peer-to-Peer Parking & EV Charging
+        </h1>
+        <p class="text-xl text-muted mb-8" style="line-height: 1.6;">
+          Never circle the block searching for parking again. Reserve verified driveway spots, EV fast-charging bays, and commercial garages with real-time live updates and contactless QR check-in.
+        </p>
 
-    <div class="flex gap-8" style="flex-wrap: wrap;">
-      <div class="clay-card" style="flex: 1; min-width: 300px;">
-        <h2 class="text-2xl mb-4">For Drivers</h2>
-        <p class="text-muted">Save time and fuel by booking your parking spot in advance. Guaranteed spaces at the best prices.</p>
+        <div class="flex hero-buttons gap-4 mb-6" style="flex-wrap: wrap;">
+          <a href="/signup.html" class="btn btn-primary" style="padding: 14px 32px; font-size: 1.1rem;">
+            Find Nearby Spot
+          </a>
+          <a href="/signup.html" class="btn btn-secondary" style="padding: 14px 32px; font-size: 1.1rem;">
+            Host Your Space
+          </a>
+        </div>
       </div>
-      <div class="clay-card" style="flex: 1; min-width: 300px;">
-        <h2 class="text-2xl mb-4">For Hosts</h2>
-        <p class="text-muted">Turn your empty driveway into cash. Join thousands of hosts earning passive income every day.</p>
+
+      <div class="hero-image-wrapper">
+        <img src="/images/hero_parking_app.png" alt="ParkSlot Smart Parking & EV Charging Interface" />
       </div>
-    </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="mt-8 mb-8 text-center">
+      <h2 class="text-3xl mb-2">How ParkSlot Works</h2>
+      <p class="text-muted mb-8" style="max-width: 600px; margin-left: auto; margin-right: auto;">
+        Seamless peer-to-peer parking reservations designed for ultimate peace of mind.
+      </p>
+
+      <div class="grid grid-3">
+        <div class="card text-left">
+          <div class="step-circle">1</div>
+          <h3 class="text-xl font-bold mb-2">Search & Filter</h3>
+          <p class="text-sm text-muted">
+            Locate guaranteed spaces near your destination on our interactive OpenStreetMap. Filter by vehicle size (Car, SUV, Bike) or EV connector types (Type-2, CCS).
+          </p>
+        </div>
+
+        <div class="card text-left">
+          <div class="step-circle">2</div>
+          <h3 class="text-xl font-bold mb-2">Instant Reserve & Escrow</h3>
+          <p class="text-sm text-muted">
+            Lock in your exact parking spot with zero risk. Payment is held safely in escrow until you arrive and verify your check-in code.
+          </p>
+        </div>
+
+        <div class="card text-left">
+          <div class="step-circle">3</div>
+          <h3 class="text-xl font-bold mb-2">Scan QR & Park</h3>
+          <p class="text-sm text-muted">
+            Arrive at the location, tap your mobile QR digital pass or trigger geofenced auto-check-in, and park without any friction or delays.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Dual Feature Showcase: Drivers & Hosts -->
+    <section class="mt-8 mb-8">
+      <div class="grid grid-2">
+        <div class="card flex flex-col justify-between">
+          <div>
+            <div class="feature-card-media">
+              <img src="/images/driver_feature.png" alt="Driver App Features" />
+            </div>
+            <span class="badge badge-available mb-2">For Drivers</span>
+            <h3 class="text-2xl mb-2">Stress-Free City Parking & Fast Charging</h3>
+            <p class="text-muted mb-4" style="line-height: 1.7;">
+              Say goodbye to parking stress and overpriced commercial garages. ParkSlot gives drivers direct access to private driveways, residential bays, and fast EV chargers right where you need them most.
+            </p>
+            <ul class="text-muted text-sm flex flex-col gap-2 mb-6" style="list-style-type: none; padding-left: 0;">
+              <li><strong>Guaranteed Spots:</strong> Reserved strictly for your vehicle window.</li>
+              <li><strong>EV Charging Integration:</strong> Real-time kW capacity & price/kWh details.</li>
+              <li><strong>Digital Pass & Escrow Protection:</strong> Transparent billing with zero hidden fees.</li>
+            </ul>
+          </div>
+          <a href="/search.html" class="btn btn-primary w-full">Explore Nearby Spots</a>
+        </div>
+
+        <div class="card flex flex-col justify-between">
+          <div>
+            <div class="feature-card-media">
+              <img src="/images/host_earnings.png" alt="Host Earnings & Monetization" />
+            </div>
+            <span class="badge badge-ev mb-2">For Space Hosts</span>
+            <h3 class="text-2xl mb-2">Monetize Your Empty Driveway & Garage</h3>
+            <p class="text-muted mb-4" style="line-height: 1.7;">
+              Turn unused parking spaces, private residential driveways, or commercial lots into a steady passive income stream. Set your own hours, rates, and surge rules effortlessly.
+            </p>
+            <ul class="text-muted text-sm flex flex-col gap-2 mb-6" style="list-style-type: none; padding-left: 0;">
+              <li><strong>Automated Payouts:</strong> Escrow releases funds directly upon checkout.</li>
+              <li><strong>Total Schedule Control:</strong> Block out personal times whenever you need.</li>
+              <li><strong>Host Rating Protection:</strong> Driver reviews & verified user identity checks.</li>
+            </ul>
+          </div>
+          <a href="/signup.html" class="btn btn-secondary w-full">List Your Space Now</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="mt-8 mb-8 card">
+      <h2 class="text-3xl mb-6 text-center">Frequently Asked Questions</h2>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>How does the escrow payment protection work?</span>
+          <span>▼</span>
+        </div>
+        <div class="faq-answer" style="display: none;">
+          When you book a spot, your payment is held in escrow. Funds are only released to the host after you successfully check in and complete your parking session, ensuring complete protection against unavailable or misrepresented spots.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>Can I charge my Electric Vehicle (EV) while parked?</span>
+          <span>▼</span>
+        </div>
+        <div class="faq-answer" style="display: none;">
+          Yes! Look for listings marked with the EV Charging badge. You can filter search results specifically for Type-1, Type-2, or CCS fast chargers, with transparent per-kWh billing.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>What happens if someone else is parked in my reserved slot?</span>
+          <span>▼</span>
+        </div>
+        <div class="faq-answer" style="display: none;">
+          You can raise an instant Dispute directly from your Bookings tab. Our admin support system immediately investigates, manually reviews and refunds your escrow payment if valid, and redirects you to a nearby backup slot.
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">
+          <span>How do host payouts work?</span>
+          <span>▼</span>
+        </div>
+        <div class="faq-answer" style="display: none;">
+          Earnings accumulate in your Host Dashboard after every completed driver checkout. Payouts are transferred automatically according to your payout preference minus the standard platform commission.
+        </div>
+      </div>
+    </section>
   </main>
 
+  <!-- Site Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a href="/index.html" class="navbar-brand mb-4" style="display: inline-block;">ParkSlot</a>
+          <p class="text-sm text-muted mb-4" style="max-width: 320px;">
+            The next-generation smart parking marketplace connecting drivers with verified hosts and EV charging stations worldwide.
+          </p>
+          <div class="text-sm text-muted">© 2026 ParkSlot Technologies. All rights reserved.</div>
+        </div>
+
+        <div>
+          <div class="footer-title">Marketplace</div>
+          <ul class="footer-links">
+            <li><a href="/search.html">Find Parking</a></li>
+            <li><a href="/search.html?evOnly=true">EV Charging Stations</a></li>
+            <li><a href="/signup.html">List Your Garage</a></li>
+            <li><a href="/host.html">Host Dashboard</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-title">Account</div>
+          <ul class="footer-links">
+            <li><a href="/login.html">Sign In</a></li>
+            <li><a href="/signup.html">Register Account</a></li>
+            <li><a href="/bookings.html">My Bookings</a></li>
+            <li><a href="/saved.html">Saved Locations</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="footer-title">Support</div>
+          <ul class="footer-links">
+            <li><a href="#">Privacy & Terms</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </footer>
+
   <script type="module" src="/js/auth.js"></script>
+  <script>
+    document.querySelectorAll('.faq-question').forEach(q => {
+      q.addEventListener('click', () => {
+        const answer = q.nextElementSibling;
+        const icon = q.querySelector('span:last-child');
+        const isVisible = answer.style.display === 'block';
+        answer.style.display = isVisible ? 'none' : 'block';
+        icon.style.display = 'inline-block';
+        icon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+        icon.style.transition = 'transform 0.2s';
+      });
+    });
+  </script>
 </body>
 </html>
+

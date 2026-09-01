@@ -1,4 +1,6 @@
-import { query } from '../config/db.js';
+import { query, withTransaction } from '../config/db.js';
+import { reversePayment } from '../models/payment.model.js';
+import { ApiError } from '../middleware/errorHandler.js';
 
 export const platformReport = async (req, res, next) => {
   try {
@@ -13,7 +15,12 @@ export const platformReport = async (req, res, next) => {
     const { rows: userCounts } = await query(
       `SELECT role, COUNT(*) FROM users GROUP BY role`
     );
-    res.json({ revenue: revenue[0], bookingCounts, userCounts });
+    res.json({
+      revenue: revenue[0],
+      bookingCounts,
+      userCounts,
+      config: { platform_commission_percent: Number(process.env.PLATFORM_COMMISSION_PERCENT || 15) },
+    });
   } catch (err) {
     next(err);
   }
@@ -34,13 +41,34 @@ export const listDisputes = async (req, res, next) => {
 
 export const resolveDispute = async (req, res, next) => {
   try {
-    const { resolution } = req.body;
-    const { rows } = await query(
-      `UPDATE disputes SET status = 'resolved', resolution = $2, resolved_by = $3, resolved_at = now()
-       WHERE dispute_id = $1 RETURNING *`,
-      [req.params.id, resolution, req.user.user_id]
-    );
-    res.json({ dispute: rows[0] });
+    const { resolution, outcome = 'no_action' } = req.body;
+    if (!['refund_driver', 'no_action'].includes(outcome)) {
+      throw new ApiError(400, 'Invalid dispute outcome');
+    }
+
+    const result = await withTransaction(async (client) => {
+      const { rows } = await client.query(
+        `UPDATE disputes SET status = 'resolved', resolution = $2, resolved_by = $3, resolved_at = now()
+         WHERE dispute_id = $1 RETURNING *`,
+        [req.params.id, resolution?.trim().replace(/\s+/g, ' '), req.user.user_id]
+      );
+      const dispute = rows[0];
+      let payment = null;
+      let booking = null;
+      if (dispute && outcome === 'refund_driver') {
+        payment = await reversePayment(dispute.booking_id, client);
+        const { rows: bookingRows } = await client.query(
+          `UPDATE bookings
+           SET status = CASE WHEN status = 'completed' THEN status ELSE 'cancelled' END
+           WHERE booking_id = $1 RETURNING *`,
+          [dispute.booking_id]
+        );
+        booking = bookingRows[0];
+      }
+      return { dispute, payment, booking };
+    });
+
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -48,10 +76,20 @@ export const resolveDispute = async (req, res, next) => {
 
 export const suspendUser = async (req, res, next) => {
   try {
-    // A minimal "suspend" flag could be added to the users table; kept
-    // simple here via id_verified=false to block new bookings/listings.
     const { rows } = await query(
-      `UPDATE users SET id_verified = false WHERE user_id = $1 RETURNING user_id, name, email, role, id_verified`,
+      `UPDATE users SET is_suspended = true WHERE user_id = $1 RETURNING user_id, name, email, role, is_suspended`,
+      [req.params.id]
+    );
+    res.json({ user: rows[0] });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const unsuspendUser = async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `UPDATE users SET is_suspended = false WHERE user_id = $1 RETURNING user_id, name, email, role, is_suspended`,
       [req.params.id]
     );
     res.json({ user: rows[0] });
@@ -63,8 +101,8 @@ export const suspendUser = async (req, res, next) => {
 export const listUsers = async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT user_id, name, email, phone, role, id_verified, avg_rating, created_at 
-       FROM users 
+      `SELECT user_id, name, email, phone, role, id_verified, is_suspended, avg_rating, created_at
+       FROM users
        ORDER BY created_at DESC`
     );
     res.json({ users: rows });

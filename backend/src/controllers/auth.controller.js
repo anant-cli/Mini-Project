@@ -29,7 +29,7 @@ export const signup = async (req, res, next) => {
 
 const loginSchema = z.object({
   email: z.string().email().max(160),
-  password: z.string().min(1).max(128),
+  password: z.string().min(8).max(128),
 });
 
 export const login = async (req, res, next) => {
@@ -40,6 +40,8 @@ export const login = async (req, res, next) => {
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) throw new ApiError(401, 'Invalid email or password');
+
+    if (user.is_suspended) throw new ApiError(403, 'Your account has been suspended. Contact support.');
 
     const token = signToken(user);
     delete user.password_hash;

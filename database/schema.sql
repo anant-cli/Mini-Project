@@ -1,12 +1,4 @@
--- ============================================================
--- ParkSlot — PostgreSQL Schema
--- Peer-to-peer smart parking marketplace
--- Enable PostGIS if available (optional — Haversine fallback
--- is used in application code if this extension is absent).
--- ============================================================
-
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
--- CREATE EXTENSION IF NOT EXISTS postgis; -- uncomment if PostGIS is installed
 
 -- ---------- ENUM TYPES ----------
 CREATE TYPE user_role         AS ENUM ('driver', 'host', 'business_host', 'admin');
@@ -28,6 +20,7 @@ CREATE TABLE users (
     role            user_role NOT NULL DEFAULT 'driver',
     avg_rating      NUMERIC(2,1) DEFAULT 5.0 CHECK (avg_rating BETWEEN 0 AND 5),
     id_verified     BOOLEAN NOT NULL DEFAULT FALSE,
+    is_suspended    BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -88,17 +81,12 @@ CREATE TABLE bookings (
     estimated_amount NUMERIC(9,2) NOT NULL,
     total_amount     NUMERIC(9,2),
     overtime_amount  NUMERIC(9,2) DEFAULT 0,
-    status           booking_status NOT NULL DEFAULT 'pending',
+    status           booking_status NOT NULL DEFAULT 'pending', -- Note: 'pending' is currently unused in the frontend flow as bookings are created straight to 'confirmed' with held payments.
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT valid_window CHECK (end_time > start_time)
 );
 CREATE INDEX idx_bookings_slot_time ON bookings (slot_id, start_time, end_time);
 CREATE INDEX idx_bookings_user ON bookings (user_id);
-
--- Prevent double-booking of an overlapping window on the same slot
--- (requires btree_gist for exclusion constraint; using a partial unique
---  approach + application-level transaction lock as the primary guard,
---  documented in booking.model.js)
 
 -- ---------- PAYMENTS ----------
 CREATE TABLE payments (
@@ -166,10 +154,3 @@ BEGIN
     RETURN r * 2 * asin(sqrt(a));
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
-
--- Example nearby-search query (used by listings.model.js):
--- SELECT *, haversine_km(:lat, :lng, latitude, longitude) AS distance_km
--- FROM locations
--- WHERE is_verified = true
--- AND haversine_km(:lat, :lng, latitude, longitude) < :radius_km
--- ORDER BY distance_km ASC;

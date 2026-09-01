@@ -5,20 +5,35 @@ dotenv.config();
 
 const { Pool } = pg;
 
-// Two ways to configure the connection:
-// 1. DATABASE_URL — a single connection string, which is what every free
-//    managed Postgres host (Neon, Supabase, Render, Railway) gives you.
-//    These all require SSL, so we turn it on automatically whenever
-//    DATABASE_URL is set.
-// 2. PGHOST/PGPORT/etc — individual vars, for a local Postgres install
-//    with no SSL. Used only if DATABASE_URL is absent.
-const useConnectionString = Boolean(process.env.DATABASE_URL);
+// DATABASE_URL works for both a local Postgres install and a managed cloud
+// host (Neon, Supabase, Render, Railway). Cloud hosts require SSL; a local
+// install almost never has SSL turned on, so forcing SSL for every
+// DATABASE_URL breaks local development ("connect ECONNREFUSED" / "server
+// does not support SSL connections" on every request, including login).
+// We only turn SSL on when the host isn't local, and it can be overridden
+// explicitly with PGSSL=true|false.
+const databaseUrl = process.env.DATABASE_URL;
+const isLocalHost = (url) => {
+  try {
+    const host = new URL(url).hostname;
+    return host === 'localhost' || host === '127.0.0.1' || host === '::1';
+  } catch {
+    return false;
+  }
+};
+
+let useSsl;
+if (process.env.PGSSL !== undefined) {
+  useSsl = process.env.PGSSL === 'true';
+} else {
+  useSsl = Boolean(databaseUrl) && !isLocalHost(databaseUrl);
+}
 
 export const pool = new Pool(
-  useConnectionString
+  databaseUrl
     ? {
-        connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false },
+        connectionString: databaseUrl,
+        ssl: useSsl ? { rejectUnauthorized: false } : false,
         max: 20,
         idleTimeoutMillis: 30000,
       }
@@ -35,6 +50,26 @@ export const pool = new Pool(
 
 // Convenience helper — every model uses this instead of touching the pool directly.
 export const query = (text, params) => pool.query(text, params);
+
+// Custom enum array columns (vehicle_types_allowed is vehicle_type[]) get a
+// dynamically-assigned OID per database, so pg's built-in array parsers
+// don't recognize them and return the raw "{car,suv}" literal as a plain
+// string instead of a JS array. Look up that OID once at startup and teach
+// pg how to parse it, the same way it already knows built-in array types.
+const parsePgTextArray = (value) => {
+  if (value === null) return null;
+  const inner = value.slice(1, -1);
+  return inner.length ? inner.split(',') : [];
+};
+
+try {
+  const { rows } = await pool.query("SELECT oid FROM pg_type WHERE typname = '_vehicle_type'");
+  if (rows[0]) {
+    pg.types.setTypeParser(rows[0].oid, parsePgTextArray);
+  }
+} catch (err) {
+  console.error('Could not register vehicle_type[] parser (non-fatal):', err.message);
+}
 
 // For operations that must run inside a transaction (e.g. booking creation,
 // which locks a slot row to prevent double-booking).

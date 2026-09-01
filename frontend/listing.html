@@ -4,8 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Listing Details - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="stylesheet" href="/css/style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 </head>
 <body>
   <nav class="navbar">
@@ -20,19 +21,19 @@
   </main>
 
   <template id="listing-template">
-    <div class="clay-card">
+    <div class="card">
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 12px;">
         <div>
-          <h1 class="text-3xl mb-2" data-field="name"></h1>
+          <h1 class="text-3xl mb-2"><span data-field="name"></span> <span data-field="rating" style="font-size: 1rem; color: #92600a; vertical-align: middle; font-weight: normal;"></span></h1>
           <p class="text-muted text-xl" data-field="address"></p>
           <p class="text-sm text-muted mt-2">Hosted by <span data-field="host_name"></span></p>
         </div>
-        <button id="fav-btn" class="clay-btn" style="white-space:nowrap;">&#9825; Save</button>
+        <button id="fav-btn" class="btn" style="white-space:nowrap;">&#9825; Save</button>
       </div>
 
       <div class="flex gap-8 mt-4" style="flex-wrap: wrap;">
         <div style="flex: 2; min-width: 280px;">
-          <div class="clay-card" style="background:#e6eef4;">
+          <div class="card" style="background:#e6eef4;">
             <div class="flex justify-between items-center mb-2">
               <h2 class="text-2xl" data-field="price"></h2>
               <span class="badge" data-field="ev-badge"></span>
@@ -51,27 +52,27 @@
         </div>
 
         <div style="flex: 1; min-width: 280px;">
-          <div class="clay-card">
+          <div class="card">
             <h2 class="text-xl mb-4">Book this spot</h2>
             <form id="booking-form">
               <div class="form-group">
                 <label class="form-label" for="slot-select">Slot</label>
-                <select id="slot-select" class="clay-input" style="padding:14px 20px;" required></select>
+                <select id="slot-select" class="input" style="padding:14px 20px;" required></select>
               </div>
               <div class="form-group">
                 <label class="form-label" for="vehicle-number">Vehicle number</label>
-                <input type="text" id="vehicle-number" class="clay-input" placeholder="e.g. KA01AB1234" required />
+                <input type="text" id="vehicle-number" class="input" placeholder="e.g. KA01AB1234" required />
               </div>
               <div class="form-group">
                 <label class="form-label" for="start-time">Start Time</label>
-                <input type="datetime-local" id="start-time" class="clay-input" required />
+                <input type="datetime-local" id="start-time" class="input" required />
               </div>
               <div class="form-group">
                 <label class="form-label" for="end-time">End Time</label>
-                <input type="datetime-local" id="end-time" class="clay-input" required />
+                <input type="datetime-local" id="end-time" class="input" required />
               </div>
               <p id="estimate" class="text-muted mb-2"></p>
-              <button type="submit" id="book-submit" class="clay-btn clay-btn-primary w-full mt-2">Book Now</button>
+              <button type="submit" id="book-submit" class="btn btn-primary w-full mt-2">Proceed to Pay</button>
             </form>
           </div>
         </div>
@@ -79,26 +80,52 @@
     </div>
   </template>
 
+  <div id="payment-modal" class="modal-backdrop" style="display:none;">
+    <div class="card modal-box" style="text-align: left;">
+      <h2 class="text-xl mb-4">Complete Payment</h2>
+      <div id="payment-summary" class="card mb-4" style="padding:12px; background:var(--color-surface-raised);"></div>
+      <form id="payment-form">
+        <div class="form-group">
+          <label class="form-label">Card Number</label>
+          <input type="text" class="input" placeholder="0000 0000 0000 0000" required maxlength="19" />
+        </div>
+        <div class="flex gap-4">
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">Expiry</label>
+            <input type="text" class="input" placeholder="MM/YY" required maxlength="5" />
+          </div>
+          <div class="form-group" style="flex:1;">
+            <label class="form-label">CVV</label>
+            <input type="password" class="input" placeholder="123" required maxlength="4" />
+          </div>
+        </div>
+        <button type="submit" id="pay-submit" class="btn btn-primary w-full mt-4">Pay Now</button>
+        <button type="button" id="pay-cancel" class="btn w-full mt-2">Cancel</button>
+      </form>
+    </div>
+  </div>
+
   <div id="qr-modal" class="modal-backdrop" style="display:none;">
-    <div class="clay-card modal-box">
+    <div class="card modal-box">
       <h2 class="text-xl mb-4">Booking confirmed!</h2>
       <img id="qr-image" src="" alt="QR pass" />
       <p class="text-muted text-sm mt-4">Show this QR code to the host when you arrive.</p>
-      <button id="qr-close" class="clay-btn clay-btn-primary w-full mt-4">Go to My Bookings</button>
+      <button id="qr-close" class="btn btn-primary w-full mt-4">Go to My Bookings</button>
     </div>
   </div>
 
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
     import api, { apiErrorMessage } from '/js/api.js';
-    import { getUser } from '/js/auth.js';
+    import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
     import { watchLocations, onSlotUpdated } from '/js/socket.js';
 
+    const user = requireAuth();
     const urlParams = new URLSearchParams(window.location.search);
     const listingId = urlParams.get('id');
     const root = document.getElementById('page-root');
-    const user = getUser();
 
     const VEHICLE_LABELS = {
       two_wheeler: 'Two-wheeler', car: 'Car', suv: 'SUV',
@@ -108,11 +135,11 @@
     let currentSlots = [];
     let pricePerHour = 0;
 
-    function money(n) { return `₹${Number(n).toFixed(0)}`; }
+    function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
 
     async function loadListing() {
       if (!listingId) {
-        root.innerHTML = '<div class="clay-card state-msg">Listing not found.</div>';
+        root.innerHTML = '<div class="card state-msg">Listing not found.</div>';
         return;
       }
       try {
@@ -130,11 +157,14 @@
           (location.vehicle_types_allowed || []).map((v) => VEHICLE_LABELS[v] || v).join(', ') || 'Car';
         const hours = location.operating_hours || {};
         tpl.querySelector('[data-field="hours"]').textContent =
-          hours.open && hours.close ? `${hours.open} – ${hours.close}` : '24 hours';
+          hours.open && hours.close ? `${hours.open} to ${hours.close}` : '24 hours';
+        if (location.avg_rating) {
+          tpl.querySelector('[data-field="rating"]').innerHTML = `⭐ ${location.avg_rating} <span class="text-muted text-sm">(${location.review_count})</span>`;
+        }
 
         const evBadge = tpl.querySelector('[data-field="ev-badge"]');
         if (location.has_ev_charging) {
-          evBadge.textContent = '⚡ EV Charging';
+          evBadge.textContent = 'EV Charging';
           evBadge.classList.add('badge-ev');
         } else {
           evBadge.remove();
@@ -152,7 +182,7 @@
 
         watchLocations([listingId]);
       } catch (err) {
-        root.innerHTML = `<div class="clay-card state-msg text-danger">${apiErrorMessage(err, 'Could not load this listing.')}</div>`;
+        root.innerHTML = `<div class="card state-msg text-danger">${apiErrorMessage(err, 'Could not load this listing.')}</div>`;
       }
     }
 
@@ -195,12 +225,12 @@
           return;
         }
         el.innerHTML = reviews.map((r) => `
-          <div class="clay-card" style="padding:12px 16px;">
+          <div class="card" style="padding:12px 16px;">
             <div class="flex justify-between">
-              <strong>${r.author_name}</strong>
+              <strong>${escapeHtml(r.author_name)}</strong>
               <span>${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</span>
             </div>
-            ${r.comment ? `<p class="text-sm text-muted mt-2">${r.comment}</p>` : ''}
+            ${r.comment ? `<p class="text-sm text-muted mt-2">${escapeHtml(r.comment)}</p>` : ''}
           </div>
         `).join('');
       } catch (err) {
@@ -210,7 +240,7 @@
 
     function setupFavoriteButton() {
       const btn = document.getElementById('fav-btn');
-      if (!user || user.role !== 'driver') { btn.style.display = 'none'; return; }
+      if (user.role !== 'driver') { btn.style.display = 'none'; return; }
 
       let saved = false;
       api.get('/favorites/ids').then((res) => {
@@ -247,17 +277,21 @@
     }
 
     function setupBookingForm() {
+      const startInput = document.getElementById('start-time');
+      function refreshMin() {
+        const now = new Date();
+        now.setSeconds(0, 0);
+        startInput.min = now.toISOString().slice(0, 16);
+      }
+      refreshMin();
+      startInput.addEventListener('focus', refreshMin);
+
       document.getElementById('start-time').addEventListener('input', updateEstimate);
       document.getElementById('end-time').addEventListener('input', updateEstimate);
 
       document.getElementById('booking-form').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        if (!user) {
-          showToast('Please log in as a driver to book a spot.', 'error');
-          window.location.href = '/login.html';
-          return;
-        }
         if (user.role !== 'driver') {
           showToast('Only driver accounts can book parking.', 'error');
           return;
@@ -276,22 +310,66 @@
 
         const submitBtn = document.getElementById('book-submit');
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Booking...';
+        submitBtn.textContent = 'Calculating...';
 
         try {
-          const res = await api.post('/bookings', {
+          const res = await api.post('/bookings/quote', {
             slot_id: slotId,
-            vehicle_number: vehicleNumber,
             start_time: new Date(startTime).toISOString(),
             end_time: new Date(endTime).toISOString(),
           });
-          document.getElementById('qr-image').src = res.data.qr_pass;
-          document.getElementById('qr-modal').style.display = 'flex';
+          const quote = res.data;
+          
+          document.getElementById('payment-summary').innerHTML = `
+            <div class="flex justify-between mb-1"><span>Rate:</span> <span>${money(pricePerHour)}/hr</span></div>
+            <div class="flex justify-between mb-1"><span>Duration:</span> <span>${quote.hours.toFixed(1)} hrs</span></div>
+            <hr style="border-color:var(--color-border); margin:8px 0;" />
+            <div class="flex justify-between font-bold"><span>Total:</span> <span>${money(quote.total_amount || quote.estimated_amount)}</span></div>
+          `;
+          
+          document.getElementById('payment-modal').style.display = 'flex';
+          
+          document.getElementById('payment-form').onsubmit = async (pe) => {
+            pe.preventDefault();
+            const payBtn = document.getElementById('pay-submit');
+            payBtn.disabled = true;
+            payBtn.textContent = 'Processing payment...';
+
+            await new Promise(r => setTimeout(r, 1500));
+            
+            payBtn.textContent = 'Payment Successful';
+            payBtn.classList.replace('btn-primary', 'btn-success');
+            
+            await new Promise(r => setTimeout(r, 500));
+
+            try {
+              const bRes = await api.post('/bookings', {
+                slot_id: slotId,
+                vehicle_number: vehicleNumber,
+                start_time: new Date(startTime).toISOString(),
+                end_time: new Date(endTime).toISOString(),
+              });
+              document.getElementById('payment-modal').style.display = 'none';
+              document.getElementById('qr-image').src = bRes.data.qr_pass;
+              document.getElementById('qr-modal').style.display = 'flex';
+            } catch (err) {
+              showToast(apiErrorMessage(err, 'Could not create booking.'), 'error');
+            } finally {
+              payBtn.disabled = false;
+              payBtn.textContent = 'Pay Now';
+              payBtn.classList.replace('btn-success', 'btn-primary');
+            }
+          };
+
+          document.getElementById('pay-cancel').onclick = () => {
+            document.getElementById('payment-modal').style.display = 'none';
+          };
+          
         } catch (err) {
-          showToast(apiErrorMessage(err, 'Could not create booking.'), 'error');
+          showToast(apiErrorMessage(err, 'Could not get quote.'), 'error');
         } finally {
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Book Now';
+          submitBtn.textContent = 'Proceed to Pay';
         }
       });
     }
@@ -309,7 +387,7 @@
       }).catch(() => {});
     });
 
-    loadListing();
+    if (user) loadListing();
   </script>
 </body>
 </html>
