@@ -108,7 +108,25 @@
         submitBtn.disabled = false;
         submitBtn.textContent = 'Login';
       }
+      const form = document.querySelector("form");
+const checkboxes = document.querySelectorAll(
+    '.agreement-box input[type="checkbox"]'
+);
+
+form.addEventListener("submit", function (event) {
+
+    if (!checkboxes[0].checked || !checkboxes[1].checked) {
+        event.preventDefault();
+
+        alert("Please accept the Terms and Conditions and Privacy Policy.");
+    }
+
+});
     });
+
+    
+    
+    
   </script>
 </body>
 </html>
