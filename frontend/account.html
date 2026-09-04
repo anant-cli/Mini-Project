@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Settings - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container flex justify-between items-center">
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <div class="nav-links" id="nav-links"></div>
+    </div>
+  </nav>
+
+  <main class="container mt-8" id="page-root" style="display:none; max-width: 640px;">
+    <h1 class="text-3xl mb-8">Account Settings</h1>
+
+    <div class="card mb-8">
+      <h2 class="text-xl mb-4">Your details</h2>
+      <div class="flex flex-col gap-3">
+        <div class="flex justify-between items-center">
+          <span class="text-muted">Name</span>
+          <span class="font-semibold" id="acct-name"></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-muted">Email</span>
+          <span class="font-semibold" id="acct-email"></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-muted">Account type</span>
+          <span class="badge badge-available" id="acct-role"></span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-muted">Member since</span>
+          <span class="font-semibold" id="acct-created"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card danger-zone">
+      <h2 class="text-xl mb-2">Delete account</h2>
+      <p class="text-muted text-sm mb-4" id="danger-copy">
+        This permanently deletes your account and everything tied to it. This cannot be undone.
+      </p>
+      <button id="open-delete" class="btn btn-danger">Delete my account</button>
+    </div>
+  </main>
+
+  <div id="delete-modal" class="modal-backdrop" style="display:none;">
+    <div class="card modal-box" style="text-align:left;">
+      <h2 class="text-xl mb-2">Delete your account?</h2>
+      <p class="text-muted text-sm mb-4" id="delete-warning"></p>
+      <div class="form-group">
+        <label class="form-label" for="delete-password">Confirm your password</label>
+        <input type="password" id="delete-password" class="input" autocomplete="current-password" required />
+      </div>
+      <p id="delete-error" class="text-danger text-sm mb-2" style="display:none;"></p>
+      <button id="confirm-delete" class="btn btn-danger w-full">Permanently delete my account</button>
+      <button id="cancel-delete" class="btn w-full mt-2">Cancel</button>
+    </div>
+  </div>
+
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module">
+    import api, { apiErrorMessage } from '/js/api.js';
+    import { requireAuth, logout } from '/js/auth.js';
+    import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
+
+    const user = requireAuth();
+    if (user) document.getElementById('page-root').style.display = 'block';
+
+    const ROLE_LABELS = {
+      driver: 'Driver',
+      host: 'Host',
+      business_host: 'Business Host',
+      admin: 'Admin',
+    };
+
+    const ROLE_WARNINGS = {
+      driver: 'All of your bookings, payments, reviews, and saved listings will be permanently deleted.',
+      host: 'All of your listings, slots, and the bookings made on them will be permanently deleted.',
+      business_host: 'All of your listings, slots, and the bookings made on them will be permanently deleted.',
+      admin: 'Your admin account will be permanently removed.',
+    };
+
+    function renderAccount() {
+      document.getElementById('acct-name').textContent = user.name;
+      document.getElementById('acct-email').textContent = user.email;
+      document.getElementById('acct-role').textContent = ROLE_LABELS[user.role] || user.role;
+      document.getElementById('acct-created').textContent = user.created_at
+        ? new Date(user.created_at).toLocaleDateString()
+        : '—';
+      document.getElementById('danger-copy').textContent =
+        `This permanently deletes your account and everything tied to it — ${ROLE_WARNINGS[user.role] || ''} This cannot be undone.`;
+      document.getElementById('delete-warning').textContent = ROLE_WARNINGS[user.role] || '';
+    }
+
+    if (user) renderAccount();
+
+    const modal = document.getElementById('delete-modal');
+    document.getElementById('open-delete').addEventListener('click', () => {
+      document.getElementById('delete-password').value = '';
+      document.getElementById('delete-error').style.display = 'none';
+      modal.style.display = 'flex';
+    });
+    document.getElementById('cancel-delete').addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    document.getElementById('confirm-delete').addEventListener('click', async () => {
+      const password = document.getElementById('delete-password').value;
+      const errorEl = document.getElementById('delete-error');
+      const btn = document.getElementById('confirm-delete');
+      if (!password) {
+        errorEl.textContent = 'Enter your password to confirm.';
+        errorEl.style.display = 'block';
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Deleting...';
+      try {
+        await api.delete('/auth/me', { data: { password } });
+        showToast('Your account has been deleted.', 'success');
+        setTimeout(() => logout(), 800);
+      } catch (err) {
+        errorEl.textContent = apiErrorMessage(err, 'Could not delete your account.');
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Permanently delete my account';
+      }
+    });
+  </script>
+</body>
+</html>

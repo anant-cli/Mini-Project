@@ -24,7 +24,7 @@
     <div class="card">
       <div class="flex justify-between items-center" style="flex-wrap: wrap; gap: 12px;">
         <div>
-          <h1 class="text-3xl mb-2"><span data-field="name"></span> <span data-field="rating" style="font-size: 1rem; color: #92600a; vertical-align: middle; font-weight: normal;"></span></h1>
+          <h1 class="text-3xl mb-2"><span data-field="name"></span> <span data-field="rating" style="font-size: 1rem; color: var(--color-rating); vertical-align: middle; font-weight: normal;"></span></h1>
           <p class="text-muted text-xl" data-field="address"></p>
           <p class="text-sm text-muted mt-2">Hosted by <span data-field="host_name"></span></p>
         </div>
@@ -33,7 +33,7 @@
 
       <div class="flex gap-8 mt-4" style="flex-wrap: wrap;">
         <div style="flex: 2; min-width: 280px;">
-          <div class="card" style="background:#e6eef4;">
+          <div class="card" style="background:var(--color-highlight);">
             <div class="flex justify-between items-center mb-2">
               <h2 class="text-2xl" data-field="price"></h2>
               <span class="badge" data-field="ev-badge"></span>
@@ -277,6 +277,21 @@
     }
 
     function setupBookingForm() {
+      // Only driver accounts can book — hosts/admins get an explanatory
+      // message instead of a form they'd only get a 403 from submitting.
+      if (user.role !== 'driver') {
+        const bookingCard = document.getElementById('booking-form').closest('.card');
+        bookingCard.innerHTML = `
+          <h2 class="text-xl mb-4">Book this spot</h2>
+          <p class="text-muted">
+            ${user.role === 'admin'
+              ? 'Admin accounts oversee the platform and don\'t book slots directly.'
+              : 'Host accounts list parking spots — switch to a driver account to book one.'}
+          </p>
+        `;
+        return;
+      }
+
       const startInput = document.getElementById('start-time');
       function refreshMin() {
         const now = new Date();

@@ -1,5 +1,6 @@
 import { query, withTransaction } from '../config/db.js';
 import { reversePayment } from '../models/payment.model.js';
+import { deleteUser, findUserById } from '../models/user.model.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
 export const platformReport = async (req, res, next) => {
@@ -106,6 +107,39 @@ export const listUsers = async (req, res, next) => {
        ORDER BY created_at DESC`
     );
     res.json({ users: rows });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Admin can remove any account. Same cascade guarantee as self-service
+// deletion: a host's listings/slots or a driver's bookings/payments/
+// reviews/favorites are removed automatically via ON DELETE CASCADE.
+export const deleteUserByAdmin = async (req, res, next) => {
+  try {
+    if (req.params.id === req.user.user_id) {
+      throw new ApiError(400, 'Use account settings to delete your own account.');
+    }
+    const target = await findUserById(req.params.id);
+    if (!target) throw new ApiError(404, 'User not found');
+
+    await deleteUser(req.params.id);
+    res.status(200).json({ message: `${target.name}'s account and all associated data have been deleted.` });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listAllListings = async (req, res, next) => {
+  try {
+    const { rows } = await query(
+      `SELECT l.*, u.name AS host_name, u.email AS host_email,
+              (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id) AS total_slot_count
+       FROM locations l
+       JOIN users u ON u.user_id = l.owner_id
+       ORDER BY l.created_at DESC`
+    );
+    res.json({ listings: rows });
   } catch (err) {
     next(err);
   }

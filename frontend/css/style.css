@@ -13,6 +13,8 @@
   --color-amber: #F0A93C;
   --color-amber-dark: #D6912A;
   --color-danger: #E5484D;
+  --color-rating: #92600A;
+  --color-highlight: #E4F3EF;
 
   --shadow-out: 8px 8px 18px rgba(43, 42, 39, 0.12), -8px -8px 18px rgba(255, 255, 255, 0.7);
   --shadow-out-sm: 4px 4px 10px rgba(43, 42, 39, 0.1), -4px -4px 10px rgba(255, 255, 255, 0.7);
@@ -475,6 +477,78 @@ fieldset {
 }
 .star-input span { color: rgba(43, 42, 39, 0.2); transition: color 0.2s; }
 .star-input span.active, .star-input span:hover { color: var(--color-amber); }
+
+/* ---------- Accessible focus states ----------
+   Neumorphic soft-shadow UI has low edge contrast, so without an explicit
+   focus ring keyboard users can lose track of where they are. */
+a:focus-visible,
+button:focus-visible,
+.input:focus-visible,
+.btn:focus-visible,
+.tab-btn:focus-visible,
+.checkbox-row input:focus-visible {
+  outline: 3px solid var(--color-teal-dark);
+  outline-offset: 2px;
+}
+
+/* ---------- Tabs (admin console) ---------- */
+.tab-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tab-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-out-sm);
+  transition: color 0.15s ease, box-shadow 0.15s ease;
+}
+.tab-btn:hover { color: var(--color-text); }
+.tab-btn.active {
+  color: #fff;
+  background: var(--color-teal);
+  box-shadow: var(--shadow-in);
+}
+
+/* ---------- Danger zone (account deletion) ---------- */
+.danger-zone {
+  border: 1px solid rgba(229, 72, 77, 0.35);
+}
+.btn-danger:hover { background: #c53a3e; }
+
+/* ---------- Legal agreement checkboxes (signup) ---------- */
+.agreement-box {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 0;
+  padding: 18px 20px;
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-in);
+}
+.agreement-box .check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+.agreement-box .check-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--color-teal);
+  cursor: pointer;
+}
 
 /* ---------- Mobile nav toggle ---------- */
 .nav-toggle {

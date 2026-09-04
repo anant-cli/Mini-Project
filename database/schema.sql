@@ -131,14 +131,31 @@ CREATE TABLE favorites (
 CREATE TABLE disputes (
     dispute_id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id   UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE,
-    raised_by    UUID NOT NULL REFERENCES users(user_id),
+    -- No ON DELETE action here previously meant deleting a user who had ever
+    -- raised or resolved a dispute would fail with a foreign key violation
+    -- (deleting their account would be blocked). SET NULL keeps the dispute
+    -- record (and its booking history) intact while allowing account deletion.
+    raised_by    UUID REFERENCES users(user_id) ON DELETE SET NULL,
     reason       TEXT NOT NULL,
     resolution   TEXT,
-    resolved_by  UUID REFERENCES users(user_id),
+    resolved_by  UUID REFERENCES users(user_id) ON DELETE SET NULL,
     status       VARCHAR(20) NOT NULL DEFAULT 'open',
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     resolved_at  TIMESTAMPTZ
 );
+
+-- ---------- Migration note ----------
+-- If you already ran this schema before the `disputes` FK fix above, apply
+-- this against an existing database (safe to re-run):
+--   ALTER TABLE disputes ALTER COLUMN raised_by DROP NOT NULL;
+--   ALTER TABLE disputes DROP CONSTRAINT disputes_raised_by_fkey;
+--   ALTER TABLE disputes ADD CONSTRAINT disputes_raised_by_fkey
+--     FOREIGN KEY (raised_by) REFERENCES users(user_id) ON DELETE SET NULL;
+--   ALTER TABLE disputes DROP CONSTRAINT disputes_resolved_by_fkey;
+--   ALTER TABLE disputes ADD CONSTRAINT disputes_resolved_by_fkey
+--     FOREIGN KEY (resolved_by) REFERENCES users(user_id) ON DELETE SET NULL;
+-- Without this, deleting a user account that ever raised or resolved a
+-- dispute fails with a foreign key violation instead of deleting cleanly.
 
 -- ---------- Helper: haversine distance function (fallback if no PostGIS) ----------
 CREATE OR REPLACE FUNCTION haversine_km(lat1 DOUBLE PRECISION, lon1 DOUBLE PRECISION,

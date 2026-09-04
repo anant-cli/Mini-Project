@@ -1,5 +1,8 @@
 import { Router } from 'express';
-import { platformReport, listDisputes, resolveDispute, suspendUser, unsuspendUser, listUsers } from '../controllers/admin.controller.js';
+import {
+  platformReport, listDisputes, resolveDispute, suspendUser, unsuspendUser,
+  listUsers, deleteUserByAdmin, listAllListings,
+} from '../controllers/admin.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
@@ -11,5 +14,7 @@ router.patch('/disputes/:id/resolve', resolveDispute);
 router.patch('/users/:id/suspend', suspendUser);
 router.patch('/users/:id/unsuspend', unsuspendUser);
 router.get('/users', listUsers);
+router.delete('/users/:id', deleteUserByAdmin);
+router.get('/listings', listAllListings);
 
 export default router;

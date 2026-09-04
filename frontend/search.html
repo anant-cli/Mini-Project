@@ -85,7 +85,9 @@
     import maplibregl from 'maplibre-gl';
     import 'maplibre-gl/dist/maplibre-gl.css';
 
-    const currentUser = requireAuth();
+    // Searching for a spot to book is a driver action — hosts manage their
+    // own listings from the Host Dashboard instead.
+    const currentUser = requireAuth(['driver']);
     if (currentUser) document.getElementById('page-root').style.display = 'block';
 
     if (currentUser) {
@@ -121,7 +123,7 @@
           source: 'listings',
           filter: ['has', 'point_count'],
           paint: {
-            'circle-color': '#4264fb',
+            'circle-color': '#299C87',
             'circle-radius': 18,
             'circle-stroke-width': 1,
             'circle-stroke-color': '#fff'
@@ -149,7 +151,7 @@
           source: 'listings',
           filter: ['!', ['has', 'point_count']],
           paint: {
-            'circle-color': '#fbbf24',
+            'circle-color': '#F0A93C',
             'circle-radius': 10,
             'circle-stroke-width': 2,
             'circle-stroke-color': '#fff'
@@ -177,7 +179,7 @@
             .setHTML(`
               <strong>${escapeHtml(props.name)}</strong><br>
               ${props.price_str} &middot; ${props.available_slots} available<br>
-              <a href="/listing.html?id=${props.location_id}" style="color:#5c8df6; font-weight:bold;">View Details</a>
+              <a href="/listing.html?id=${props.location_id}" style="color:var(--color-teal-dark); font-weight:bold;">View Details</a>
             `)
             .addTo(map);
         });
@@ -194,7 +196,7 @@
 
       function ratingBadge(l) {
         if (!l.avg_rating) return '';
-        return `<span style="font-size:0.8rem; color:#92600a;">⭐ ${l.avg_rating} <span class="text-muted">(${l.review_count})</span></span>`;
+        return `<span style="font-size:0.8rem; color:var(--color-rating);">⭐ ${l.avg_rating} <span class="text-muted">(${l.review_count})</span></span>`;
       }
 
       function renderResults(listings) {

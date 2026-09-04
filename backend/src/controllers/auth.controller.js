@@ -1,6 +1,8 @@
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
-import { createUser, findUserByEmail, findUserById } from '../models/user.model.js';
+import {
+  createUser, findUserByEmail, findUserById, findUserByIdWithPassword, deleteUser,
+} from '../models/user.model.js';
 import { signToken } from '../utils/jwt.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
@@ -56,6 +58,30 @@ export const me = async (req, res, next) => {
     const user = await findUserById(req.user.user_id);
     if (!user) throw new ApiError(404, 'User not found');
     res.json({ user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteAccountSchema = z.object({
+  password: z.string().min(1, 'Password is required to delete your account'),
+});
+
+// Self-service account deletion for any role. Requires the current password
+// as confirmation. All owned data (a host's listings/slots, a driver's
+// bookings/payments/reviews/favorites) is removed automatically by the
+// database's ON DELETE CASCADE constraints — see schema.sql.
+export const deleteMyAccount = async (req, res, next) => {
+  try {
+    const { password } = deleteAccountSchema.parse(req.body);
+    const user = await findUserByIdWithPassword(req.user.user_id);
+    if (!user) throw new ApiError(404, 'User not found');
+
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) throw new ApiError(401, 'Incorrect password');
+
+    await deleteUser(req.user.user_id);
+    res.status(200).json({ message: 'Your account and all associated data have been deleted.' });
   } catch (err) {
     next(err);
   }

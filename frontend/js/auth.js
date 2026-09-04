@@ -33,6 +33,28 @@ export function requireAuth(allowedRoles = null) {
   return user;
 }
 
+// Each role sees only the links that match what they're allowed to do:
+// a driver searches/books/saves spots, a host/business_host only manages
+// their own listings, and an admin only gets the moderation console —
+// admins don't book slots or list spots themselves, they oversee the
+// platform (users, listings, disputes, reports) from /admin.html.
+function navLinksFor(user) {
+  switch (user.role) {
+    case 'host':
+    case 'business_host':
+      return '<a href="/host.html">Dashboard</a>';
+    case 'admin':
+      return '<a href="/admin.html">Admin Console</a>';
+    case 'driver':
+    default:
+      return `
+        <a href="/search.html">Search</a>
+        <a href="/bookings.html">Bookings</a>
+        <a href="/saved.html">Saved</a>
+      `;
+  }
+}
+
 export function updateNavbar() {
   const user = getUser();
   const navLinks = document.getElementById('nav-links');
@@ -40,11 +62,8 @@ export function updateNavbar() {
 
   if (user) {
     navLinks.innerHTML = `
-      <a href="/search.html">Search</a>
-      ${['host', 'business_host'].includes(user.role) ? '<a href="/host.html">Dashboard</a>' : ''}
-      ${user.role === 'admin' ? '<a href="/admin.html">Admin</a>' : ''}
-      <a href="/bookings.html">Bookings</a>
-      ${user.role === 'driver' ? '<a href="/saved.html">Saved</a>' : ''}
+      ${navLinksFor(user)}
+      <a href="/account.html">Account</a>
       <span class="nav-user" title="${user.email}">Hi, ${user.name.split(' ')[0]}</span>
       <button id="logout-btn" class="btn">Logout</button>
     `;

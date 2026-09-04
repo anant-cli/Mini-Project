@@ -51,7 +51,8 @@
     import { showToast } from '/js/toast.js';
     import { escapeHtml } from '/js/sanitize.js';
 
-    const user = requireAuth();
+    // Bookings belong to drivers only — hosts list spots, they don't book them.
+    const user = requireAuth(['driver']);
     if (user) document.getElementById('page-root').style.display = 'block';
 
     function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
@@ -76,7 +77,7 @@
                 <p class="text-sm text-muted">${new Date(b.start_time).toLocaleString()} to ${new Date(b.end_time).toLocaleString()}</p>
                 <p class="text-sm mt-2">${money(b.total_amount || b.estimated_amount)}${b.overtime_amount > 0 ? ` (incl. ${money(b.overtime_amount)} overtime)` : ''}</p>
                 ${b.payment_status ? `<p class="text-sm text-muted">Payment: ${escapeHtml(b.payment_status)} &middot; Payout: ${escapeHtml(b.payout_status || 'held')}</p>` : ''}
-                ${b.status === 'cancelled' ? `<p class="text-sm text-success mt-1" style="color:#10b981;">${money(b.total_amount || b.estimated_amount)} refunded to your original payment method</p>` : ''}
+                ${b.status === 'cancelled' ? `<p class="text-sm text-success mt-1" style="color:var(--color-teal-dark);">${money(b.total_amount || b.estimated_amount)} refunded to your original payment method</p>` : ''}
               </div>
               <span class="badge badge-${b.status}">${b.status.replace('_', ' ')}</span>
             </div>

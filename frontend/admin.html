@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Console - ParkSlot</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container flex justify-between items-center">
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <div class="nav-links" id="nav-links"></div>
+    </div>
+  </nav>
+
+  <main class="container mt-8" id="page-root" style="display:none;">
+    <h1 class="text-3xl mb-8">Admin Console</h1>
+
+    <div class="grid grid-3 mb-8">
+      <div class="card text-center">
+        <p class="text-muted text-sm">Gross Payment Volume</p>
+        <p class="text-3xl" id="stat-volume">₹0</p>
+      </div>
+      <div class="card text-center">
+        <p class="text-muted text-sm">Captured Transactions</p>
+        <p class="text-3xl" id="stat-transactions">0</p>
+      </div>
+      <div class="card text-center">
+        <p class="text-muted text-sm">Platform Commission</p>
+        <p class="text-3xl" id="stat-commission">—</p>
+      </div>
+    </div>
+
+    <div class="tab-bar mb-8" id="tab-bar">
+      <button class="tab-btn active" data-tab="pending">Pending Listings</button>
+      <button class="tab-btn" data-tab="listings">All Listings</button>
+      <button class="tab-btn" data-tab="users">Users</button>
+      <button class="tab-btn" data-tab="disputes">Disputes</button>
+    </div>
+
+    <section class="tab-panel" id="panel-pending">
+      <div class="card">
+        <h2 class="text-2xl mb-4">Listings awaiting verification</h2>
+        <div id="pending-list" class="flex flex-col gap-4">
+          <div class="state-msg"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="panel-listings" style="display:none;">
+      <div class="card">
+        <h2 class="text-2xl mb-4">All listings</h2>
+        <div id="all-listings-list" class="flex flex-col gap-4">
+          <div class="state-msg"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="panel-users" style="display:none;">
+      <div class="card">
+        <h2 class="text-2xl mb-4">Users</h2>
+        <div id="users-list" class="flex flex-col gap-4">
+          <div class="state-msg"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="panel-disputes" style="display:none;">
+      <div class="card">
+        <h2 class="text-2xl mb-4">Open disputes</h2>
+        <div id="disputes-list" class="flex flex-col gap-4">
+          <div class="state-msg"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="delete-user-modal" class="modal-backdrop" style="display:none;">
+    <div class="card modal-box" style="text-align:left;">
+      <h2 class="text-xl mb-2">Delete this user?</h2>
+      <p class="text-muted text-sm mb-4">
+        This permanently deletes <strong id="delete-user-name"></strong>'s account, along with
+        any listings/slots they host or bookings/payments/reviews they made as a driver. This cannot be undone.
+      </p>
+      <button id="confirm-delete-user" class="btn btn-danger w-full">Permanently delete user</button>
+      <button id="cancel-delete-user" class="btn w-full mt-2">Cancel</button>
+    </div>
+  </div>
+
+  <script type="module" src="/js/auth.js"></script>
+  <script type="module">
+    import api, { apiErrorMessage } from '/js/api.js';
+    import { requireAuth } from '/js/auth.js';
+    import { showToast } from '/js/toast.js';
+    import { escapeHtml } from '/js/sanitize.js';
+
+    const user = requireAuth(['admin']);
+    if (user) document.getElementById('page-root').style.display = 'block';
+
+    function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
+
+    // ---------- Tabs ----------
+    document.getElementById('tab-bar').addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.tab-panel').forEach((p) => {
+        p.style.display = p.id === `panel-${btn.dataset.tab}` ? 'block' : 'none';
+      });
+    });
+
+    // ---------- Overview report ----------
+    async function loadReport() {
+      try {
+        const res = await api.get('/admin/report');
+        const { revenue, config } = res.data;
+        document.getElementById('stat-volume').textContent = money(revenue.gross_volume);
+        document.getElementById('stat-transactions').textContent = revenue.total_transactions;
+        document.getElementById('stat-commission').textContent = `${config.platform_commission_percent}%`;
+      } catch (err) {
+        showToast(apiErrorMessage(err, 'Could not load platform report.'), 'error');
+      }
+    }
+
+    // ---------- Pending listings ----------
+    async function loadPending() {
+      const container = document.getElementById('pending-list');
+      try {
+        const res = await api.get('/listings/admin/pending');
+        const listings = res.data.listings || [];
+        if (listings.length === 0) {
+          container.innerHTML = '<p class="text-muted">No listings waiting for review.</p>';
+          return;
+        }
+        container.innerHTML = listings.map((l) => `
+          <div class="card list-card" style="padding:16px 20px;">
+            <div class="list-card-row">
+              <div>
+                <strong>${escapeHtml(l.name)}</strong>
+                <p class="text-sm text-muted">${escapeHtml(l.address)}</p>
+                <p class="text-sm text-muted">${money(l.price_per_hour)}/hr &middot; ${l.total_slots} slots</p>
+              </div>
+              <div class="flex gap-2">
+                <button class="btn btn-primary approve-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Approve</button>
+                <button class="btn btn-danger reject-btn" data-id="${l.location_id}" style="padding:8px 16px; font-size:0.85rem;">Reject</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.approve-btn').forEach((btn) => btn.addEventListener('click', () => reviewListing(btn.dataset.id, true)));
+        container.querySelectorAll('.reject-btn').forEach((btn) => btn.addEventListener('click', () => reviewListing(btn.dataset.id, false)));
+      } catch (err) {
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load pending listings.')}</p>`;
+      }
+    }
+
+    async function reviewListing(id, approve) {
+      try {
+        await api.patch(`/listings/admin/${id}/review`, { approve });
+        showToast(approve ? 'Listing approved.' : 'Listing rejected.', 'success');
+        loadPending();
+        loadAllListings();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    }
+
+    // ---------- All listings ----------
+    async function loadAllListings() {
+      const container = document.getElementById('all-listings-list');
+      try {
+        const res = await api.get('/admin/listings');
+        const listings = res.data.listings || [];
+        if (listings.length === 0) {
+          container.innerHTML = '<p class="text-muted">No listings yet.</p>';
+          return;
+        }
+        container.innerHTML = listings.map((l) => `
+          <div class="card list-card" style="padding:16px 20px;">
+            <div class="list-card-row">
+              <div>
+                <strong>${escapeHtml(l.name)}</strong>
+                <p class="text-sm text-muted">${escapeHtml(l.address)}</p>
+                <p class="text-sm text-muted">Hosted by ${escapeHtml(l.host_name)} (${escapeHtml(l.host_email)})</p>
+              </div>
+              <span class="badge ${l.is_verified ? 'badge-available' : 'badge-pending'}">${l.is_verified ? 'Verified' : 'Pending'}</span>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load listings.')}</p>`;
+      }
+    }
+
+    // ---------- Users ----------
+    let pendingDeleteUserId = null;
+
+    async function loadUsers() {
+      const container = document.getElementById('users-list');
+      try {
+        const res = await api.get('/admin/users');
+        const users = res.data.users || [];
+        container.innerHTML = users.map((u) => `
+          <div class="card list-card" style="padding:16px 20px;">
+            <div class="list-card-row">
+              <div>
+                <strong>${escapeHtml(u.name)}</strong> &middot; <span class="text-muted text-sm">${escapeHtml(u.role)}</span>
+                <p class="text-sm text-muted">${escapeHtml(u.email)}${u.phone ? ` &middot; ${escapeHtml(u.phone)}` : ''}</p>
+                <p class="text-sm text-muted">⭐ ${u.avg_rating || '5.0'} rating</p>
+              </div>
+              <div class="flex gap-2" style="flex-wrap:wrap;">
+                <span class="badge ${u.is_suspended ? 'badge-cancelled' : 'badge-available'}">${u.is_suspended ? 'Suspended' : 'Active'}</span>
+                ${u.role !== 'admin' ? `
+                  ${u.is_suspended
+                    ? `<button class="btn unsuspend-btn" data-id="${u.user_id}" style="padding:8px 16px; font-size:0.85rem;">Unsuspend</button>`
+                    : `<button class="btn suspend-btn" data-id="${u.user_id}" style="padding:8px 16px; font-size:0.85rem;">Suspend</button>`}
+                  <button class="btn btn-danger delete-user-btn" data-id="${u.user_id}" data-name="${escapeHtml(u.name)}" style="padding:8px 16px; font-size:0.85rem;">Delete</button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.suspend-btn').forEach((btn) => btn.addEventListener('click', () => setSuspend(btn.dataset.id, true)));
+        container.querySelectorAll('.unsuspend-btn').forEach((btn) => btn.addEventListener('click', () => setSuspend(btn.dataset.id, false)));
+        container.querySelectorAll('.delete-user-btn').forEach((btn) => btn.addEventListener('click', () => {
+          pendingDeleteUserId = btn.dataset.id;
+          document.getElementById('delete-user-name').textContent = btn.dataset.name;
+          document.getElementById('delete-user-modal').style.display = 'flex';
+        }));
+      } catch (err) {
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load users.')}</p>`;
+      }
+    }
+
+    async function setSuspend(userId, suspend) {
+      try {
+        await api.patch(`/admin/users/${userId}/${suspend ? 'suspend' : 'unsuspend'}`);
+        showToast(suspend ? 'User suspended.' : 'User unsuspended.', 'success');
+        loadUsers();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    }
+
+    document.getElementById('cancel-delete-user').addEventListener('click', () => {
+      document.getElementById('delete-user-modal').style.display = 'none';
+      pendingDeleteUserId = null;
+    });
+
+    document.getElementById('confirm-delete-user').addEventListener('click', async () => {
+      if (!pendingDeleteUserId) return;
+      try {
+        await api.delete(`/admin/users/${pendingDeleteUserId}`);
+        showToast('User deleted.', 'success');
+        document.getElementById('delete-user-modal').style.display = 'none';
+        pendingDeleteUserId = null;
+        loadUsers();
+        loadAllListings();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    });
+
+    // ---------- Disputes ----------
+    async function loadDisputes() {
+      const container = document.getElementById('disputes-list');
+      try {
+        const res = await api.get('/admin/disputes');
+        const disputes = res.data.disputes || [];
+        if (disputes.length === 0) {
+          container.innerHTML = '<p class="text-muted">No open disputes.</p>';
+          return;
+        }
+        container.innerHTML = disputes.map((d) => `
+          <div class="card list-card" style="padding:16px 20px; display:block;">
+            <p class="text-sm text-muted">Vehicle ${escapeHtml(d.vehicle_number)} &middot; ${money(d.total_amount)}</p>
+            <p class="mt-1">${escapeHtml(d.reason)}</p>
+            <div class="flex gap-2 mt-2" style="flex-wrap:wrap;">
+              <button class="btn btn-primary resolve-refund-btn" data-id="${d.dispute_id}" style="padding:8px 16px; font-size:0.85rem;">Refund driver</button>
+              <button class="btn resolve-noaction-btn" data-id="${d.dispute_id}" style="padding:8px 16px; font-size:0.85rem;">No action</button>
+            </div>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.resolve-refund-btn').forEach((btn) => btn.addEventListener('click', () => resolveDispute(btn.dataset.id, 'refund_driver')));
+        container.querySelectorAll('.resolve-noaction-btn').forEach((btn) => btn.addEventListener('click', () => resolveDispute(btn.dataset.id, 'no_action')));
+      } catch (err) {
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load disputes.')}</p>`;
+      }
+    }
+
+    async function resolveDispute(id, outcome) {
+      const resolution = prompt('Add a short resolution note (shown to both parties):') || '';
+      try {
+        await api.patch(`/admin/disputes/${id}/resolve`, { outcome, resolution });
+        showToast('Dispute resolved.', 'success');
+        loadDisputes();
+      } catch (err) {
+        showToast(apiErrorMessage(err), 'error');
+      }
+    }
+
+    if (user) {
+      loadReport();
+      loadPending();
+      loadAllListings();
+      loadUsers();
+      loadDisputes();
+    }
+  </script>
+</body>
+</html>
