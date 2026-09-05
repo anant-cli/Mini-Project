@@ -81,6 +81,7 @@ export const suspendUser = async (req, res, next) => {
       `UPDATE users SET is_suspended = true WHERE user_id = $1 RETURNING user_id, name, email, role, is_suspended`,
       [req.params.id]
     );
+    if (!rows[0]) throw new ApiError(404, 'User not found');
     res.json({ user: rows[0] });
   } catch (err) {
     next(err);
@@ -93,6 +94,7 @@ export const unsuspendUser = async (req, res, next) => {
       `UPDATE users SET is_suspended = false WHERE user_id = $1 RETURNING user_id, name, email, role, is_suspended`,
       [req.params.id]
     );
+    if (!rows[0]) throw new ApiError(404, 'User not found');
     res.json({ user: rows[0] });
   } catch (err) {
     next(err);

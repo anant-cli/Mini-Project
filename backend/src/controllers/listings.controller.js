@@ -102,6 +102,7 @@ export const reviewListing = async (req, res, next) => {
   try {
     const { approve } = req.body;
     const location = await verifyLocation(req.params.id, !!approve);
+    if (!location) throw new ApiError(404, 'Listing not found');
     res.json({ location });
   } catch (err) {
     next(err);

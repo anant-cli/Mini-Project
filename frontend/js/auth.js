@@ -1,3 +1,5 @@
+import { escapeHtml } from '/js/sanitize.js';
+
 export function getUser() {
   const user = localStorage.getItem('user');
   return user ? JSON.parse(user) : null;
@@ -64,7 +66,7 @@ export function updateNavbar() {
     navLinks.innerHTML = `
       ${navLinksFor(user)}
       <a href="/account.html">Account</a>
-      <span class="nav-user" title="${user.email}">Hi, ${user.name.split(' ')[0]}</span>
+      <span class="nav-user" title="${escapeHtml(user.email)}">Hi, ${escapeHtml(user.name.split(' ')[0])}</span>
       <button id="logout-btn" class="btn">Logout</button>
     `;
 

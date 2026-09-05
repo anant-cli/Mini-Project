@@ -213,6 +213,7 @@
       select.innerHTML = available.map((s) =>
         `<option value="${s.slot_id}">${s.slot_number} (${VEHICLE_LABELS[s.vehicle_type] || s.vehicle_type})</option>`
       ).join('');
+      document.getElementById('book-submit').disabled = false;
     }
 
     async function loadReviews() {
