@@ -19,75 +19,179 @@
   <main class="container mt-8" id="page-root" style="display:none;">
     <h1 class="text-3xl mb-8">Admin Console</h1>
 
-    <div class="grid grid-3 mb-8">
-      <div class="card text-center">
-        <p class="text-muted text-sm">Gross Payment Volume</p>
-        <p class="text-3xl" id="stat-volume">₹0</p>
-      </div>
-      <div class="card text-center">
-        <p class="text-muted text-sm">Captured Transactions</p>
-        <p class="text-3xl" id="stat-transactions">0</p>
-      </div>
-      <div class="card text-center">
-        <p class="text-muted text-sm">Platform Commission</p>
-        <p class="text-3xl" id="stat-commission">—</p>
+    <div class="admin-shell">
+      <!-- ---------------- Sidebar ---------------- -->
+      <aside class="admin-sidebar" id="admin-sidebar">
+        <p class="admin-nav-heading">Overview</p>
+        <button class="admin-nav-btn active" data-view="dashboard">Dashboard</button>
+
+        <p class="admin-nav-heading">Moderation</p>
+        <button class="admin-nav-btn" data-view="pending">Pending Listings <span class="count-pill" id="count-pending">–</span></button>
+        <button class="admin-nav-btn" data-view="kyc">Identity Verification <span class="count-pill" id="count-kyc">–</span></button>
+        <button class="admin-nav-btn" data-view="disputes">Disputes <span class="count-pill" id="count-disputes">–</span></button>
+
+        <p class="admin-nav-heading">Directory</p>
+        <button class="admin-nav-btn" data-view="users">Users</button>
+        <button class="admin-nav-btn" data-view="listings">All Listings</button>
+
+        <p class="admin-nav-heading">Database tables</p>
+        <div id="db-nav-list"></div>
+      </aside>
+
+      <!-- ---------------- Main content ---------------- -->
+      <div class="admin-main">
+
+        <!-- ===== Dashboard ===== -->
+        <section class="admin-view active" id="view-dashboard">
+          <div class="grid grid-3 mb-8">
+            <div class="card stat-card text-center">
+              <p class="text-muted text-sm">Gross Payment Volume</p>
+              <p class="text-3xl" id="stat-volume">₹0</p>
+            </div>
+            <div class="card stat-card text-center">
+              <p class="text-muted text-sm">Captured Transactions</p>
+              <p class="text-3xl" id="stat-transactions">0</p>
+            </div>
+            <div class="card stat-card text-center">
+              <p class="text-muted text-sm">Platform Commission</p>
+              <p class="text-3xl" id="stat-commission">—</p>
+            </div>
+            <div class="card stat-card text-center">
+              <p class="text-muted text-sm">Total Users</p>
+              <p class="text-3xl" id="stat-users">0</p>
+            </div>
+            <div class="card stat-card text-center">
+              <p class="text-muted text-sm">Total Listings</p>
+              <p class="text-3xl" id="stat-listings">0</p>
+            </div>
+            <div class="card stat-card text-center">
+              <p class="text-muted text-sm">Open Disputes</p>
+              <p class="text-3xl" id="stat-open-disputes">0</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="admin-page-head">
+              <h2 class="text-2xl">Explore the data</h2>
+              <p class="text-sm text-muted">Pick any table and slice it however you like.</p>
+            </div>
+
+            <div class="chart-controls">
+              <div>
+                <label for="chart-table">Table</label>
+                <select class="input" id="chart-table"></select>
+              </div>
+              <div>
+                <label for="chart-mode">View</label>
+                <select class="input" id="chart-mode">
+                  <option value="trend">Trend over time</option>
+                  <option value="breakdown">Breakdown by category</option>
+                </select>
+              </div>
+              <div>
+                <label for="chart-column" id="chart-column-label">Group by</label>
+                <select class="input" id="chart-column"></select>
+              </div>
+              <div>
+                <label for="chart-metric">Metric</label>
+                <select class="input" id="chart-metric">
+                  <option value="count">Count of rows</option>
+                  <option value="sum">Sum of…</option>
+                  <option value="avg">Average of…</option>
+                </select>
+              </div>
+              <div id="chart-value-column-wrap" style="display:none;">
+                <label for="chart-value-column">Value column</label>
+                <select class="input" id="chart-value-column"></select>
+              </div>
+              <div id="chart-interval-wrap">
+                <label for="chart-interval">Bucket</label>
+                <select class="input" id="chart-interval">
+                  <option value="day">Daily</option>
+                  <option value="week">Weekly</option>
+                  <option value="month">Monthly</option>
+                </select>
+              </div>
+              <div id="chart-days-wrap">
+                <label for="chart-days">Range</label>
+                <select class="input" id="chart-days">
+                  <option value="7">Last 7 days</option>
+                  <option value="30" selected>Last 30 days</option>
+                  <option value="90">Last 90 days</option>
+                  <option value="180">Last 180 days</option>
+                  <option value="365">Last year</option>
+                </select>
+              </div>
+              <div class="chart-type-toggle">
+                <button type="button" class="btn btn-primary" id="chart-type-line" style="padding:10px 16px; font-size:0.85rem;">Line</button>
+                <button type="button" class="btn" id="chart-type-bar" style="padding:10px 16px; font-size:0.85rem;">Bar</button>
+              </div>
+            </div>
+
+            <div class="admin-chart-container" id="chart-container">
+              <div class="state-msg"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Pending listings (moderation) ===== -->
+        <section class="admin-view" id="view-pending">
+          <div class="card">
+            <h2 class="text-2xl mb-4">Listings awaiting verification</h2>
+            <div id="pending-list" class="flex flex-col gap-4">
+              <div class="state-msg"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Identity Verification (moderation) ===== -->
+        <section class="admin-view" id="view-kyc">
+          <div class="card">
+            <h2 class="text-2xl mb-4">Identity verification queue</h2>
+            <div id="kyc-list" class="flex flex-col gap-4">
+              <div class="state-msg"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== All listings (directory) ===== -->
+        <section class="admin-view" id="view-listings">
+          <div class="card">
+            <h2 class="text-2xl mb-4">All listings</h2>
+            <div id="all-listings-list" class="flex flex-col gap-4">
+              <div class="state-msg"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Users (directory) ===== -->
+        <section class="admin-view" id="view-users">
+          <div class="card">
+            <h2 class="text-2xl mb-4">Users</h2>
+            <div id="users-list" class="flex flex-col gap-4">
+              <div class="state-msg"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Disputes (moderation) ===== -->
+        <section class="admin-view" id="view-disputes">
+          <div class="card">
+            <h2 class="text-2xl mb-4">Open disputes</h2>
+            <div id="disputes-list" class="flex flex-col gap-4">
+              <div class="state-msg"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Generic database table views (injected at runtime) ===== -->
+        <div id="db-views"></div>
+
       </div>
     </div>
-
-    <div class="tab-bar mb-8" id="tab-bar">
-      <button class="tab-btn active" data-tab="pending">Pending Listings</button>
-      <button class="tab-btn" data-tab="kyc">Identity Verification</button>
-      <button class="tab-btn" data-tab="listings">All Listings</button>
-      <button class="tab-btn" data-tab="users">Users</button>
-      <button class="tab-btn" data-tab="disputes">Disputes</button>
-    </div>
-
-    <section class="tab-panel" id="panel-kyc" style="display:none;">
-      <div class="card">
-        <h2 class="text-2xl mb-4">Identity verification queue</h2>
-        <div id="kyc-list" class="flex flex-col gap-4">
-          <div class="state-msg"><div class="spinner"></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="tab-panel" id="panel-pending">
-      <div class="card">
-        <h2 class="text-2xl mb-4">Listings awaiting verification</h2>
-        <div id="pending-list" class="flex flex-col gap-4">
-          <div class="state-msg"><div class="spinner"></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="tab-panel" id="panel-listings" style="display:none;">
-      <div class="card">
-        <h2 class="text-2xl mb-4">All listings</h2>
-        <div id="all-listings-list" class="flex flex-col gap-4">
-          <div class="state-msg"><div class="spinner"></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="tab-panel" id="panel-users" style="display:none;">
-      <div class="card">
-        <h2 class="text-2xl mb-4">Users</h2>
-        <div id="users-list" class="flex flex-col gap-4">
-          <div class="state-msg"><div class="spinner"></div></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="tab-panel" id="panel-disputes" style="display:none;">
-      <div class="card">
-        <h2 class="text-2xl mb-4">Open disputes</h2>
-        <div id="disputes-list" class="flex flex-col gap-4">
-          <div class="state-msg"><div class="spinner"></div></div>
-        </div>
-      </div>
-    </section>
   </main>
 
+  <!-- Delete user modal (curated Users tab) -->
   <div id="delete-user-modal" class="modal-backdrop" style="display:none;">
     <div class="card modal-box" style="text-align:left;">
       <h2 class="text-xl mb-2">Delete this user?</h2>
@@ -100,47 +204,201 @@
     </div>
   </div>
 
+  <!-- Generic row editor modal (Database tables) -->
+  <div id="row-form-modal" class="modal-backdrop row-form-modal" style="display:none;">
+    <div class="card modal-box">
+      <h2 class="text-xl mb-1" id="row-form-title">Add row</h2>
+      <p class="text-muted text-sm" id="row-form-subtitle"></p>
+      <form id="row-form">
+        <div class="row-form-grid" id="row-form-grid"></div>
+        <div class="flex gap-2 mt-4">
+          <button type="submit" class="btn btn-primary w-full" id="row-form-submit">Save</button>
+          <button type="button" class="btn w-full" id="row-form-cancel">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Generic delete-row confirmation modal (Database tables) -->
+  <div id="delete-row-modal" class="modal-backdrop" style="display:none;">
+    <div class="card modal-box" style="text-align:left;">
+      <h2 class="text-xl mb-2">Delete this row?</h2>
+      <p class="text-muted text-sm mb-4" id="delete-row-message">This cannot be undone.</p>
+      <button id="confirm-delete-row" class="btn btn-danger w-full">Permanently delete</button>
+      <button id="cancel-delete-row" class="btn w-full mt-2">Cancel</button>
+    </div>
+  </div>
+
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
     import api, { apiErrorMessage } from '/js/api.js';
     import { requireAuth } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
     import { escapeHtml } from '/js/sanitize.js';
+    import { renderChart } from '/js/charts.js';
 
     const user = requireAuth(['admin']);
     if (user) document.getElementById('page-root').style.display = 'block';
 
     function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
+    function fmtDate(v) { return v ? new Date(v).toLocaleString() : '—'; }
 
-    // ---------- Tabs ----------
-    document.getElementById('tab-bar').addEventListener('click', (e) => {
-      const btn = e.target.closest('.tab-btn');
+    /* =========================================================
+       View switching (sidebar)
+       ========================================================= */
+    const viewLoaders = {}; // view name -> async function, called once per activation
+    function showView(view) {
+      document.querySelectorAll('.admin-nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+      document.querySelectorAll('.admin-view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
+      if (viewLoaders[view]) viewLoaders[view]();
+    }
+    document.getElementById('admin-sidebar').addEventListener('click', (e) => {
+      const btn = e.target.closest('.admin-nav-btn');
       if (!btn) return;
-      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.toggle('active', b === btn));
-      document.querySelectorAll('.tab-panel').forEach((p) => {
-        p.style.display = p.id === `panel-${btn.dataset.tab}` ? 'block' : 'none';
-      });
+      showView(btn.dataset.view);
     });
 
-    // ---------- Overview report ----------
+    /* =========================================================
+       Dashboard — stat cards + report totals used for count pills
+       ========================================================= */
     async function loadReport() {
       try {
         const res = await api.get('/admin/report');
-        const { revenue, config } = res.data;
+        const { revenue, config, totals } = res.data;
         document.getElementById('stat-volume').textContent = money(revenue.gross_volume);
         document.getElementById('stat-transactions').textContent = revenue.total_transactions;
         document.getElementById('stat-commission').textContent = `${config.platform_commission_percent}%`;
+        if (totals) {
+          document.getElementById('stat-users').textContent = totals.total_users;
+          document.getElementById('stat-listings').textContent = totals.total_listings;
+          document.getElementById('stat-open-disputes').textContent = totals.open_disputes;
+          document.getElementById('count-disputes').textContent = totals.open_disputes;
+        }
       } catch (err) {
         showToast(apiErrorMessage(err, 'Could not load platform report.'), 'error');
       }
     }
 
-    // ---------- Pending listings ----------
+    /* =========================================================
+       Dashboard — chart builder
+       ========================================================= */
+    let analyticsOptions = [];
+    let chartType = 'line';
+
+    function currentTableOption() {
+      const name = document.getElementById('chart-table').value;
+      return analyticsOptions.find((t) => t.name === name);
+    }
+
+    function refreshColumnChoices() {
+      const opt = currentTableOption();
+      const mode = document.getElementById('chart-mode').value;
+      const columnSelect = document.getElementById('chart-column');
+      const columnLabel = document.getElementById('chart-column-label');
+      const metricSelect = document.getElementById('chart-metric');
+      const valueWrap = document.getElementById('chart-value-column-wrap');
+      const valueSelect = document.getElementById('chart-value-column');
+      const intervalWrap = document.getElementById('chart-interval-wrap');
+      const daysWrap = document.getElementById('chart-days-wrap');
+      if (!opt) return;
+
+      if (mode === 'trend') {
+        columnLabel.textContent = 'Date field';
+        columnSelect.innerHTML = opt.dateColumns.map((c) => `<option value="${c}">${c}</option>`).join('');
+        intervalWrap.style.display = '';
+        daysWrap.style.display = '';
+      } else {
+        columnLabel.textContent = 'Group by';
+        columnSelect.innerHTML = opt.categoryColumns.map((c) => `<option value="${c}">${c}</option>`).join('');
+        intervalWrap.style.display = 'none';
+        daysWrap.style.display = 'none';
+      }
+
+      const metric = metricSelect.value;
+      if (metric === 'count') {
+        valueWrap.style.display = 'none';
+      } else {
+        valueWrap.style.display = '';
+        valueSelect.innerHTML = opt.numericColumns.map((c) => `<option value="${c}">${c}</option>`).join('');
+      }
+    }
+
+    async function loadAnalyticsOptions() {
+      const res = await api.get('/admin/analytics/options');
+      analyticsOptions = (res.data.tables || []).filter((t) => t.dateColumns.length || t.categoryColumns.length);
+      const tableSelect = document.getElementById('chart-table');
+      tableSelect.innerHTML = analyticsOptions.map((t) => `<option value="${t.name}">${t.label}</option>`).join('');
+      // Default to bookings if present, for a chart that's interesting out of the box.
+      if (analyticsOptions.some((t) => t.name === 'bookings')) tableSelect.value = 'bookings';
+      refreshColumnChoices();
+    }
+
+    async function drawChart() {
+      const opt = currentTableOption();
+      if (!opt) return;
+      const mode = document.getElementById('chart-mode').value;
+      const metric = document.getElementById('chart-metric').value;
+      const column = document.getElementById('chart-column').value;
+      const container = document.getElementById('chart-container');
+      if (!column) {
+        container.innerHTML = '<p class="text-muted text-sm chart-empty">This table has no columns available for that view.</p>';
+        return;
+      }
+
+      const params = { table: opt.name, mode, metric };
+      if (metric !== 'count') params.valueColumn = document.getElementById('chart-value-column').value;
+      if (mode === 'trend') {
+        params.dateColumn = column;
+        params.interval = document.getElementById('chart-interval').value;
+        params.days = document.getElementById('chart-days').value;
+      } else {
+        params.groupColumn = column;
+      }
+
+      try {
+        const res = await api.get('/admin/analytics/series', { params });
+        renderChart(container, res.data.series, { type: chartType, mode });
+      } catch (err) {
+        container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Could not load chart data.')}</p>`;
+      }
+    }
+
+    function setChartType(type) {
+      chartType = type;
+      document.getElementById('chart-type-line').className = type === 'line' ? 'btn btn-primary' : 'btn';
+      document.getElementById('chart-type-bar').className = type === 'bar' ? 'btn btn-primary' : 'btn';
+      document.getElementById('chart-type-line').style.cssText = 'padding:10px 16px; font-size:0.85rem;';
+      document.getElementById('chart-type-bar').style.cssText = 'padding:10px 16px; font-size:0.85rem;';
+      drawChart();
+    }
+
+    document.getElementById('chart-table').addEventListener('change', () => { refreshColumnChoices(); drawChart(); });
+    document.getElementById('chart-mode').addEventListener('change', () => { refreshColumnChoices(); drawChart(); });
+    document.getElementById('chart-metric').addEventListener('change', () => { refreshColumnChoices(); drawChart(); });
+    document.getElementById('chart-column').addEventListener('change', drawChart);
+    document.getElementById('chart-value-column').addEventListener('change', drawChart);
+    document.getElementById('chart-interval').addEventListener('change', drawChart);
+    document.getElementById('chart-days').addEventListener('change', drawChart);
+    document.getElementById('chart-type-line').addEventListener('click', () => setChartType('line'));
+    document.getElementById('chart-type-bar').addEventListener('click', () => setChartType('bar'));
+
+    let dashboardLoaded = false;
+    viewLoaders.dashboard = async () => {
+      if (dashboardLoaded) return;
+      dashboardLoaded = true;
+      await loadAnalyticsOptions();
+      await drawChart();
+    };
+
+    /* =========================================================
+       Pending listings (moderation)
+       ========================================================= */
     async function loadPending() {
       const container = document.getElementById('pending-list');
       try {
         const res = await api.get('/listings/admin/pending');
         const listings = res.data.listings || [];
+        document.getElementById('count-pending').textContent = listings.length;
         if (listings.length === 0) {
           container.innerHTML = '<p class="text-muted">No listings waiting for review.</p>';
           return;
@@ -178,8 +436,11 @@
         showToast(apiErrorMessage(err), 'error');
       }
     }
-
-    // ---------- Identity verification ----------
+    viewLoaders.pending = loadPending;
+    
+    /* =========================================================
+       Identity verification (moderation)
+       ========================================================= */
     const CONSENT_LABELS = {
       ownership_declaration: 'Declared ownership/right to list',
       own_vehicle_liability: 'Declared own-vehicle liability',
@@ -190,6 +451,7 @@
       try {
         const res = await api.get('/kyc/admin/pending');
         const submissions = res.data.submissions || [];
+        document.getElementById('count-kyc').textContent = submissions.length;
         if (submissions.length === 0) {
           container.innerHTML = '<p class="text-muted">No identity submissions waiting for review.</p>';
           return;
@@ -238,13 +500,17 @@
         showToast(apiErrorMessage(err), 'error');
       }
     }
+    viewLoaders.kyc = loadKycQueue;
 
-    // ---------- All listings ----------
+    /* =========================================================
+       All listings (directory)
+       ========================================================= */
     async function loadAllListings() {
       const container = document.getElementById('all-listings-list');
       try {
         const res = await api.get('/admin/listings');
         const listings = res.data.listings || [];
+        document.getElementById('stat-listings').textContent = listings.length;
         if (listings.length === 0) {
           container.innerHTML = '<p class="text-muted">No listings yet.</p>';
           return;
@@ -265,8 +531,11 @@
         container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load listings.')}</p>`;
       }
     }
+    viewLoaders.listings = loadAllListings;
 
-    // ---------- Users ----------
+    /* =========================================================
+       Users (directory)
+       ========================================================= */
     let pendingDeleteUserId = null;
 
     async function loadUsers() {
@@ -307,6 +576,7 @@
         container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load users.')}</p>`;
       }
     }
+    viewLoaders.users = loadUsers;
 
     async function setSuspend(userId, suspend) {
       try {
@@ -337,12 +607,15 @@
       }
     });
 
-    // ---------- Disputes ----------
+    /* =========================================================
+       Disputes (moderation)
+       ========================================================= */
     async function loadDisputes() {
       const container = document.getElementById('disputes-list');
       try {
         const res = await api.get('/admin/disputes');
         const disputes = res.data.disputes || [];
+        document.getElementById('count-disputes').textContent = disputes.length;
         if (disputes.length === 0) {
           container.innerHTML = '<p class="text-muted">No open disputes.</p>';
           return;
@@ -358,14 +631,15 @@
           </div>
         `).join('');
 
-        container.querySelectorAll('.resolve-refund-btn').forEach((btn) => btn.addEventListener('click', () => resolveDispute(btn.dataset.id, 'refund_driver')));
-        container.querySelectorAll('.resolve-noaction-btn').forEach((btn) => btn.addEventListener('click', () => resolveDispute(btn.dataset.id, 'no_action')));
+        container.querySelectorAll('.resolve-refund-btn').forEach((btn) => btn.addEventListener('click', () => resolveDisputeAction(btn.dataset.id, 'refund_driver')));
+        container.querySelectorAll('.resolve-noaction-btn').forEach((btn) => btn.addEventListener('click', () => resolveDisputeAction(btn.dataset.id, 'no_action')));
       } catch (err) {
         container.innerHTML = `<p class="text-danger">${apiErrorMessage(err, 'Failed to load disputes.')}</p>`;
       }
     }
+    viewLoaders.disputes = loadDisputes;
 
-    async function resolveDispute(id, outcome) {
+    async function resolveDisputeAction(id, outcome) {
       const resolution = prompt('Add a short resolution note (shown to both parties):') || '';
       try {
         await api.patch(`/admin/disputes/${id}/resolve`, { outcome, resolution });
@@ -376,13 +650,278 @@
       }
     }
 
+    /* =========================================================
+       Generic database tables — one view per table, built from
+       /admin/tables metadata. Search, sort, paginate, add/edit/delete.
+       ========================================================= */
+    let tableDefs = [];
+    const tableState = {}; // name -> { page, search, sort, dir }
+
+    function inputForColumn(col, value) {
+      const val = value === null || value === undefined ? '' : value;
+      const disabled = !col.editable ? 'disabled' : '';
+      if (col.type === 'boolean') {
+        return `<label class="toggle-row"><input type="checkbox" id="field-${col.name}" ${val ? 'checked' : ''} ${disabled} /> ${col.editable ? 'Enabled' : ''}</label>`;
+      }
+      if (col.type === 'enum') {
+        const opts = (col.enum || []).map((o) => `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('');
+        return `<select class="input" id="field-${col.name}" ${disabled}>${opts}</select>`;
+      }
+      if (col.type === 'textarea') {
+        return `<textarea class="input" id="field-${col.name}" ${disabled}>${escapeHtml(val)}</textarea>`;
+      }
+      if (col.type === 'number') {
+        return `<input class="input" type="number" step="any" id="field-${col.name}" value="${escapeHtml(val)}" ${disabled} />`;
+      }
+      if (col.type === 'datetime' || col.type === 'timestamp') {
+        const iso = val ? new Date(val).toISOString().slice(0, 16) : '';
+        return `<input class="input" type="datetime-local" id="field-${col.name}" value="${iso}" ${disabled} />`;
+      }
+      if (col.type === 'json' || col.type === 'array') {
+        return `<input class="input" type="text" id="field-${col.name}" value="${escapeHtml(JSON.stringify(val))}" disabled />`;
+      }
+      return `<input class="input" type="text" id="field-${col.name}" value="${escapeHtml(val)}" ${disabled} />`;
+    }
+
+    function buildDbNav() {
+      const wrap = document.getElementById('db-nav-list');
+      wrap.innerHTML = tableDefs.map((t) => `<button class="admin-nav-btn" data-view="db-${t.name}">${t.label} <span class="count-pill">${t.rowCount}</span></button>`).join('');
+    }
+
+    function buildDbViews() {
+      const wrap = document.getElementById('db-views');
+      wrap.innerHTML = tableDefs.map((t) => `
+        <section class="admin-view" id="view-db-${t.name}">
+          <div class="card">
+            <div class="admin-page-head">
+              <h2 class="text-2xl">${t.label}</h2>
+              ${t.columns.some((c) => c.editable) ? `<button class="btn btn-primary" data-add-table="${t.name}" style="padding:10px 18px; font-size:0.85rem;">+ Add row</button>` : ''}
+            </div>
+            <div class="data-table-toolbar">
+              <input class="input" type="search" placeholder="Search…" data-search-table="${t.name}" />
+              <p class="text-sm text-muted" data-count-label="${t.name}"></p>
+            </div>
+            <div class="table-scroll">
+              <table class="data-table" data-table-el="${t.name}">
+                <thead><tr>${t.columns.map((c) => `<th data-sort-col="${c.name}" data-table="${t.name}">${c.label}</th>`).join('')}<th>Actions</th></tr></thead>
+                <tbody><tr><td colspan="${t.columns.length + 1}"><div class="state-msg"><div class="spinner"></div></div></td></tr></tbody>
+              </table>
+            </div>
+            <div class="data-table-pagination" data-pagination="${t.name}"></div>
+          </div>
+        </section>
+      `).join('');
+
+      wrap.querySelectorAll('[data-add-table]').forEach((btn) => btn.addEventListener('click', () => openRowForm(btn.dataset.addTable, null)));
+      wrap.querySelectorAll('[data-search-table]').forEach((input) => {
+        let debounce;
+        input.addEventListener('input', () => {
+          clearTimeout(debounce);
+          debounce = setTimeout(() => {
+            const name = input.dataset.searchTable;
+            tableState[name].search = input.value;
+            tableState[name].page = 1;
+            loadTableRows(name);
+          }, 300);
+        });
+      });
+      wrap.querySelectorAll('[data-sort-col]').forEach((th) => {
+        th.addEventListener('click', () => {
+          const name = th.dataset.table;
+          const col = th.dataset.sortCol;
+          const st = tableState[name];
+          if (st.sort === col) st.dir = st.dir === 'asc' ? 'desc' : 'asc';
+          else { st.sort = col; st.dir = 'asc'; }
+          loadTableRows(name);
+        });
+      });
+    }
+
+    function cellValue(col, row) {
+      const v = row[col.name];
+      if (v === null || v === undefined) return '<span class="text-muted">—</span>';
+      if (col.type === 'boolean') return v ? '✓' : '—';
+      if (col.type === 'timestamp' || col.type === 'datetime') return escapeHtml(fmtDate(v));
+      if (col.type === 'json') return `<span class="mono">${escapeHtml(JSON.stringify(v))}</span>`;
+      if (col.type === 'array') return escapeHtml(Array.isArray(v) ? v.join(', ') : String(v));
+      if (col.type === 'uuid') return `<span class="mono" title="${escapeHtml(v)}">${escapeHtml(String(v).slice(0, 8))}…</span>`;
+      return escapeHtml(String(v));
+    }
+
+    function rowKey(def, row) {
+      return def.pk.map((k) => row[k]).join(',');
+    }
+
+    async function loadTableRows(name) {
+      const def = tableDefs.find((t) => t.name === name);
+      const st = tableState[name];
+      const tbody = document.querySelector(`table[data-table-el="${name}"] tbody`);
+      tbody.innerHTML = `<tr><td colspan="${def.columns.length + 1}"><div class="state-msg"><div class="spinner"></div></div></td></tr>`;
+      try {
+        const res = await api.get(`/admin/tables/${name}`, {
+          params: { page: st.page, limit: 15, search: st.search || undefined, sort: st.sort, dir: st.dir },
+        });
+        const { rows, total, page, totalPages } = res.data;
+
+        document.querySelector(`[data-count-label="${name}"]`).textContent = `${total} row${total === 1 ? '' : 's'}`;
+        document.querySelectorAll(`th[data-table="${name}"]`).forEach((th) => {
+          th.classList.toggle('sorted', th.dataset.sortCol === st.sort);
+          th.classList.toggle('asc', th.dataset.sortCol === st.sort && st.dir === 'asc');
+        });
+
+        if (rows.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="${def.columns.length + 1}" class="text-muted">No rows found.</td></tr>`;
+        } else {
+          tbody.innerHTML = rows.map((row) => `
+            <tr>
+              ${def.columns.map((c) => `<td>${cellValue(c, row)}</td>`).join('')}
+              <td class="row-actions">
+                ${def.supportsUpdate ? `<button class="btn edit-row-btn" data-table="${name}" data-key="${rowKey(def, row)}" style="padding:6px 12px;">Edit</button>` : ''}
+                <button class="btn btn-danger delete-row-btn" data-table="${name}" data-key="${rowKey(def, row)}" style="padding:6px 12px;">Delete</button>
+              </td>
+            </tr>
+          `).join('');
+          tbody.querySelectorAll('.edit-row-btn').forEach((btn) => btn.addEventListener('click', () => {
+            const row = rows.find((r) => rowKey(def, r) === btn.dataset.key);
+            openRowForm(name, row);
+          }));
+          tbody.querySelectorAll('.delete-row-btn').forEach((btn) => btn.addEventListener('click', () => {
+            confirmDeleteRow(name, btn.dataset.key);
+          }));
+        }
+
+        const pager = document.querySelector(`[data-pagination="${name}"]`);
+        pager.innerHTML = `
+          <button data-page-action="prev" ${page <= 1 ? 'disabled' : ''}>‹ Prev</button>
+          <span>Page ${page} of ${totalPages}</span>
+          <button data-page-action="next" ${page >= totalPages ? 'disabled' : ''}>Next ›</button>
+        `;
+        pager.querySelector('[data-page-action="prev"]').addEventListener('click', () => { st.page = Math.max(1, st.page - 1); loadTableRows(name); });
+        pager.querySelector('[data-page-action="next"]').addEventListener('click', () => { st.page = st.page + 1; loadTableRows(name); });
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="${def.columns.length + 1}" class="text-danger">${apiErrorMessage(err, 'Failed to load rows.')}</td></tr>`;
+      }
+    }
+
+    /* ---- Row add/edit form ---- */
+    let activeFormTable = null;
+    let activeFormRow = null;
+
+    function openRowForm(tableName, row) {
+      const def = tableDefs.find((t) => t.name === tableName);
+      activeFormTable = tableName;
+      activeFormRow = row;
+      document.getElementById('row-form-title').textContent = row ? `Edit ${def.label.replace(/s$/, '')}` : `Add ${def.label.replace(/s$/, '')}`;
+      document.getElementById('row-form-subtitle').textContent = row ? `Editing an existing row in ${def.table}.` : `Creating a new row in ${def.table}.`;
+
+      const editableCols = row ? def.columns.filter((c) => c.editable) : def.columns.filter((c) => c.editable);
+      const grid = document.getElementById('row-form-grid');
+      grid.innerHTML = editableCols.map((c) => `
+        <div class="row-form-field ${c.type === 'textarea' ? 'span-2' : ''}">
+          ${c.type !== 'boolean' ? `<label for="field-${c.name}">${c.label}${c.required ? ' *' : ''}</label>` : ''}
+          ${inputForColumn(c, row ? row[c.name] : '')}
+        </div>
+      `).join('');
+
+      document.getElementById('row-form-submit').textContent = row ? 'Save changes' : 'Create row';
+      document.getElementById('row-form-modal').style.display = 'flex';
+    }
+
+    document.getElementById('row-form-cancel').addEventListener('click', () => {
+      document.getElementById('row-form-modal').style.display = 'none';
+    });
+
+    document.getElementById('row-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const def = tableDefs.find((t) => t.name === activeFormTable);
+      const body = {};
+      def.columns.filter((c) => c.editable).forEach((c) => {
+        const el = document.getElementById(`field-${c.name}`);
+        if (!el) return;
+        if (c.type === 'boolean') body[c.name] = el.checked;
+        else if (el.value !== '') body[c.name] = el.value;
+        else if (activeFormRow) body[c.name] = null;
+      });
+
+      try {
+        if (activeFormRow) {
+          const key = rowKey(def, activeFormRow);
+          await api.patch(`/admin/tables/${activeFormTable}/${key}`, body);
+          showToast('Row updated.', 'success');
+        } else {
+          await api.post(`/admin/tables/${activeFormTable}`, body);
+          showToast('Row created.', 'success');
+        }
+        document.getElementById('row-form-modal').style.display = 'none';
+        loadTableRows(activeFormTable);
+        refreshTableCount(activeFormTable);
+      } catch (err) {
+        showToast(apiErrorMessage(err, 'Could not save this row.'), 'error');
+      }
+    });
+
+    /* ---- Row delete ---- */
+    let pendingDeleteTable = null;
+    let pendingDeleteKey = null;
+
+    function confirmDeleteRow(tableName, key) {
+      pendingDeleteTable = tableName;
+      pendingDeleteKey = key;
+      const def = tableDefs.find((t) => t.name === tableName);
+      document.getElementById('delete-row-message').textContent =
+        `This permanently deletes this row from ${def.table}. Related rows in other tables may be removed too if they depend on it.`;
+      document.getElementById('delete-row-modal').style.display = 'flex';
+    }
+
+    document.getElementById('cancel-delete-row').addEventListener('click', () => {
+      document.getElementById('delete-row-modal').style.display = 'none';
+    });
+
+    document.getElementById('confirm-delete-row').addEventListener('click', async () => {
+      if (!pendingDeleteTable || !pendingDeleteKey) return;
+      try {
+        await api.delete(`/admin/tables/${pendingDeleteTable}/${pendingDeleteKey}`);
+        showToast('Row deleted.', 'success');
+        document.getElementById('delete-row-modal').style.display = 'none';
+        loadTableRows(pendingDeleteTable);
+        refreshTableCount(pendingDeleteTable);
+      } catch (err) {
+        showToast(apiErrorMessage(err, 'Could not delete this row.'), 'error');
+      } finally {
+        pendingDeleteTable = null;
+        pendingDeleteKey = null;
+      }
+    });
+
+    async function refreshTableCount(name) {
+      try {
+        const res = await api.get(`/admin/tables/${name}`, { params: { page: 1, limit: 1 } });
+        const def = tableDefs.find((t) => t.name === name);
+        def.rowCount = res.data.total;
+        const navBtn = document.querySelector(`.admin-nav-btn[data-view="db-${name}"] .count-pill`);
+        if (navBtn) navBtn.textContent = def.rowCount;
+      } catch { /* non-critical */ }
+    }
+
+    async function loadTableDefs() {
+      const res = await api.get('/admin/tables');
+      tableDefs = res.data.tables;
+      tableDefs.forEach((t) => { tableState[t.name] = { page: 1, search: '', sort: t.defaultSort?.column, dir: t.defaultSort?.dir || 'desc' }; });
+      buildDbNav();
+      buildDbViews();
+      tableDefs.forEach((t) => { viewLoaders[`db-${t.name}`] = () => loadTableRows(t.name); });
+    }
+
+    /* =========================================================
+       Boot
+       ========================================================= */
     if (user) {
       loadReport();
       loadPending();
       loadKycQueue();
-      loadAllListings();
-      loadUsers();
       loadDisputes();
+      loadTableDefs();
+      showView('dashboard');
     }
   </script>
 </body>

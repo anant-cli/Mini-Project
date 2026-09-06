@@ -16,10 +16,18 @@ export const platformReport = async (req, res, next) => {
     const { rows: userCounts } = await query(
       `SELECT role, COUNT(*) FROM users GROUP BY role`
     );
+    const { rows: totals } = await query(
+      `SELECT
+         (SELECT COUNT(*) FROM users) AS total_users,
+         (SELECT COUNT(*) FROM locations) AS total_listings,
+         (SELECT COUNT(*) FROM bookings) AS total_bookings,
+         (SELECT COUNT(*) FROM disputes WHERE status = 'open') AS open_disputes`
+    );
     res.json({
       revenue: revenue[0],
       bookingCounts,
       userCounts,
+      totals: totals[0],
       config: { platform_commission_percent: Number(process.env.PLATFORM_COMMISSION_PERCENT || 15) },
     });
   } catch (err) {

@@ -4,9 +4,14 @@ import {
   listUsers, deleteUserByAdmin, listAllListings,
 } from '../controllers/admin.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import adminTablesRoutes from './adminTables.routes.js';
 
 const router = Router();
 router.use(requireAuth, requireRole('admin'));
+
+// Generic "browse/edit any table" + dashboard analytics engine — see
+// adminTables.routes.js / adminTables.controller.js / config/adminTables.js.
+router.use('/', adminTablesRoutes);
 
 router.get('/report', platformReport);
 router.get('/disputes', listDisputes);
