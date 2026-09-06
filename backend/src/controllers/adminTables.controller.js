@@ -20,6 +20,19 @@ function resolveColumn(def, name, { mustExist = true } = {}) {
   return col;
 }
 
+// Every column except ones flagged `heavy` (large blobs like the KYC
+// images) — used to build an explicit column list instead of `SELECT *` /
+// `RETURNING *`, so a heavy column can never leak into a list/edit response
+// even if a future column gets added to the registry without thinking
+// about it.
+function selectableColumns(def) {
+  return def.columns.filter((c) => !c.heavy).map((c) => c.name);
+}
+
+function selectListSql(def) {
+  return selectableColumns(def).map(quote).join(', ');
+}
+
 // Coerces a raw JSON value into the right JS type for its column, and
 // rejects it outright if it doesn't fit (bad enum value, non-numeric
 // number, etc.) rather than silently passing bad data through to Postgres.
@@ -97,6 +110,7 @@ export const listTableDefs = async (req, res, next) => {
         label: def.label,
         pk: def.pk,
         supportsUpdate: def.supportsUpdate !== false,
+        supportsCreate: def.supportsCreate !== false,
         defaultSort: def.defaultSort,
         rowCount: countMap[name],
         columns: def.columns.map((c) => ({
@@ -105,6 +119,7 @@ export const listTableDefs = async (req, res, next) => {
           type: c.type,
           editable: !!c.editable,
           required: !!c.required,
+          heavy: !!c.heavy,
           enum: c.enum || undefined,
           references: c.references || undefined,
         })),
@@ -135,12 +150,13 @@ export const listRows = async (req, res, next) => {
     let sortColumn = def.defaultSort.column;
     let sortDir = def.defaultSort.dir;
     if (sort) {
-      resolveColumn(def, sort); // throws if not a real column
+      const col = resolveColumn(def, sort); // throws if not a real column
+      if (col.heavy) throw new ApiError(400, `Cannot sort by "${sort}"`);
       sortColumn = sort;
     }
     if (dir) sortDir = dir;
 
-    const searchableCols = def.columns.filter((c) => c.searchable);
+    const searchableCols = def.columns.filter((c) => c.searchable && !c.heavy);
     const params = [];
     let whereClause = '';
     if (search && searchableCols.length) {
@@ -160,7 +176,7 @@ export const listRows = async (req, res, next) => {
     const limitParamIdx = params.length + 1;
     const offsetParamIdx = params.length + 2;
     const { rows } = await query(
-      `SELECT * FROM ${quote(def.table)} ${whereClause}
+      `SELECT ${selectListSql(def)} FROM ${quote(def.table)} ${whereClause}
        ORDER BY ${quote(sortColumn)} ${sortDir === 'desc' ? 'DESC' : 'ASC'}
        LIMIT $${limitParamIdx} OFFSET $${offsetParamIdx}`,
       [...params, limit, (page - 1) * limit]
@@ -175,6 +191,9 @@ export const listRows = async (req, res, next) => {
 export const createRow = async (req, res, next) => {
   try {
     const def = resolveTable(req.params.table);
+    if (def.supportsCreate === false) {
+      throw new ApiError(400, `${def.label} rows can't be created from this view.`);
+    }
     const assignments = buildEditableAssignments(def, req.body || {}, { forCreate: true });
     if (assignments.length === 0) throw new ApiError(400, 'No fields provided');
 
@@ -185,7 +204,7 @@ export const createRow = async (req, res, next) => {
     const { rows } = await query(
       `INSERT INTO ${quote(def.table)} (${columns.join(', ')})
        VALUES (${placeholders.join(', ')})
-       RETURNING *`,
+       RETURNING ${selectListSql(def)}`,
       values
     );
     res.status(201).json({ row: rows[0] });
@@ -198,7 +217,8 @@ export const updateRow = async (req, res, next) => {
   try {
     const def = resolveTable(req.params.table);
     if (def.supportsUpdate === false) {
-      throw new ApiError(400, `${def.label} rows can't be edited in place — delete and re-create instead.`);
+      const alt = def.supportsCreate === false ? '' : ' — delete and re-create instead';
+      throw new ApiError(400, `${def.label} rows can't be edited in place${alt}.`);
     }
     const pkValues = extractPk(def, req.params);
     const assignments = buildEditableAssignments(def, req.body || {}, { forCreate: false });
@@ -210,7 +230,7 @@ export const updateRow = async (req, res, next) => {
     const { rows } = await query(
       `UPDATE ${quote(def.table)} SET ${setClauses.join(', ')}
        WHERE ${whereClause}
-       RETURNING *`,
+       RETURNING ${selectListSql(def)}`,
       [...assignments.map((a) => a.value), ...whereParams]
     );
     if (!rows[0]) throw new ApiError(404, 'Row not found');
@@ -231,7 +251,7 @@ export const deleteRow = async (req, res, next) => {
 
     const { clause: whereClause, params } = pkWhereClause(def, pkValues, 1);
     const { rows } = await query(
-      `DELETE FROM ${quote(def.table)} WHERE ${whereClause} RETURNING *`,
+      `DELETE FROM ${quote(def.table)} WHERE ${whereClause} RETURNING ${selectListSql(def)}`,
       params
     );
     if (!rows[0]) throw new ApiError(404, 'Row not found');

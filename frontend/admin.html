@@ -68,6 +68,10 @@
               <p class="text-muted text-sm">Open Disputes</p>
               <p class="text-3xl" id="stat-open-disputes">0</p>
             </div>
+            <div class="card stat-card text-center">
+              <p class="text-muted text-sm">Pending KYC</p>
+              <p class="text-3xl" id="stat-pending-kyc">0</p>
+            </div>
           </div>
 
           <div class="card">
@@ -272,6 +276,7 @@
           document.getElementById('stat-users').textContent = totals.total_users;
           document.getElementById('stat-listings').textContent = totals.total_listings;
           document.getElementById('stat-open-disputes').textContent = totals.open_disputes;
+          document.getElementById('stat-pending-kyc').textContent = totals.pending_kyc;
           document.getElementById('count-disputes').textContent = totals.open_disputes;
         }
       } catch (err) {

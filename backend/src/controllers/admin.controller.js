@@ -21,7 +21,8 @@ export const platformReport = async (req, res, next) => {
          (SELECT COUNT(*) FROM users) AS total_users,
          (SELECT COUNT(*) FROM locations) AS total_listings,
          (SELECT COUNT(*) FROM bookings) AS total_bookings,
-         (SELECT COUNT(*) FROM disputes WHERE status = 'open') AS open_disputes`
+         (SELECT COUNT(*) FROM disputes WHERE status = 'open') AS open_disputes,
+         (SELECT COUNT(*) FROM kyc_submissions WHERE status = 'pending') AS pending_kyc`
     );
     res.json({
       revenue: revenue[0],

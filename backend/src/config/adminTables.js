@@ -14,10 +14,15 @@
 //
 // `editable: false` columns are shown but can never be sent in create/update.
 // `required: true` columns must be present on create.
+// `heavy: true` columns (large blobs — the KYC images) are never included in
+// a generic SELECT * / RETURNING * — they're excluded at the query-building
+// level in the controller, not just hidden in the UI, so a paginated table
+// list can never accidentally pull megabytes of base64 image data per row.
 // ---------------------------------------------------------------------------
 
 const ENUMS = {
   user_role: ['driver', 'host', 'business_host', 'admin'],
+  kyc_status: ['unsubmitted', 'pending', 'approved', 'rejected'],
   slot_status: ['available', 'booked', 'occupied', 'disabled'],
   vehicle_type: ['two_wheeler', 'car', 'suv', 'ev_car', 'ev_two_wheeler'],
   booking_status: ['pending', 'confirmed', 'checked_in', 'completed', 'cancelled', 'disputed'],
@@ -42,6 +47,7 @@ export const ADMIN_TABLES = {
       { name: 'role', type: 'enum', enum: ENUMS.user_role, editable: true, required: true },
       { name: 'avg_rating', type: 'number', editable: false, label: 'Avg. rating' },
       { name: 'id_verified', type: 'boolean', editable: true, label: 'ID verified' },
+      { name: 'kyc_status', type: 'enum', enum: ENUMS.kyc_status, editable: true, label: 'KYC status' },
       { name: 'is_suspended', type: 'boolean', editable: true, label: 'Suspended' },
       { name: 'created_at', type: 'timestamp', editable: false },
       { name: 'updated_at', type: 'timestamp', editable: false },
@@ -49,7 +55,7 @@ export const ADMIN_TABLES = {
     ],
     analytics: {
       dateColumns: ['created_at'],
-      categoryColumns: ['role', 'id_verified', 'is_suspended'],
+      categoryColumns: ['role', 'kyc_status', 'id_verified', 'is_suspended'],
       numericColumns: ['avg_rating'],
     },
     protectSelfDelete: true,
@@ -234,6 +240,46 @@ export const ADMIN_TABLES = {
     analytics: {
       dateColumns: ['created_at', 'resolved_at'],
       categoryColumns: ['status'],
+      numericColumns: [],
+    },
+  },
+
+  kyc_submissions: {
+    table: 'kyc_submissions',
+    label: 'KYC Submissions',
+    pk: ['kyc_id'],
+    // Read-only in the generic browser on purpose: approving/rejecting here
+    // has to also flip users.kyc_status and users.id_verified together (see
+    // reviewKycSubmission in kyc.model.js), and a plain column edit can't do
+    // that atomically. Use the "Identity Verification" tab for that — this
+    // view exists so admins can see submission history and search/purge it.
+    supportsUpdate: false,
+    supportsCreate: false,
+    defaultSort: { column: 'created_at', dir: 'desc' },
+    columns: [
+      { name: 'kyc_id', type: 'uuid', editable: false, label: 'ID' },
+      { name: 'user_id', type: 'uuid', editable: false, references: 'users' },
+      // id_document_image / selfie_image deliberately omitted: they're
+      // multi-megabyte base64 blobs, and there's already a dedicated,
+      // image-previewing review flow for them (Identity Verification tab).
+      // A generic column with `heavy: true` is never selected or returned
+      // by the CRUD controller, so it can't leak into a list/edit response
+      // even if someone added it here by mistake.
+      { name: 'id_document_image', type: 'text', editable: false, heavy: true },
+      { name: 'selfie_image', type: 'text', editable: false, heavy: true },
+      { name: 'consent_type', type: 'text', editable: false },
+      { name: 'consent_version', type: 'text', editable: false },
+      { name: 'consent_accepted_at', type: 'timestamp', editable: false },
+      { name: 'consent_ip', type: 'text', editable: false },
+      { name: 'status', type: 'enum', enum: ENUMS.kyc_status.filter((s) => s !== 'unsubmitted'), editable: false },
+      { name: 'rejection_reason', type: 'textarea', editable: false },
+      { name: 'reviewed_by', type: 'uuid', editable: false, references: 'users' },
+      { name: 'reviewed_at', type: 'datetime', editable: false },
+      { name: 'created_at', type: 'timestamp', editable: false },
+    ],
+    analytics: {
+      dateColumns: ['created_at', 'reviewed_at'],
+      categoryColumns: ['status', 'consent_type'],
       numericColumns: [],
     },
   },
