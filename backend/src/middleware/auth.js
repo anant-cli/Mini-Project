@@ -11,7 +11,10 @@ export const requireAuth = async (req, res, next) => {
     const user = await findUserById(decoded.sub);
     if (!user) return res.status(401).json({ error: 'User not found' });
     if (user.is_suspended) return res.status(403).json({ error: 'Your account has been suspended' });
-    req.user = { user_id: user.user_id, role: user.role, email: user.email };
+    req.user = {
+      user_id: user.user_id, role: user.role, email: user.email,
+      id_verified: user.id_verified, kyc_status: user.kyc_status,
+    };
     next();
   } catch {
     return res.status(401).json({ error: 'Invalid or expired token' });

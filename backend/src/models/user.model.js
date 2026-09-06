@@ -4,10 +4,33 @@ export const createUser = async ({ name, email, passwordHash, phone, role }) => 
   const { rows } = await query(
     `INSERT INTO users (name, email, password_hash, phone, role)
      VALUES ($1, $2, $3, $4, $5)
-     RETURNING user_id, name, email, phone, role, avg_rating, id_verified, is_suspended, created_at`,
+     RETURNING user_id, name, email, phone, role, avg_rating, id_verified, kyc_status, is_suspended, created_at`,
     [name, email, passwordHash, phone, role || 'driver']
   );
   return rows[0];
+};
+
+// Promotes a host to business_host once they cross the commercial threshold
+// (more than 2 listings or more than 2 slots total). No-op if already at or
+// above business_host, or not a host role.
+export const promoteToBusinessHostIfNeeded = async (userId) => {
+  const { rows } = await query(
+    `SELECT
+        (SELECT COUNT(*) FROM locations WHERE owner_id = $1) AS listing_count,
+        (SELECT COALESCE(SUM(total_slots), 0) FROM locations WHERE owner_id = $1) AS slot_count,
+        role
+     FROM users WHERE user_id = $1`,
+    [userId]
+  );
+  const info = rows[0];
+  if (!info || info.role !== 'host') return null;
+  if (Number(info.listing_count) <= 2 && Number(info.slot_count) <= 2) return null;
+
+  const { rows: updated } = await query(
+    `UPDATE users SET role = 'business_host' WHERE user_id = $1 RETURNING user_id, role`,
+    [userId]
+  );
+  return updated[0];
 };
 
 export const findUserByEmail = async (email) => {
@@ -17,7 +40,7 @@ export const findUserByEmail = async (email) => {
 
 export const findUserById = async (userId) => {
   const { rows } = await query(
-    `SELECT user_id, name, email, phone, role, avg_rating, id_verified, is_suspended, created_at
+    `SELECT user_id, name, email, phone, role, avg_rating, id_verified, kyc_status, is_suspended, created_at
      FROM users WHERE user_id = $1`,
     [userId]
   );

@@ -13,6 +13,35 @@ const { Pool } = pg;
 // We only turn SSL on when the host isn't local, and it can be overridden
 // explicitly with PGSSL=true|false.
 const databaseUrl = process.env.DATABASE_URL;
+
+// Fail fast with a clear, actionable message instead of letting a missing/
+// malformed DATABASE_URL surface later as a cryptic
+// "SASL: SCRAM-SERVER-FIRST-MESSAGE: client password must be a string"
+// error the first time a query actually runs (e.g. on login).
+const explainAndExit = (message) => {
+  console.error(`\nDatabase configuration error: ${message}\n`);
+  console.error('Check backend/.env — see backend/.env.example for the expected format.');
+  console.error('Common causes: the file is literally named ".env.txt" instead of ".env"');
+  console.error('(Windows hides known extensions by default — check with `dir /a` in a');
+  console.error('terminal), the value has quotes around it, or you copied the connection');
+  console.error('string from Neon before clicking "Show password".\n');
+  process.exit(1);
+};
+
+if (!databaseUrl && !process.env.PGHOST) {
+  explainAndExit('No DATABASE_URL (or PGHOST/PGUSER/PGPASSWORD) is set, so there is nothing to connect to.');
+}
+if (databaseUrl) {
+  try {
+    const parsed = new URL(databaseUrl);
+    if (!parsed.password) {
+      explainAndExit('DATABASE_URL is set but has no password in it.');
+    }
+  } catch {
+    explainAndExit('DATABASE_URL is set but is not a valid URL — check for typos or stray characters.');
+  }
+}
+
 const isLocalHost = (url) => {
   try {
     const host = new URL(url).hostname;

@@ -4,6 +4,7 @@ import {
   getLocationsByOwner, verifyLocation, getUnverifiedLocations,
 } from '../models/location.model.js';
 import { getSlotsByLocation } from '../models/slot.model.js';
+import { promoteToBusinessHostIfNeeded } from '../models/user.model.js';
 import { query } from '../config/db.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
@@ -26,7 +27,10 @@ export const createListing = async (req, res, next) => {
   try {
     const data = listingSchema.parse(req.body);
     const location = await createLocation(req.user.user_id, data);
-    res.status(201).json({ location });
+    // More than 2 listings, or more than 2 slots total, makes this a
+    // commercial host by default (see promoteToBusinessHostIfNeeded).
+    const promotion = await promoteToBusinessHostIfNeeded(req.user.user_id);
+    res.status(201).json({ location, promoted_to: promotion?.role || null });
   } catch (err) {
     next(err);
   }

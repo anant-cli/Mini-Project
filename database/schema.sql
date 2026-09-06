@@ -10,6 +10,8 @@ CREATE TYPE payment_status    AS ENUM ('authorized', 'captured', 'refunded', 'fa
 CREATE TYPE payout_status     AS ENUM ('held', 'released', 'reversed');
 CREATE TYPE charger_status    AS ENUM ('available', 'in_use', 'out_of_service');
 
+CREATE TYPE kyc_status AS ENUM ('unsubmitted', 'pending', 'approved', 'rejected');
+
 -- ---------- USERS ----------
 CREATE TABLE users (
     user_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -20,6 +22,7 @@ CREATE TABLE users (
     role            user_role NOT NULL DEFAULT 'driver',
     avg_rating      NUMERIC(2,1) DEFAULT 5.0 CHECK (avg_rating BETWEEN 0 AND 5),
     id_verified     BOOLEAN NOT NULL DEFAULT FALSE,
+    kyc_status      kyc_status NOT NULL DEFAULT 'unsubmitted',
     is_suspended    BOOLEAN NOT NULL DEFAULT FALSE,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -144,7 +147,35 @@ CREATE TABLE disputes (
     resolved_at  TIMESTAMPTZ
 );
 
+-- ---------- KYC SUBMISSIONS (identity proof + selfie + consent, for both hosts and drivers) ----------
+-- Images are stored as base64 data URLs for simplicity at this project's scale.
+-- At real-world scale, swap id_document_image/selfie_image for object-storage
+-- URLs (S3/R2) instead of inline blobs in Postgres.
+CREATE TABLE kyc_submissions (
+    kyc_id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id             UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    id_document_image   TEXT NOT NULL,
+    selfie_image        TEXT NOT NULL,
+    consent_type        VARCHAR(40) NOT NULL, -- 'ownership_declaration' (host) | 'own_vehicle_liability' (driver)
+    consent_version     VARCHAR(20) NOT NULL,
+    consent_accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    consent_ip          VARCHAR(64),
+    status              kyc_status NOT NULL DEFAULT 'pending',
+    rejection_reason    TEXT,
+    reviewed_by         UUID REFERENCES users(user_id) ON DELETE SET NULL,
+    reviewed_at         TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_kyc_user ON kyc_submissions (user_id);
+CREATE INDEX idx_kyc_pending ON kyc_submissions (status) WHERE status = 'pending';
+
 -- ---------- Migration note ----------
+-- If you already ran this schema before the kyc_submissions addition, apply
+-- this against an existing database (safe to re-run):
+--   CREATE TYPE kyc_status AS ENUM ('unsubmitted', 'pending', 'approved', 'rejected');
+--   ALTER TABLE users ADD COLUMN IF NOT EXISTS kyc_status kyc_status NOT NULL DEFAULT 'unsubmitted';
+--   -- then re-run the CREATE TABLE kyc_submissions block above.
+
 -- If you already ran this schema before the `disputes` FK fix above, apply
 -- this against an existing database (safe to re-run):
 --   ALTER TABLE disputes ALTER COLUMN raised_by DROP NOT NULL;

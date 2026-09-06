@@ -13,6 +13,7 @@ import reviewsRoutes from './routes/reviews.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import paymentsRoutes from './routes/payments.routes.js';
 import favoritesRoutes from './routes/favorites.routes.js';
+import kycRoutes from './routes/kyc.routes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { initSocket } from './config/socket.js';
 
@@ -58,7 +59,9 @@ app.use(helmet({
   },
 }));
 app.use(cors({ origin: allowedOrigins }));
-app.use(express.json());
+// Raised from Express's 100kb default so a base64-encoded ID photo + selfie
+// pair fit in one KYC submission request (see kyc.controller.js).
+app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'parkslot-api' }));
@@ -74,6 +77,7 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/favorites', favoritesRoutes);
+app.use('/api/kyc', kycRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

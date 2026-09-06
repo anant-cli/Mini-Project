@@ -4,6 +4,7 @@ import {
   pendingListings, reviewListing,
 } from '../controllers/listings.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireVerifiedIdentity } from '../middleware/kyc.js';
 
 const router = Router();
 
@@ -12,6 +13,6 @@ router.get('/mine', requireAuth, requireRole('host', 'business_host'), myListing
 router.get('/admin/pending', requireAuth, requireRole('admin'), pendingListings);
 router.patch('/admin/:id/review', requireAuth, requireRole('admin'), reviewListing);
 router.get('/:id', requireAuth, getListing);
-router.post('/', requireAuth, requireRole('host', 'business_host'), createListing);
+router.post('/', requireAuth, requireRole('host', 'business_host'), requireVerifiedIdentity, createListing);
 
 export default router;
