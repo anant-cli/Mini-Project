@@ -6,8 +6,14 @@ export const requireAuth = async (req, res, next) => {
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
   if (!token) return res.status(401).json({ error: 'Missing auth token' });
 
+  let decoded;
   try {
-    const decoded = verifyToken(token);
+    decoded = verifyToken(token);
+  } catch {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  try {
     const user = await findUserById(decoded.sub);
     if (!user) return res.status(401).json({ error: 'User not found' });
     if (user.is_suspended) return res.status(403).json({ error: 'Your account has been suspended' });
@@ -16,8 +22,12 @@ export const requireAuth = async (req, res, next) => {
       id_verified: user.id_verified, kyc_status: user.kyc_status,
     };
     next();
-  } catch {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+  } catch (err) {
+    // A DB/query error here (e.g. a column added by a migration that
+    // hasn't been applied yet) is NOT the same thing as a bad token —
+    // let it surface as a real 500 via errorHandler instead of silently
+    // logging the user out, which used to hide exactly this class of bug.
+    next(err);
   }
 };
 
