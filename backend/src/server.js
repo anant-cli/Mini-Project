@@ -21,6 +21,11 @@ dotenv.config();
 
 const app = express();
 
+// Render (and most PaaS hosts) sit behind a reverse proxy — without this,
+// express-rate-limit and req.ip see the proxy's IP for every request
+// instead of the real client, silently disabling per-IP throttling.
+app.set('trust proxy', 1);
+
 if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
   throw new Error('CORS_ORIGIN is required in production');
 }

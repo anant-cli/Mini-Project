@@ -10,6 +10,13 @@ import { ApiError } from '../middleware/errorHandler.js';
 
 const normalizeText = (value) => value.trim().replace(/\s+/g, ' ');
 
+// Base64 data URLs only, same approach as KYC uploads — capped so a
+// handful of phone photos still fit under Express's 10mb json body limit.
+const photoDataUrl = z.string()
+  .min(100)
+  .max(3_000_000)
+  .refine((v) => /^data:image\/(png|jpe?g|webp);base64,/.test(v), 'Each photo must be a base64 image data URL');
+
 const listingSchema = z.object({
   name: z.string().min(2).max(100).transform(normalizeText),
   address: z.string().min(4).max(300).transform(normalizeText),
@@ -20,7 +27,15 @@ const listingSchema = z.object({
   vehicle_types_allowed: z.array(z.enum(['two_wheeler', 'car', 'suv', 'ev_car', 'ev_two_wheeler'])).nonempty(),
   has_ev_charging: z.boolean().optional(),
   operating_hours: z.object({ open: z.string().max(5), close: z.string().max(5) }).optional(),
-  photos: z.array(z.string().max(500)).optional(),
+  // At least one photo of the actual slot/place is required — a listing
+  // can no longer be created sight-unseen.
+  photos: z.array(photoDataUrl).min(1, 'At least one photo of the slot or place is required').max(5),
+  // Per-listing declaration that the host owns (or is authorized to list)
+  // this specific place, separate from the one-time account-level KYC
+  // ownership consent captured in kyc_submissions.
+  ownership_consent: z.literal(true, {
+    errorMap: () => ({ message: 'You must confirm you own or are authorized to list this place' }),
+  }),
 });
 
 export const createListing = async (req, res, next) => {

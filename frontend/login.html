@@ -29,6 +29,9 @@
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
           <input type="password" id="password" class="input" required autocomplete="current-password" />
+          <div class="text-right mt-2">
+            <a href="/forgot-password.html" class="text-sm">Forgot password?</a>
+          </div>
         </div>
 
         <button type="submit" id="login-submit" class="btn btn-primary w-full mt-4">Login</button>
@@ -48,7 +51,9 @@
     // Already logged in? Skip the login screen.
     const existing = getUser();
     if (existing) {
-      window.location.href = ['host', 'business_host'].includes(existing.role)
+      window.location.href = !existing.email_verified
+        ? '/verify-email.html'
+        : ['host', 'business_host'].includes(existing.role)
         ? '/host.html'
         : existing.role === 'admin' ? '/admin.html' : '/search.html';
     }
@@ -69,7 +74,9 @@
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
 
-        if (['host', 'business_host'].includes(res.data.user.role)) {
+        if (!res.data.user.email_verified) {
+          window.location.href = '/verify-email.html';
+        } else if (['host', 'business_host'].includes(res.data.user.role)) {
           window.location.href = '/host.html';
         } else if (res.data.user.role === 'admin') {
           window.location.href = '/admin.html';

@@ -3,134 +3,185 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Terms of Service-ParkSlot</title>
- <link rel="stylesheet" href="/css/style.css" />
+<title>Terms of Service - ParkSlot</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-    
-    <header class="legal-header container text-center">
-      <p class="eyebrow">Last updated: 1 September 2026</p>
-      <h1>Terms of Service</h1>
-      <p>These Terms govern your access to and use of ParkSlot, a platform that connects drivers looking for parking with hosts who list their spaces. By creating an account or using the Service, you agree to these Terms.</p>
-    </header>
 
-    <main class="legal-content container">
+  <nav class="navbar">
+    <div class="container flex justify-between items-center">
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <div class="nav-links" id="nav-links"></div>
+    </div>
+  </nav>
+
+  <header class="legal-header container text-center">
+    <p class="eyebrow">Last updated: 7 September 2026</p>
+    <h1>Terms of Service</h1>
+    <p>These Terms govern access to and use of ParkSlot, a platform that connects drivers seeking parking with hosts who list their spaces. By creating an account or using the Service, you agree to be bound by these Terms.</p>
+  </header>
+
+  <main class="legal-content container">
+    <div class="callout note-box">
+      <strong>Template notice:</strong> This document is provided as a starting template for a student/demonstration project and does not constitute legal advice. Before using ParkSlot as a real, commercial, or public-facing service, have these Terms reviewed by a qualified lawyer licensed in your jurisdiction, and fill in the placeholders marked <code>[ ]</code> below.
+    </div>
+
     <nav class="toc" aria-label="Terms sections">
       <h2>On this page</h2>
       <ol>
         <li><a href="#s1">Acceptance of Terms</a></li>
         <li><a href="#s2">Definitions</a></li>
-        <li><a href="#s3">Permitted Use</a></li>
-        <li><a href="#s4">Roles on the Platform</a></li>
-        <li><a href="#s5">Bookings</a></li>
-        <li><a href="#s6">Payments and Escrow</a></li>
-        <li><a href="#s7">Cancellations and Refunds</a></li>
-        <li><a href="#s8">Check-in and Slot Use</a></li>
-        <li><a href="#s9">Disputes</a></li>
-        <li><a href="#s10">Ratings and Reviews</a></li>
-        <li><a href="#s11">Suspension and Termination</a></li>
-        <li><a href="#s12">Liability</a></li>
-        <li><a href="#s13">Changes to These Terms</a></li>
-        <li><a href="#s14">Contact</a></li>
+        <li><a href="#s3">Eligibility</a></li>
+        <li><a href="#s4">Account Registration, Security &amp; Verification</a></li>
+        <li><a href="#s5">Permitted Use</a></li>
+        <li><a href="#s6">Roles on the Platform</a></li>
+        <li><a href="#s7">Bookings</a></li>
+        <li><a href="#s8">Payments and Escrow</a></li>
+        <li><a href="#s9">Cancellations and Refunds</a></li>
+        <li><a href="#s10">Check-in and Slot Use</a></li>
+        <li><a href="#s11">Disputes</a></li>
+        <li><a href="#s12">Ratings and Reviews</a></li>
+        <li><a href="#s13">Suspension and Termination</a></li>
+        <li><a href="#s14">Disclaimer of Warranties</a></li>
+        <li><a href="#s15">Limitation of Liability</a></li>
+        <li><a href="#s16">Indemnification</a></li>
+        <li><a href="#s17">Intellectual Property</a></li>
+        <li><a href="#s18">Governing Law and Dispute Resolution</a></li>
+        <li><a href="#s19">Force Majeure</a></li>
+        <li><a href="#s20">General Provisions</a></li>
+        <li><a href="#s21">Changes to These Terms</a></li>
+        <li><a href="#s22">Grievance Officer &amp; Contact</a></li>
       </ol>
     </nav>
 
     <h2 id="s1">1. Acceptance of Terms</h2>
-    <p>By registering for or using ParkSlot in any capacity — as a Driver, Host, Business Host, or Admin — you agree to be bound by these Terms. If you are using the Service on behalf of an organisation, you represent that you have the authority to bind that organisation to these Terms.</p>
+    <p>By registering for or using ParkSlot in any capacity — as a Driver, Host, Business Host, or Admin — you agree to be bound by these Terms and by our <a class="parkslot-link" href="/privacy.html">Privacy Policy</a>, which is incorporated into these Terms by reference. If you do not agree, you must not access or use the Service. If you are using the Service on behalf of an organisation, you represent that you have the authority to bind that organisation to these Terms.</p>
 
     <h2 id="s2">2. Definitions</h2>
     <p>The following terms have the meanings given below wherever they appear in these Terms.</p>
     <div class="glossary">
+      <div class="row"><dt>Service</dt><dd>The ParkSlot website, application, and related services operated by [Company Legal Name].</dd></div>
       <div class="row"><dt>Driver</dt><dd>A user who searches for and books a parking space.</dd></div>
-      <div class="row"><dt>Host</dt><dd>A person who provides their private or commercial parking space for booking.</dd></div>
-      <div class="row"><dt>Business Host</dt><dd>A business that offers parking spaces through ParkSlot.</dd></div>
+      <div class="row"><dt>Host</dt><dd>A person who provides their private parking space for booking.</dd></div>
+      <div class="row"><dt>Business Host</dt><dd>A host automatically classified as commercial after exceeding two listings or two total slots, per Section 6.2.</dd></div>
       <div class="row"><dt>Admin</dt><dd>The system authority responsible for managing users, listings, disputes, and overall platform operations.</dd></div>
       <div class="row"><dt>Parking Slot</dt><dd>A specific parking space available for users to reserve.</dd></div>
       <div class="row"><dt>Parking Location</dt><dd>The physical location where one or more parking slots are available.</dd></div>
       <div class="row"><dt>Booking</dt><dd>A reservation made by a Driver for a parking slot for a specific time.</dd></div>
       <div class="row"><dt>Escrow Payment</dt><dd>A payment mechanism where money is held temporarily until booking conditions are satisfied.</dd></div>
+      <div class="row"><dt>KYC</dt><dd>"Know Your Customer" — the identity-verification process described in Section 4.3.</dd></div>
       <div class="row"><dt>QR Check-in</dt><dd>A QR-based process used to verify a Driver's arrival for a booking.</dd></div>
       <div class="row"><dt>Dispute</dt><dd>A complaint or disagreement between a Driver and Host regarding a booking or payment.</dd></div>
     </div>
 
-    <h2 id="s3">3. Permitted Use</h2>
-    <p>You may use the Service for lawful purposes, including finding, listing, booking, and managing parking spaces. These tools are intended to help Drivers reserve parking and Hosts manage their listings, bookings, and earnings.</p>
+    <h2 id="s3">3. Eligibility</h2>
+    <p>You must be at least 18 years old and capable of forming a legally binding contract to create an account or use the Service. By creating an account, you represent and warrant that you meet this requirement. ParkSlot does not knowingly permit account registration by anyone under 18, and any account found to belong to a minor will be suspended and removed.</p>
+    <p>If you are a Host or Business Host, you additionally represent that you have all necessary legal rights, permissions, and authority to list the parking space(s) you offer through the Service.</p>
 
-    <h3 style="color: var(--color-teal);">3.1 Prohibited Use</h3>
+    <h2 id="s4">4. Account Registration, Security &amp; Verification</h2>
+    <h3 style="color: var(--color-teal);">4.1 Accurate Information</h3>
+    <p>You agree to provide accurate, current, and complete information when creating an account, and to keep that information up to date. You are responsible for maintaining the confidentiality of your password and for all activity that occurs under your account.</p>
+
+    <h3 style="color: var(--color-teal);">4.2 Email Verification</h3>
+    <p>Account creation requires verifying control of the email address provided, via a one-time code (OTP) sent to that address. Certain account functions, including identity verification, are unavailable until this step is completed.</p>
+
+    <h3 style="color: var(--color-teal);">4.3 Identity Verification (KYC)</h3>
+    <p>Every account — Driver, Host, and Business Host alike — must submit a government-issued identity document photo and a selfie photograph for review before using core features of the Service (listing a space, or completing a booking). Hosts additionally confirm, per listing, that they own the property being listed or are legally authorised to list it, and must provide at least one photograph of the actual parking slot or space. Drivers additionally confirm that any vehicle they park is their own, or that they are parking it at their own decision and responsibility. ParkSlot reserves the right to reject, request resubmission of, or revoke a KYC approval at its discretion, including where a submission appears fraudulent, altered, or does not match the account holder.</p>
+
+    <h3 style="color: var(--color-teal);">4.4 Account Lockout &amp; Security Measures</h3>
+    <p>To protect accounts against unauthorised access, ParkSlot may temporarily lock an account after repeated failed login attempts, rate-limit sensitive requests, and take other automated security measures. You agree not to attempt to circumvent these measures.</p>
+
+    <h2 id="s5">5. Permitted Use</h2>
+    <p>You may use the Service for lawful purposes, including finding, listing, booking, and managing parking spaces.</p>
+    <h3 style="color: var(--color-teal);">5.1 Prohibited Use</h3>
     <p>You agree not to use the Service to:</p>
     <ul>
-      <li>List a parking space you do not have the right to offer.</li>
+      <li>List a parking space you do not have the right to offer, or submit false ownership consent.</li>
+      <li>Upload identity or ownership documents that are forged, altered, or do not belong to you.</li>
       <li>Make a booking with no intention of using or honouring it.</li>
-      <li>Attempt to bypass or interfere with the security, payment, or check-in systems of the Service.</li>
+      <li>Attempt to bypass or interfere with the security, verification, payment, or check-in systems of the Service.</li>
       <li>Use automated scripts, bots, or scraping tools in a way that places unreasonable load on the Service.</li>
       <li>Reverse-engineer, decompile, or otherwise attempt to discover the source code of the Service beyond what is publicly available.</li>
-      <li>Engage in conduct that could harm, mislead, or defraud another Driver, Host, or the platform itself.</li>
+      <li>Engage in conduct that could harm, mislead, harass, or defraud another Driver, Host, or the platform itself.</li>
     </ul>
+    <p>Violation of this section may result in immediate suspension or termination of your account under Section 13, without prejudice to any other remedy available to ParkSlot.</p>
 
-    <h2 id="s4">4. Roles on the Platform</h2>
-    <p>ParkSlot recognises four roles, each with distinct responsibilities.</p>
-
-    <h3 style="color: var(--color-teal);">4.1 Drivers</h3>
+    <h2 id="s6">6. Roles on the Platform</h2>
+    <h3 style="color: var(--color-teal);">6.1 Drivers</h3>
     <p>Drivers search for parking, make bookings, complete QR check-in on arrival, and pay for the slots they reserve. Drivers are responsible for arriving within their booked time window and following any rules set by the Host for the location.</p>
 
-    <h3 style="color: var(--color-teal);">4.2 Hosts and Business Hosts</h3>
-    <p>Hosts list Parking Locations and Slots, set availability, and receive payment once a booking is completed. Hosts are responsible for the accuracy of their listings, including Vehicle Type support and EV Charging availability, and for keeping Slot Status up to date.</p>
+    <h3 style="color: var(--color-teal);">6.2 Hosts and Business Hosts</h3>
+    <p>Hosts list Parking Locations and Slots, set availability, and receive payment once a booking is completed. A Host who exceeds two active listings or two total slots is automatically reclassified as a Business Host and may become subject to additional commercial obligations disclosed in-app. Hosts are responsible for the accuracy of their listings, including vehicle-type support, EV charging availability, and keeping slot status up to date.</p>
 
-    <h3 style="color: var(--color-teal);">4.3 Admin</h3>
-    <p>Admin oversees the platform, including user accounts, listing quality, dispute resolution, and enforcement of these Terms.</p>
+    <h3 style="color: var(--color-teal);">6.3 Admin</h3>
+    <p>Admin oversees the platform, including user accounts, listing quality, identity-verification review, dispute resolution, and enforcement of these Terms.</p>
 
-    <h2 id="s5">5. Bookings</h2>
-    <p>A Booking is confirmed once payment is authorised and the Host's slot is marked as reserved for the requested time. Booking Status will move through <strong>Pending</strong>, <strong>Confirmed</strong>, <strong>Cancelled</strong>, or <strong>Completed</strong> as the reservation progresses.</p>
+    <h2 id="s7">7. Bookings</h2>
+    <p>A Booking is confirmed once payment is authorised and the Host's slot is marked as reserved for the requested time. Booking status moves through <strong>Pending</strong>, <strong>Confirmed</strong>, <strong>Cancelled</strong>, or <strong>Completed</strong> as the reservation progresses.</p>
     <div class="callout">
-      A Slot's <strong>Availability</strong> reflects its real-time state — <strong>Available</strong>, <strong>Booked</strong>, <strong>Occupied</strong>, or <strong>Disabled</strong> — and may change if a Host updates it directly.
+      A slot's <strong>Availability</strong> reflects its real-time state — <strong>Available</strong>, <strong>Booked</strong>, <strong>Occupied</strong>, or <strong>Disabled</strong> — and may change if a Host updates it directly.
     </div>
 
-    <h2 id="s6">6. Payments and Escrow</h2>
-    <p>Payment is the amount charged to a Driver for using a parking slot or related service, such as EV Charging. Where Escrow Payment applies, funds are held by ParkSlot until the booking is completed or the applicable service conditions are met, at which point funds are released to the Host.</p>
+    <h2 id="s8">8. Payments and Escrow</h2>
+    <p>Payment is the amount charged to a Driver for using a parking slot or related service, such as EV charging. Where escrow applies, funds are held by ParkSlot until the booking is completed or the applicable service conditions are met, at which point funds are released to the Host, less any applicable platform commission. <strong>At present, payments on this deployment are simulated for demonstration purposes only; no real money is transferred.</strong> If and when a live payment gateway is integrated, this section will be updated to reflect the applicable payment processor's terms.</p>
 
-    <h2 id="s7">7. Cancellations and Refunds</h2>
-    <p>Cancellation is the process of ending an existing reservation before it is completed. Refunds are calculated according to the cancellation window and the specific rules attached to that booking or location. Refund amounts and eligibility may vary by Host or Business Host policy, where permitted.</p>
+    <h2 id="s9">9. Cancellations and Refunds</h2>
+    <p>Cancellation is the process of ending an existing reservation before it is completed. Refunds are calculated according to the cancellation window and the specific rules attached to that booking or location. Refund amounts and eligibility may vary by Host or Business Host policy, where permitted by applicable law.</p>
 
-    <h2 id="s8">8. Check-in and Slot Use</h2>
-    <p>Drivers must complete QR Check-in on arrival to verify their booking. Use of a slot outside the booked time window, or use by a vehicle type not supported by the listing, may result in additional charges or cancellation of the booking without refund.</p>
+    <h2 id="s10">10. Check-in and Slot Use</h2>
+    <p>Drivers must complete QR check-in on arrival to verify their booking. Use of a slot outside the booked time window, or use by a vehicle type not supported by the listing, may result in additional charges or cancellation of the booking without refund.</p>
 
-    <h2 id="s9">9. Disputes</h2>
-    <p>Either party may raise a Dispute regarding a booking or payment. ParkSlot's Admin team will review the booking record, payment history, and any evidence provided before determining an outcome. ParkSlot's decision on a Dispute is final for the purposes of the platform.</p>
+    <h2 id="s11">11. Disputes</h2>
+    <p>Either party may raise a Dispute regarding a booking or payment through the in-app process. ParkSlot's Admin team will review the booking record, payment history, and any evidence provided before determining an outcome. ParkSlot's decision on a platform Dispute is final for the purposes of the Service, without prejudice to either party's legal rights under Section 18.</p>
 
-    <h2 id="s10">10. Ratings and Reviews</h2>
-    <p>After a booking is completed, Drivers and Hosts may leave a Rating or Review. Reviews must reflect a genuine experience and must not contain harassment, discriminatory language, or content unrelated to the booking.</p>
+    <h2 id="s12">12. Ratings and Reviews</h2>
+    <p>After a booking is completed, Drivers and Hosts may leave a rating or review. Reviews must reflect a genuine experience and must not contain harassment, discriminatory language, defamatory statements, or content unrelated to the booking. ParkSlot reserves the right to remove reviews that violate this section.</p>
 
-    <h2 id="s11">11. Suspension and Termination</h2>
-    <p>ParkSlot may suspend or terminate an account that violates these Terms, including repeated cancellations, fraudulent listings, or abuse of the Dispute process. You may close your account at any time; any completed but unpaid balances remain payable.</p>
+    <h2 id="s13">13. Suspension and Termination</h2>
+    <p>ParkSlot may suspend or terminate an account, with or without notice, that violates these Terms — including repeated cancellations, fraudulent listings, falsified identity or ownership documents, or abuse of the Dispute process. You may close your account and request deletion of your data at any time via your Account page; any completed but unpaid balances remain payable, and ParkSlot may retain limited records where required by law (see Privacy Policy, Section 8).</p>
 
-    <h2 id="s12">12. Liability</h2>
-    <p>ParkSlot facilitates the connection between Drivers and Hosts but is not responsible for the condition of a parking location, damage to a vehicle, or loss of property while a slot is in use. Use of any parking location is at the user's own risk, subject to applicable law.</p>
+    <h2 id="s14">14. Disclaimer of Warranties</h2>
+    <p>The Service is provided <strong>"as is" and "as available,"</strong> without warranties of any kind, whether express, implied, or statutory, including but not limited to implied warranties of merchantability, fitness for a particular purpose, and non-infringement. ParkSlot does not warrant that the Service will be uninterrupted, error-free, or completely secure, or that any parking location, listing, or user identity is accurately represented, verified beyond ParkSlot's stated KYC process, or free of defects.</p>
 
-    <h2 id="s13">13. Changes to These Terms</h2>
-    <p>ParkSlot may update these Terms from time to time. Material changes will be communicated through the app or by email before they take effect. Continued use of the Service after changes take effect constitutes acceptance of the updated Terms.</p>
+    <h2 id="s15">15. Limitation of Liability</h2>
+    <p>ParkSlot facilitates the connection between Drivers and Hosts but is not a party to, and is not responsible for the performance of, the underlying parking arrangement. ParkSlot is not responsible for the condition of a parking location, damage to a vehicle, personal injury, or loss of property while a slot is in use. Use of any parking location is at the user's own risk, subject to applicable law.</p>
+    <p>To the maximum extent permitted by applicable law, ParkSlot and its officers, employees, and agents shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenue, arising out of or related to your use of the Service. ParkSlot's total aggregate liability to you for any claim arising from these Terms or the Service shall not exceed the greater of (a) the amount of platform fees you paid to ParkSlot in the 3 months preceding the claim, or (b) [₹ amount to be fixed by Company]. Nothing in these Terms limits liability that cannot be limited under applicable law, including liability for death, personal injury, fraud, or gross negligence.</p>
 
-    <h2 id="s14">14. Contact Us</h2>
-    <p>If you have questions about these Terms, reach the ParkSlot team using the details below:</p>
+    <h2 id="s16">16. Indemnification</h2>
+    <p>You agree to indemnify and hold harmless ParkSlot, its officers, employees, and agents from any claim, demand, loss, or damage, including reasonable legal fees, arising out of: (a) your breach of these Terms; (b) your listing, booking, or use of a Parking Slot or Parking Location; (c) any document or information you submit for identity or ownership verification; or (d) your violation of any law or the rights of a third party.</p>
+
+    <h2 id="s17">17. Intellectual Property</h2>
+    <p>The Service, including its software, design, text, graphics, and logos, is the property of [Company Legal Name] or its licensors and is protected by applicable intellectual property laws. Nothing in these Terms grants you any right to use ParkSlot's trademarks, logos, or branding without prior written permission. You retain ownership of content you submit (such as listing photos), but grant ParkSlot a non-exclusive, worldwide, royalty-free licence to host, display, and process that content solely to operate and improve the Service.</p>
+
+    <h2 id="s18">18. Governing Law and Dispute Resolution</h2>
+    <p>These Terms are governed by the laws of India, without regard to conflict-of-law principles, unless otherwise required by mandatory local law applicable to you. <span class="placeholder">[Company to confirm: courts of exclusive jurisdiction, e.g. "the courts of (city), India" — and, if desired, an arbitration clause under the Arbitration and Conciliation Act, 1996.]</span> Nothing in this section prevents either party from seeking equitable relief where legally available.</p>
+
+    <h2 id="s19">19. Force Majeure</h2>
+    <p>ParkSlot is not liable for any failure or delay in performance resulting from causes beyond its reasonable control, including natural disasters, acts of government, power or internet outages, labour disputes, or failures of third-party infrastructure providers.</p>
+
+    <h2 id="s20">20. General Provisions</h2>
+    <p><strong>Severability.</strong> If any provision of these Terms is found unenforceable, the remaining provisions remain in full force and effect.</p>
+    <p><strong>No Waiver.</strong> ParkSlot's failure to enforce any provision of these Terms is not a waiver of its right to do so later.</p>
+    <p><strong>Assignment.</strong> You may not assign or transfer your rights under these Terms without ParkSlot's prior written consent. ParkSlot may assign these Terms in connection with a merger, acquisition, or sale of assets.</p>
+    <p><strong>Entire Agreement.</strong> These Terms, together with the Privacy Policy, constitute the entire agreement between you and ParkSlot regarding the Service and supersede any prior agreements on the same subject.</p>
+
+    <h2 id="s21">21. Changes to These Terms</h2>
+    <p>ParkSlot may update these Terms from time to time. Material changes will be communicated through the app or by email before they take effect, with the "Last updated" date above revised accordingly. Continued use of the Service after changes take effect constitutes acceptance of the updated Terms.</p>
+
+    <h2 id="s22">22. Grievance Officer &amp; Contact</h2>
+    <p>In accordance with applicable Indian information-technology regulations concerning grievance redressal, complaints regarding content or conduct on the Service may be directed to the Grievance Officer below. <span class="placeholder">[Company to appoint a named Grievance Officer and update these details before commercial launch.]</span></p>
     <p>
-    Email:
-    <a class="parkslot-link" href="mailto:pakslot.support@gmail.com">
-        pakslot.support@gmail.com
-    </a>
-</p>
-
-<p>
-    Website:
-    <a class="parkslot-link" href="/index.html">
-        ParkSlot
-    </a>
-</p>
-
-    </main>
+      Grievance Officer: <span class="placeholder">[Name]</span><br>
+      Email: <a class="parkslot-link" href="mailto:support@parkslot.example">support@parkslot.example</a><br>
+      Website: <a class="parkslot-link" href="/index.html">ParkSlot</a>
+    </p>
+  </main>
 
   <footer class="site-footer text-center">
     © 2026 ParkSlot. All rights reserved.
   </footer>
 
+  <script type="module" src="/js/auth.js"></script>
 </body>
 </html>
-

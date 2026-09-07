@@ -20,6 +20,7 @@ export const requireAuth = async (req, res, next) => {
     req.user = {
       user_id: user.user_id, role: user.role, email: user.email,
       id_verified: user.id_verified, kyc_status: user.kyc_status,
+      email_verified: user.email_verified,
     };
     next();
   } catch (err) {

@@ -129,6 +129,20 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label class="form-label" for="listing-photos">Photos of the slot / place</label>
+          <input type="file" id="listing-photos" class="input" accept="image/png,image/jpeg,image/webp" multiple required />
+          <p class="text-muted text-sm mt-2">At least one photo of the actual parking spot, required for admin review.</p>
+          <div id="listing-photo-preview" class="flex gap-4 mt-2" style="flex-wrap:wrap;"></div>
+        </div>
+
+        <div class="form-group checkbox-row">
+          <input type="checkbox" id="listing-ownership-consent" required />
+          <label for="listing-ownership-consent">I confirm I own this place (or am legally authorized to list it), and I consent to listing it on ParkSlot.</label>
+        </div>
+
+        <p id="listing-form-error" class="text-danger text-sm mb-2" style="display:none;"></p>
+
         <button type="submit" id="create-submit" class="btn btn-primary">Save Listing</button>
         <button type="button" class="btn btn-secondary" id="cancel-listing-btn">Cancel</button>
       </form>
@@ -267,6 +281,26 @@
         .catch(() => showToast('Location search failed.', 'error'));
     });
 
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Could not read the selected file'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    document.getElementById('listing-photos').addEventListener('change', (e) => {
+      const preview = document.getElementById('listing-photo-preview');
+      preview.innerHTML = '';
+      Array.from(e.target.files).slice(0, 5).forEach((file) => {
+        const img = document.createElement('img');
+        img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;';
+        fileToDataUrl(file).then((url) => { img.src = url; });
+        preview.appendChild(img);
+      });
+    });
+
     function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
 
     let commissionPercent = 15;
@@ -295,6 +329,7 @@
         container.innerHTML = listings.map((l) => `
           <div class="card" style="padding:18px 20px;" data-location="${l.location_id}">
             <div class="list-card-row">
+              ${l.photos && l.photos[0] ? `<img src="${l.photos[0]}" alt="${escapeHtml(l.name)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;margin-right:12px;" />` : ''}
               <div>
                 <strong>${escapeHtml(l.name)}</strong>
                 <p class="text-muted text-sm">${escapeHtml(l.address)}</p>
@@ -339,6 +374,8 @@
     document.getElementById('create-listing-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const submitBtn = document.getElementById('create-submit');
+      const errorEl = document.getElementById('listing-form-error');
+      errorEl.style.display = 'none';
       submitBtn.disabled = true;
       submitBtn.textContent = 'Saving...';
 
@@ -359,9 +396,28 @@
         return;
       }
 
+      const photoFiles = Array.from(document.getElementById('listing-photos').files);
+      if (photoFiles.length === 0) {
+        errorEl.textContent = 'Please add at least one photo of the slot or place.';
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Listing';
+        return;
+      }
+
+      if (!document.getElementById('listing-ownership-consent').checked) {
+        errorEl.textContent = 'Please confirm you own or are authorized to list this place.';
+        errorEl.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save Listing';
+        return;
+      }
+
       const hasEv = document.getElementById('has-ev').checked;
 
       try {
+        const photos = await Promise.all(photoFiles.slice(0, 5).map(fileToDataUrl));
+
         const res = await api.post('/listings', {
           name: document.getElementById('name').value.trim(),
           address: document.getElementById('address').value.trim(),
@@ -375,6 +431,8 @@
             open: document.getElementById('open-time').value,
             close: document.getElementById('close-time').value,
           },
+          photos,
+          ownership_consent: true,
         });
 
         const locationId = res.data.location.location_id;
@@ -395,6 +453,7 @@
 
         showToast('Listing created! An admin will review it shortly.', 'success');
         document.getElementById('create-listing-form').reset();
+        document.getElementById('listing-photo-preview').innerHTML = '';
         document.getElementById('add-listing-form').style.display = 'none';
         document.getElementById('ev-fields').style.display = 'none';
         document.getElementById('map-coords-display').textContent = 'No location selected yet.';
@@ -402,7 +461,8 @@
         listingMarker = null;
         loadListings();
       } catch (err) {
-        showToast(apiErrorMessage(err, 'Failed to create listing.'), 'error');
+        errorEl.textContent = apiErrorMessage(err, 'Failed to create listing.');
+        errorEl.style.display = 'block';
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Save Listing';

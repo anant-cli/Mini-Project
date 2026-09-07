@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 </head>
 <body>
+
   <nav class="navbar">
     <div class="container flex justify-between items-center">
       <a href="/index.html" class="navbar-brand">ParkSlot</a>
@@ -18,12 +19,18 @@
 
   <main class="container mt-8" style="max-width: 500px;">
     <div class="card">
-      <h1 class="text-3xl mb-8 text-center">Create an Account</h1>
+      <div class="onboarding-steps" aria-hidden="true">
+        <span class="step-dot step-active"></span>
+        <span class="step-dot"></span>
+        <span class="step-dot"></span>
+      </div>
+      <h1 class="text-3xl mb-2 text-center">Create an Account</h1>
+      <p class="text-muted text-sm text-center mb-8">Step 1 of 3 — account details</p>
 
       <form id="signup-form">
         <div class="form-group">
           <label class="form-label" for="name">Full Name</label>
-          <input type="text" id="name" class="input" required minlength="5" autocomplete="name" />
+          <input type="text" id="name" class="input" required minlength="2" autocomplete="name" />
         </div>
         <div class="form-group">
           <label class="form-label" for="email">Email</label>
@@ -36,7 +43,7 @@
         <div class="form-group">
           <label class="form-label" for="password">Password</label>
           <input type="password" id="password" class="input" required minlength="8" autocomplete="new-password" />
-          <small class="text-muted text-sm">At least 8 characters.</small>
+          <small class="text-muted text-sm">At least 8 characters, with a letter and a number.</small>
         </div>
         <div class="form-group">
           <label class="form-label" for="role">I want to...</label>
@@ -65,7 +72,8 @@
           </label>
         </div>
 
-        <button type="submit" id="signup-submit" class="btn btn-primary w-full mt-4">Sign Up</button>
+        <p id="signup-error" class="text-danger text-sm mb-2" style="display:none;"></p>
+        <button type="submit" id="signup-submit" class="btn btn-primary w-full mt-4">Continue</button>
       </form>
 
       <div class="text-center mt-8 text-muted">
@@ -77,13 +85,15 @@
   <script type="module" src="/js/auth.js"></script>
   <script type="module">
     import api, { apiErrorMessage } from '/js/api.js';
-    import { showToast } from '/js/toast.js';
 
     const form = document.getElementById('signup-form');
     const submitBtn = document.getElementById('signup-submit');
+    const errorEl = document.getElementById('signup-error');
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
+      errorEl.style.display = 'none';
+
       const name = document.getElementById('name').value.trim();
       const email = document.getElementById('email').value.trim();
       const phone = document.getElementById('phone').value.trim();
@@ -101,16 +111,12 @@
         });
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
-
-        if (['host', 'business_host'].includes(res.data.user.role)) {
-          window.location.href = '/host.html';
-        } else {
-          window.location.href = '/search.html';
-        }
+        window.location.href = '/verify-email.html';
       } catch (err) {
-        showToast(apiErrorMessage(err, 'Signup failed. Please try again.'), 'error');
+        errorEl.textContent = apiErrorMessage(err, 'Signup failed. Please try again.');
+        errorEl.style.display = 'block';
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Sign Up';
+        submitBtn.textContent = 'Continue';
       }
     });
   </script>

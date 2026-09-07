@@ -4,7 +4,7 @@ export const createUser = async ({ name, email, passwordHash, phone, role }) => 
   const { rows } = await query(
     `INSERT INTO users (name, email, password_hash, phone, role)
      VALUES ($1, $2, $3, $4, $5)
-     RETURNING user_id, name, email, phone, role, avg_rating, id_verified, kyc_status, is_suspended, created_at`,
+     RETURNING user_id, name, email, phone, role, avg_rating, id_verified, kyc_status, email_verified, is_suspended, created_at`,
     [name, email, passwordHash, phone, role || 'driver']
   );
   return rows[0];
@@ -40,7 +40,8 @@ export const findUserByEmail = async (email) => {
 
 export const findUserById = async (userId) => {
   const { rows } = await query(
-    `SELECT user_id, name, email, phone, role, avg_rating, id_verified, kyc_status, is_suspended, created_at
+    `SELECT user_id, name, email, phone, role, avg_rating, id_verified, kyc_status, email_verified,
+            is_suspended, failed_login_attempts, locked_until, created_at
      FROM users WHERE user_id = $1`,
     [userId]
   );
@@ -73,4 +74,38 @@ export const recomputeUserRating = async (userId) => {
      WHERE user_id = $1`,
     [userId]
   );
+};
+
+export const setEmailVerified = async (userId) => {
+  await query(`UPDATE users SET email_verified = true WHERE user_id = $1`, [userId]);
+};
+
+export const updatePasswordHash = async (userId, passwordHash) => {
+  await query(`UPDATE users SET password_hash = $2, updated_at = now() WHERE user_id = $1`, [userId, passwordHash]);
+};
+
+// ---------- Login-attempt lockout (brute-force protection) ----------
+// After MAX_FAILED_LOGIN_ATTEMPTS wrong passwords in a row, the account is
+// locked for LOCKOUT_MINUTES regardless of how many times /auth/login is
+// called — on top of (not instead of) the per-IP rate limiter, since a
+// determined attacker can rotate IPs but not the target account.
+export const MAX_FAILED_LOGIN_ATTEMPTS = 5;
+export const LOCKOUT_MINUTES = 15;
+
+export const registerFailedLogin = async (userId) => {
+  const { rows } = await query(
+    `UPDATE users SET failed_login_attempts = failed_login_attempts + 1,
+        locked_until = CASE
+          WHEN failed_login_attempts + 1 >= $2 THEN now() + ($3 || ' minutes')::interval
+          ELSE locked_until
+        END
+     WHERE user_id = $1
+     RETURNING failed_login_attempts, locked_until`,
+    [userId, MAX_FAILED_LOGIN_ATTEMPTS, LOCKOUT_MINUTES]
+  );
+  return rows[0];
+};
+
+export const clearFailedLogins = async (userId) => {
+  await query(`UPDATE users SET failed_login_attempts = 0, locked_until = NULL WHERE user_id = $1`, [userId]);
 };

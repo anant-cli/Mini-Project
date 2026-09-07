@@ -557,6 +557,7 @@
                 <p class="text-sm text-muted">⭐ ${u.avg_rating || '5.0'} rating</p>
               </div>
               <div class="flex gap-2" style="flex-wrap:wrap;">
+                <span class="badge ${u.email_verified ? 'badge-available' : 'badge-pending'}">${u.email_verified ? 'Email verified' : 'Email unverified'}</span>
                 <span class="badge ${u.kyc_status === 'approved' ? 'badge-available' : u.kyc_status === 'rejected' ? 'badge-cancelled' : 'badge-pending'}">${escapeHtml(u.kyc_status || 'unsubmitted')}</span>
                 <span class="badge ${u.is_suspended ? 'badge-cancelled' : 'badge-available'}">${u.is_suspended ? 'Suspended' : 'Active'}</span>
                 ${u.role !== 'admin' ? `

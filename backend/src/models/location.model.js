@@ -4,18 +4,20 @@ export const createLocation = async (owner_id, data) => {
   const {
     name, address, latitude, longitude, total_slots,
     price_per_hour, vehicle_types_allowed, has_ev_charging,
-    operating_hours, photos,
+    operating_hours, photos, ownership_consent,
   } = data;
 
   const { rows } = await query(
     `INSERT INTO locations
       (owner_id, name, address, latitude, longitude, total_slots,
-       price_per_hour, vehicle_types_allowed, has_ev_charging, operating_hours, photos)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       price_per_hour, vehicle_types_allowed, has_ev_charging, operating_hours, photos,
+       owner_consent_confirmed_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
      RETURNING *`,
     [owner_id, name, address, latitude, longitude, total_slots,
      price_per_hour, vehicle_types_allowed, Boolean(has_ev_charging),
-     JSON.stringify(operating_hours || { open: '00:00', close: '23:59' }), photos || []]
+     JSON.stringify(operating_hours || { open: '00:00', close: '23:59' }), photos || [],
+     ownership_consent ? new Date() : null]
   );
 
   // Auto-create the physical slot rows for this listing.

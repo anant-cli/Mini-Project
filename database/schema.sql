@@ -23,7 +23,10 @@ CREATE TABLE users (
     avg_rating      NUMERIC(2,1) DEFAULT 5.0 CHECK (avg_rating BETWEEN 0 AND 5),
     id_verified     BOOLEAN NOT NULL DEFAULT FALSE,
     kyc_status      kyc_status NOT NULL DEFAULT 'unsubmitted',
+    email_verified  BOOLEAN NOT NULL DEFAULT FALSE,
     is_suspended    BOOLEAN NOT NULL DEFAULT FALSE,
+    failed_login_attempts SMALLINT NOT NULL DEFAULT 0,
+    locked_until    TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -42,6 +45,10 @@ CREATE TABLE locations (
     has_ev_charging      BOOLEAN NOT NULL DEFAULT FALSE,
     operating_hours      JSONB DEFAULT '{"open": "00:00", "close": "23:59"}',
     photos               TEXT[],
+    -- When the host confirmed, for THIS specific listing, that they own it
+    -- or are authorized to list it. Separate from the one-time account-level
+    -- KYC ownership declaration in kyc_submissions.
+    owner_consent_confirmed_at TIMESTAMPTZ,
     is_verified          BOOLEAN NOT NULL DEFAULT FALSE,
     surge_enabled        BOOLEAN NOT NULL DEFAULT FALSE,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -168,6 +175,37 @@ CREATE TABLE kyc_submissions (
 );
 CREATE INDEX idx_kyc_user ON kyc_submissions (user_id);
 CREATE INDEX idx_kyc_pending ON kyc_submissions (status) WHERE status = 'pending';
+
+-- ---------- OTP TOKENS (email verification + password reset) ----------
+-- One-time codes are stored as a salted hash, never in plaintext, and are
+-- single-use (consumed_at) with a short expiry and a capped attempt count
+-- to resist brute-forcing a 6-digit code.
+CREATE TYPE otp_purpose AS ENUM ('email_verify', 'password_reset');
+
+CREATE TABLE otp_tokens (
+    otp_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id      UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    purpose      otp_purpose NOT NULL,
+    token_hash   VARCHAR(255) NOT NULL,
+    expires_at   TIMESTAMPTZ NOT NULL,
+    attempts     SMALLINT NOT NULL DEFAULT 0,
+    consumed_at  TIMESTAMPTZ,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_otp_user_purpose ON otp_tokens (user_id, purpose);
+
+-- ---------- Migration note (OTP + email verification + login lockout) ----------
+-- If you already ran this schema before this addition, apply against an
+-- existing database (safe to re-run):
+--   ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
+--   ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts SMALLINT NOT NULL DEFAULT 0;
+--   ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
+--   CREATE TYPE otp_purpose AS ENUM ('email_verify', 'password_reset');
+--   -- then re-run the CREATE TABLE otp_tokens block above.
+
+-- If you already ran this schema before the owner_consent_confirmed_at
+-- addition, apply this against an existing database (safe to re-run):
+--   ALTER TABLE locations ADD COLUMN IF NOT EXISTS owner_consent_confirmed_at TIMESTAMPTZ;
 
 -- ---------- Migration note ----------
 -- If you already ran this schema before the kyc_submissions addition, apply

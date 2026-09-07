@@ -3,91 +3,106 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ParkSlot Privacy Policy</title>
+<title>Privacy Policy - ParkSlot</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-<header class="legal-header container text-center">
-<p class="eyebrow">Last updated: 1 September 2026</p>
-<h1>Privacy Policy</h1>
-<p>ParkSlot collects and processes information that is necessary to provide parking, booking, payment, check-in, and account-management services.</p>
-</header>
-<main class="legal-content container">
-<h2>1. Account Information</h2>
-<p>When a user creates an account, ParkSlot stores information such as the user's name, email address, phone number, password hash, account role, account creation date, and account update information. ParkSlot may also maintain information about whether an account has been verified or suspended.</p>
 
-<h2>2. Booking Information</h2>
-<p>When a user acts as a Driver, ParkSlot may collect information required to complete a parking Booking, including the vehicle number, selected Parking Slot, Booking start and end time, check-in and checkout time, check-in method, QR check-in token, estimated amount, total amount, overtime amount, and Booking status.</p>
+  <nav class="navbar">
+    <div class="container flex justify-between items-center">
+      <a href="/index.html" class="navbar-brand">ParkSlot</a>
+      <div class="nav-links" id="nav-links"></div>
+    </div>
+  </nav>
 
-<h2>3. Parking Location Information</h2>
-<p>For Hosts and Business Hosts, ParkSlot stores information associated with the parking locations they provide. This may include the parking location name, address, latitude and longitude, number of available slots, pricing, supported vehicle types, EV charging availability, operating hours, photos, verification status, and other parking-space information.</p>
+  <header class="legal-header container text-center">
+    <p class="eyebrow">Last updated: 7 September 2026</p>
+    <h1>Privacy Policy</h1>
+    <p>This Privacy Policy explains what information ParkSlot collects, why, and how it is used, in connection with account registration, identity verification, parking, booking, payment, and check-in services.</p>
+  </header>
 
-<h2>4. User Activity and Transaction Information</h2>
-<p>ParkSlot may also process information related to user activity on the platform, including favorites, ratings and reviews, disputes, payment records, and Booking history. This information helps ParkSlot operate the platform, provide customer support, manage disputes, maintain accurate Booking records, improve services, and help protect the platform from misuse or fraudulent activity.</p>
+  <main class="legal-content container">
+    <div class="callout note-box">
+      <strong>Template notice:</strong> This document is provided as a starting template for a student/demonstration project and does not constitute legal advice. Before processing real users' personal data, have this policy reviewed by a qualified lawyer for compliance with applicable law in your jurisdiction (for example, India's Digital Personal Data Protection Act, 2023, and, if you have users elsewhere, laws such as the GDPR), and complete the placeholders marked <code>[ ]</code>.
+    </div>
 
-<div class="callout note-box">
-  <strong>Important privacy note:</strong> ParkSlot stores latitude and longitude for parking locations in order to help Drivers discover suitable parking spaces. ParkSlot does not maintain a separate table or record of a user's live, real-time GPS location. Location data associated with a Parking Location should not be understood as, or represented as, a permanent record of a user's personal or live location.
-</div>
+    <h2>1. Information We Collect</h2>
 
-<h2>5. Payment, Check-in, Location and Data Sharing</h2>
+    <h3 style="color: var(--color-teal);">1.1 Account Information</h3>
+    <p>When you create an account, ParkSlot stores your name, email address, phone number, a securely hashed version of your password (never the password itself), account role, and account creation/update timestamps. ParkSlot also maintains whether your email has been verified, your account's identity-verification (KYC) status, and whether your account has been suspended.</p>
 
-<p>ParkSlot processes certain information between Drivers, Hosts, Business Hosts, and the platform when required to complete parking services. For example, when a Driver makes a Booking, information necessary to manage that Booking may be associated with the Driver, Parking Slot, Parking Location, and Host.</p>
+    <h3 style="color: var(--color-teal);">1.2 Identity Verification (KYC) Information</h3>
+    <p>Every account is required to submit a photograph of a government-issued identity document and a selfie photograph as part of identity verification, along with a recorded consent statement (and the IP address and timestamp at which that consent was given). Depending on which document a user chooses to photograph, this may reveal identity numbers or details printed on that document, such as those found on a driving licence, passport, voter ID card, Aadhaar card, or PAN card. ParkSlot stores the document image itself for verification and audit purposes but does not separately extract, transcribe, or index the identity number printed on it into a structured, searchable field. These images are accessible only to platform administrators reviewing verification submissions and are not shared with other users.</p>
 
-<h2>6. Payment Information</h2>
-<p>For payments, ParkSlot's systems record the payment amount, payment mode, payment status, payout status, gateway reference, and transaction time. ParkSlot does not store a complete card number or card security code (CVV) in its database. Sensitive payment credentials are handled through the applicable third-party payment gateway rather than being stored directly by ParkSlot.</p>
+    <h3 style="color: var(--color-teal);">1.3 Per-Listing Ownership Information</h3>
+    <p>When a Host creates a listing, ParkSlot additionally collects at least one photograph of the parking slot or space being listed, and records the date and time the Host confirmed — for that specific listing — that they own or are authorised to list the property.</p>
 
-<h2>7. Check-in Information</h2>
-<p>For check-in, ParkSlot stores the check-in time, checkout time, check-in method, and QR token associated with a Booking. Available check-in methods include QR code scanning, geofence-based automatic check-in, and manual override. This information may be used to verify that a Driver's Booking is being properly used.</p>
+    <h3 style="color: var(--color-teal);">1.4 Verification Codes and Account Security Information</h3>
+    <p>To verify your email address and to support password reset, ParkSlot generates a temporary one-time code (OTP) and stores only a cryptographic hash of that code — never the code itself — together with an expiry time and the number of attempts made against it. ParkSlot also records the number of consecutive failed login attempts and any resulting temporary lockout period, in order to protect accounts against unauthorised access.</p>
 
-<h2>8. Location Information</h2>
-<p>ParkSlot may use information about Parking Locations, including address, latitude, and longitude, to help Drivers discover suitable parking spaces. Location information belonging to a Parking Location is distinct from, and should not be confused with, a user's personal or live device location.</p>
+    <h3 style="color: var(--color-teal);">1.5 Booking Information</h3>
+    <p>When you act as a Driver, ParkSlot collects information required to complete a booking, including the vehicle number, selected parking slot, booking start and end time, check-in and checkout time, check-in method, QR check-in token, estimated amount, total amount, overtime amount, and booking status.</p>
 
-<h2>9. Data Sharing</h2>
-<p>ParkSlot may share information with relevant users only when reasonably necessary to provide the Service. For example, a Host may need Booking-related information to manage a parking reservation, while a Driver needs information about the Parking Location and Parking Slot to complete the Booking. ParkSlot may also disclose information where required for payment processing, dispute resolution, fraud prevention, security, legal compliance, or the protection of users and the platform.</p>
+    <h3 style="color: var(--color-teal);">1.6 Parking Location Information</h3>
+    <p>For Hosts and Business Hosts, ParkSlot stores information associated with the parking locations they provide, including the location name, address, latitude and longitude, number of available slots, pricing, supported vehicle types, EV charging availability, operating hours, photos, and verification status.</p>
 
-<div class="callout warning-box">
-  <strong>Data ParkSlot does not collect:</strong> Based on ParkSlot's database structure, ParkSlot does not collect or store the following, unless separately collected by another part of the application or a third-party service:
-  <ul>
-    <li>Aadhaar number</li>
-    <li>PAN number</li>
-    <li>Full credit/debit card number</li>
-    <li>CVV (card security code)</li>
-    <li>Bank account number</li>
-    <li>A user's permanent live GPS history</li>
-  </ul>
-</div>
+    <h3 style="color: var(--color-teal);">1.7 Activity and Transaction Information</h3>
+    <p>ParkSlot also processes information related to your activity on the platform, including favourites, ratings and reviews, disputes, payment records, and booking history, to operate the platform, provide support, manage disputes, and protect against misuse or fraud.</p>
 
-<h2>10. Third-Party Services</h2>
+    <div class="callout note-box">
+      <strong>Note on location data:</strong> ParkSlot stores latitude and longitude for parking <em>locations</em> to help Drivers discover suitable parking spaces. ParkSlot does not maintain a separate table or record of a user's live, real-time GPS location. A browser or device may ask your permission to share your current position solely to centre the in-app map or calculate a route — that position is used in your session and is not stored by ParkSlot's servers as a persistent record.
+    </div>
 
-<p>ParkSlot may rely on third-party services for payment processing, hosting, analytics, email delivery, maps, authentication, or other platform operations. Those providers may process information according to their own privacy policies and applicable agreements.</p>
+    <h2>2. Payment Information</h2>
+    <p>For payments, ParkSlot's systems record the payment amount, payment mode, payment status, payout status, gateway reference, and transaction time. ParkSlot does not store a complete card number or card security code (CVV). Sensitive payment credentials, if and when a live payment gateway is integrated, would be handled directly by that gateway rather than stored by ParkSlot. <strong>At present, this deployment's payment flow is simulated for demonstration purposes only.</strong></p>
 
+    <h2>3. Check-in Information</h2>
+    <p>For check-in, ParkSlot stores the check-in time, checkout time, check-in method, and QR token associated with a booking. Available check-in methods include QR code scanning, geofence-based automatic check-in, and manual override. This information may be used to verify that a booking is being properly used.</p>
 
+    <h2>4. How and Why We Use Your Information</h2>
+    <p>ParkSlot uses the information described above to: create and secure your account; verify your identity and, for Hosts, your right to list a property; process bookings, payments, and check-ins; send you OTPs, booking confirmations, and service notices by email; investigate disputes and enforce our Terms of Service; detect and prevent fraud or abuse; and improve the Service. ParkSlot does not sell your personal information.</p>
 
+    <h2>5. How We Share Information</h2>
+    <p>ParkSlot shares information with other users only when reasonably necessary to provide the Service — for example, a Host sees the booking details needed to manage a reservation, and a Driver sees the location and slot details needed to complete a booking. Full KYC document images are visible only to platform administrators, not to other Drivers or Hosts. ParkSlot may also disclose information where required for payment processing, dispute resolution, fraud prevention, security, or legal compliance, including in response to a valid request from a court, regulator, or law-enforcement authority.</p>
 
+    <h3 style="color: var(--color-teal);">5.1 Third-Party Service Providers</h3>
+    <p>ParkSlot may rely on third-party services for email delivery (OTP and notification emails), map tiles and geocoding, hosting, and — if and when integrated — payment processing and analytics. Those providers process information under their own privacy policies and applicable data-processing agreements. <span class="placeholder">[Company to list specific sub-processors here once selected, e.g. the SMTP/email provider, hosting provider, and map-tile provider actually in use.]</span></p>
 
+    <div class="callout warning-box">
+      <strong>Sensitive data ParkSlot does not separately store as structured fields:</strong> full credit/debit card numbers, CVV/card security codes, bank account numbers, or a transcribed Aadhaar/PAN number extracted from an uploaded document. (As explained in Section 1.2, an uploaded government-ID <em>photo</em> may itself depict such a number if that is the document type the user chooses to upload — see that section for how those images are handled.)
+    </div>
 
+    <h2>6. Data Security</h2>
+    <p>ParkSlot applies technical safeguards appropriate to a platform of this kind, including password hashing, hashed and time-limited verification codes, encrypted connections (HTTPS/TLS) between your browser and our servers, rate limiting on sensitive endpoints, and automated account lockout after repeated failed login attempts. No method of transmission or storage is completely secure, and ParkSlot cannot guarantee absolute security.</p>
 
+    <h2>7. Cookies and Local Storage</h2>
+    <p>ParkSlot does not currently use tracking cookies or third-party advertising trackers. Your session is instead kept using your browser's local storage, which holds your login token and basic profile details on your own device so you stay logged in between visits. Clearing your browser's site data will log you out.</p>
 
-    <h2>11. Contact Us</h2>
-    <p>If you have questions about this policy, reach the ParkSlot team using the details below:</p>
+    <h2>8. Data Retention and Deletion</h2>
+    <p>ParkSlot retains your information for as long as your account is active and as needed to provide the Service. You may request deletion of your account and associated data at any time from your Account page; doing so permanently removes your listings, bookings, reviews, favourites, and KYC submissions associated with that account. ParkSlot may retain limited records — such as transaction and dispute history — for a period after deletion where required to comply with legal, tax, accounting, or fraud-prevention obligations. <span class="placeholder">[Company to specify a concrete retention period, e.g. "7 years for financial records," consistent with applicable law.]</span></p>
+
+    <h2>9. Your Rights</h2>
+    <p>Subject to applicable law, you may have the right to access, correct, or request deletion of your personal information, to withdraw consent where processing is based on consent (such as KYC consent), and to lodge a complaint with a relevant data-protection authority. To exercise these rights, use the self-service options in your Account page or contact us using the details in Section 12.</p>
+
+    <h2>10. Children's Privacy</h2>
+    <p>The Service is not directed to, and ParkSlot does not knowingly collect personal information from, anyone under 18 years of age. If ParkSlot becomes aware that it has collected personal information from someone under 18, it will take steps to delete that information and the associated account.</p>
+
+    <h2>11. Changes to This Policy</h2>
+    <p>ParkSlot may update this Privacy Policy from time to time. Material changes will be communicated through the app or by email before they take effect, with the "Last updated" date above revised accordingly.</p>
+
+    <h2 id="s12">12. Contact Us</h2>
+    <p>If you have questions about this policy or wish to exercise a privacy right described above, reach the ParkSlot team using the details below:</p>
     <p>
-    Email:
-    <a class="parkslot-link" href="mailto:pakslot.support@gmail.com">
-        pakslot.support@gmail.com
-    </a>
-</p>
+      Email: <a class="parkslot-link" href="mailto:support@parkslot.example">support@parkslot.example</a><br>
+      Website: <a class="parkslot-link" href="/index.html">ParkSlot</a>
+    </p>
+  </main>
 
-<p>
-    Website:
-    <a class="parkslot-link" href="/index.html">
-        ParkSlot
-    </a>
-</p>
-</main>
+  <footer class="site-footer text-center">
+    © 2026 ParkSlot. All rights reserved.
+  </footer>
 
-<footer class="site-footer">
-  <div class="container">© 2026 ParkSlot. All rights reserved.</div>
-</footer>
-
+  <script type="module" src="/js/auth.js"></script>
 </body>
 </html>

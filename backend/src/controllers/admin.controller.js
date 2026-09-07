@@ -113,7 +113,7 @@ export const unsuspendUser = async (req, res, next) => {
 export const listUsers = async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT user_id, name, email, phone, role, id_verified, kyc_status, is_suspended, avg_rating, created_at
+      `SELECT user_id, name, email, phone, role, id_verified, kyc_status, email_verified, is_suspended, avg_rating, created_at
        FROM users
        ORDER BY created_at DESC`
     );

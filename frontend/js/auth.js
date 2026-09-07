@@ -28,6 +28,10 @@ export function requireAuth(allowedRoles = null) {
     window.location.href = '/login.html';
     return null;
   }
+  if (!user.email_verified) {
+    window.location.href = '/verify-email.html';
+    return null;
+  }
   if (allowedRoles && !allowedRoles.includes(user.role)) {
     window.location.href = '/index.html';
     return null;
@@ -63,10 +67,14 @@ export function updateNavbar() {
   if (!navLinks) return;
 
   if (user) {
+    const initial = (user.name || '?').trim().charAt(0).toUpperCase();
     navLinks.innerHTML = `
       ${navLinksFor(user)}
       <a href="/account.html">Account</a>
-      <span class="nav-user" title="${escapeHtml(user.email)}">Hi, ${escapeHtml(user.name.split(' ')[0])}</span>
+      <span class="nav-user" title="${escapeHtml(user.email)}">
+        <span class="nav-avatar" aria-hidden="true">${escapeHtml(initial)}</span>
+        Hi, ${escapeHtml(user.name.split(' ')[0])}
+      </span>
       <button id="logout-btn" class="btn">Logout</button>
     `;
 
@@ -77,6 +85,30 @@ export function updateNavbar() {
       <a href="/signup.html" class="btn btn-primary">Sign Up</a>
     `;
   }
+
+  highlightActiveLink();
+}
+
+// Underlines whichever nav link matches the current page, so people always
+// have a sense of where they are in the app.
+function highlightActiveLink() {
+  const navLinks = document.getElementById('nav-links');
+  if (!navLinks) return;
+  const currentPath = window.location.pathname.replace(/\/$/, '') || '/index.html';
+  navLinks.querySelectorAll('a').forEach((a) => {
+    const linkPath = new URL(a.href, window.location.origin).pathname;
+    a.classList.toggle('nav-active', linkPath === currentPath);
+  });
+}
+
+// Adds a subtle shadow to the navbar once the page is scrolled, so it reads
+// as "floating above" content instead of blending into the top of the page.
+function setupScrollShadow() {
+  const navbar = document.querySelector('.navbar');
+  if (!navbar) return;
+  const onScroll = () => navbar.classList.toggle('navbar-scrolled', window.scrollY > 4);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
 }
 
 // Turns the nav into a slide-out mobile menu below the breakpoint. Works by
@@ -112,4 +144,5 @@ function setupMobileNav() {
 document.addEventListener('DOMContentLoaded', () => {
   updateNavbar();
   setupMobileNav();
+  setupScrollShadow();
 });
