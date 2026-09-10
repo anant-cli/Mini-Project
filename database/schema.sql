@@ -1,5 +1,4 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 CREATE TYPE user_role         AS ENUM ('driver', 'host', 'business_host', 'admin');
 CREATE TYPE slot_status       AS ENUM ('available', 'booked', 'occupied', 'disabled');
 CREATE TYPE vehicle_type      AS ENUM ('two_wheeler', 'car', 'suv', 'ev_car', 'ev_two_wheeler');
@@ -10,7 +9,6 @@ CREATE TYPE payout_status     AS ENUM ('held', 'released', 'reversed');
 CREATE TYPE charger_status    AS ENUM ('available', 'in_use', 'out_of_service');
 CREATE TYPE kyc_status        AS ENUM ('unsubmitted', 'pending', 'approved', 'rejected');
 CREATE TYPE otp_purpose       AS ENUM ('email_verify', 'password_reset');
-
 CREATE TABLE users (
     user_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name            VARCHAR(120) NOT NULL,
@@ -28,7 +26,6 @@ CREATE TABLE users (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE locations (
     location_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     owner_id             UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -50,7 +47,6 @@ CREATE TABLE locations (
 CREATE INDEX idx_locations_geo ON locations (latitude, longitude);
 CREATE INDEX idx_locations_owner ON locations (owner_id);
 CREATE INDEX idx_locations_verified ON locations (is_verified);
-
 CREATE TABLE slots (
     slot_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     location_id  UUID NOT NULL REFERENCES locations(location_id) ON DELETE CASCADE,
@@ -60,7 +56,6 @@ CREATE TABLE slots (
     UNIQUE (location_id, slot_number)
 );
 CREATE INDEX idx_slots_location_status ON slots (location_id, status);
-
 CREATE TABLE ev_chargers (
     charger_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     location_id     UUID NOT NULL REFERENCES locations(location_id) ON DELETE CASCADE,
@@ -71,7 +66,6 @@ CREATE TABLE ev_chargers (
     status          charger_status NOT NULL DEFAULT 'available'
 );
 CREATE INDEX idx_ev_chargers_location ON ev_chargers (location_id);
-
 CREATE TABLE bookings (
     booking_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id          UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -93,7 +87,6 @@ CREATE TABLE bookings (
 CREATE INDEX idx_bookings_slot_time ON bookings (slot_id, start_time, end_time);
 CREATE INDEX idx_bookings_user ON bookings (user_id);
 CREATE INDEX idx_bookings_status ON bookings (status);
-
 CREATE TABLE payments (
     payment_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id       UUID NOT NULL UNIQUE REFERENCES bookings(booking_id) ON DELETE CASCADE,
@@ -104,7 +97,6 @@ CREATE TABLE payments (
     gateway_ref       VARCHAR(120),
     transaction_time TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-
 CREATE TABLE reviews (
     review_id     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id    UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE,
@@ -132,7 +124,6 @@ CREATE TABLE favorites (
     PRIMARY KEY (user_id, location_id)
 );
 CREATE INDEX idx_favorites_location ON favorites (location_id);
-
 CREATE TABLE disputes (
     dispute_id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id   UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE,
@@ -146,7 +137,6 @@ CREATE TABLE disputes (
 );
 CREATE INDEX idx_disputes_booking ON disputes (booking_id);
 CREATE INDEX idx_disputes_status ON disputes (status) WHERE status = 'open';
-
 CREATE TABLE kyc_submissions (
     kyc_id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id             UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -164,7 +154,6 @@ CREATE TABLE kyc_submissions (
 );
 CREATE INDEX idx_kyc_user ON kyc_submissions (user_id);
 CREATE INDEX idx_kyc_pending ON kyc_submissions (status) WHERE status = 'pending';
-
 CREATE TABLE otp_tokens (
     otp_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id      UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -176,7 +165,6 @@ CREATE TABLE otp_tokens (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_otp_user_purpose ON otp_tokens (user_id, purpose);
-
 CREATE OR REPLACE FUNCTION haversine_km(lat1 DOUBLE PRECISION, lon1 DOUBLE PRECISION,
                                          lat2 DOUBLE PRECISION, lon2 DOUBLE PRECISION)
 RETURNS DOUBLE PRECISION AS $$
