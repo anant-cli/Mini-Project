@@ -51,7 +51,6 @@
     import { showToast } from '/js/toast.js';
     import { escapeHtml } from '/js/sanitize.js';
 
-    // Bookings belong to drivers only — hosts list spots, they don't book them.
     const user = requireAuth(['driver']);
     if (user) document.getElementById('page-root').style.display = 'block';
 
@@ -193,7 +192,8 @@
     });
 
     if (user) loadBookings();
-  </script>
+  
+    </script>
 </body>
 </html>
 

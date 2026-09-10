@@ -19,9 +19,6 @@ export function logout() {
   window.location.href = '/login.html';
 }
 
-// Call at the top of any page that requires login. Optionally restrict to
-// specific roles. Redirects and returns null if the check fails, so pages
-// can do: `const user = requireAuth(); if (!user) return;`
 export function requireAuth(allowedRoles = null) {
   const user = getUser();
   if (!user || !getToken()) {
@@ -39,11 +36,6 @@ export function requireAuth(allowedRoles = null) {
   return user;
 }
 
-// Each role sees only the links that match what they're allowed to do:
-// a driver searches/books/saves spots, a host/business_host only manages
-// their own listings, and an admin only gets the moderation console —
-// admins don't book slots or list spots themselves, they oversee the
-// platform (users, listings, disputes, reports) from /admin.html.
 function navLinksFor(user) {
   switch (user.role) {
     case 'host':
@@ -89,8 +81,6 @@ export function updateNavbar() {
   highlightActiveLink();
 }
 
-// Underlines whichever nav link matches the current page, so people always
-// have a sense of where they are in the app.
 function highlightActiveLink() {
   const navLinks = document.getElementById('nav-links');
   if (!navLinks) return;
@@ -101,8 +91,6 @@ function highlightActiveLink() {
   });
 }
 
-// Adds a subtle shadow to the navbar once the page is scrolled, so it reads
-// as "floating above" content instead of blending into the top of the page.
 function setupScrollShadow() {
   const navbar = document.querySelector('.navbar');
   if (!navbar) return;
@@ -111,9 +99,6 @@ function setupScrollShadow() {
   onScroll();
 }
 
-// Turns the nav into a slide-out mobile menu below the breakpoint. Works by
-// toggling a class on <body> that the CSS keys off of, and injecting a
-// hamburger button next to the links if one isn't already there.
 function setupMobileNav() {
   const navbar = document.querySelector('.navbar .container');
   const navLinks = document.getElementById('nav-links');
@@ -132,7 +117,6 @@ function setupMobileNav() {
     toggle.classList.toggle('nav-toggle-open');
   });
 
-  // Close the menu after tapping a link (better mobile UX).
   navLinks.addEventListener('click', (e) => {
     if (e.target.tagName === 'A' || e.target.tagName === 'BUTTON') {
       navLinks.classList.remove('nav-open');
@@ -141,8 +125,48 @@ function setupMobileNav() {
   });
 }
 
+function kycNudgeMessage(user) {
+  if (user.kyc_status === 'rejected') {
+    return 'Your identity verification was rejected. Please resubmit to book or list parking.';
+  }
+  return 'Verify your identity to book a spot or list your own parking.';
+}
+
+export function renderKycNudge() {
+  const user = getUser();
+  const existing = document.getElementById('kyc-nudge-banner');
+  if (existing) existing.remove();
+
+  if (!user || user.role === 'admin') return;
+  if (!user.email_verified) return;
+  if (!['unsubmitted', 'rejected'].includes(user.kyc_status)) return;
+  if (window.location.pathname.replace(/\/$/, '') === '/kyc-setup.html') return;
+  if (sessionStorage.getItem('kyc-nudge-dismissed') === '1') return;
+
+  const navbar = document.querySelector('.navbar');
+  if (!navbar) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'kyc-nudge-banner';
+  banner.className = 'kyc-nudge-banner';
+  banner.innerHTML = `
+    <span>${escapeHtml(kycNudgeMessage(user))}</span>
+    <span class="kyc-nudge-actions">
+      <a href="/kyc-setup.html" class="btn btn-primary">Verify now</a>
+      <button type="button" class="kyc-nudge-dismiss" aria-label="Dismiss">&#10005;</button>
+    </span>
+  `;
+  navbar.insertAdjacentElement('afterend', banner);
+
+  banner.querySelector('.kyc-nudge-dismiss').addEventListener('click', () => {
+    sessionStorage.setItem('kyc-nudge-dismissed', '1');
+    banner.remove();
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   updateNavbar();
+  renderKycNudge();
   setupMobileNav();
   setupScrollShadow();
 });

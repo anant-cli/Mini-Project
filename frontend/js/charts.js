@@ -1,10 +1,3 @@
-// Small, dependency-free SVG chart renderer.
-//
-// The production CSP is `script-src 'self'` and there's no chart library in
-// package.json, so this draws plain inline SVG instead of pulling in
-// Chart.js/D3 from a CDN — zero new dependencies, works under the existing
-// security policy, and is easy to theme with the app's own CSS variables.
-
 const NS = 'http://www.w3.org/2000/svg';
 
 function el(name, attrs = {}) {
@@ -42,12 +35,6 @@ function formatValue(n) {
   return Number.isInteger(n) ? String(n) : n.toFixed(2);
 }
 
-/**
- * Renders a chart into `container`.
- * @param {HTMLElement} container
- * @param {{label: string, value: number}[]} series
- * @param {{type: 'line'|'bar', mode: 'trend'|'breakdown', color?: string, emptyMessage?: string}} opts
- */
 export function renderChart(container, series, opts = {}) {
   container.innerHTML = '';
   const { type = 'line', mode = 'trend', color = 'var(--color-teal)', emptyMessage = 'No data for this selection yet.' } = opts;
@@ -80,7 +67,6 @@ export function renderChart(container, series, opts = {}) {
   const yFor = (v) => padding.top + plotHeight - ((v - minVal) / (maxVal - minVal || 1)) * plotHeight;
   const xStep = series.length > 1 ? plotWidth / (series.length - (type === 'line' ? 1 : 0)) : plotWidth;
 
-  // Gridlines + y-axis labels
   const gridCount = 4;
   for (let i = 0; i <= gridCount; i++) {
     const v = minVal + ((maxVal - minVal) * i) / gridCount;
@@ -97,7 +83,6 @@ export function renderChart(container, series, opts = {}) {
     svg.appendChild(label);
   }
 
-  // X-axis labels — thin out if there are many points so they don't overlap.
   const maxLabels = Math.max(4, Math.floor(plotWidth / 70));
   const labelStride = Math.max(1, Math.ceil(series.length / maxLabels));
 

@@ -25,6 +25,10 @@ export default defineConfig({
         terms: resolve(import.meta.dirname, 'terms.html'),
         privacy: resolve(import.meta.dirname, 'privacy.html'),
         notFound: resolve(import.meta.dirname, '404.html'),
+        forgotPassword: resolve(import.meta.dirname, 'forgot-password.html'),
+        resetPassword: resolve(import.meta.dirname, 'reset-password.html'),
+        verifyEmail: resolve(import.meta.dirname, 'verify-email.html'),
+        kycSetup: resolve(import.meta.dirname, 'kyc-setup.html'),
       }
     }
   }

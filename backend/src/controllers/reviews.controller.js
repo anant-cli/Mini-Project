@@ -14,7 +14,6 @@ const reviewSchema = z.object({
   comment: z.string().max(1000).transform((value) => value.trim().replace(/\s+/g, ' ')).optional(),
 });
 
-// Driver reviews the parking space after a completed booking.
 export const reviewLocation = async (req, res, next) => {
   try {
     const data = reviewSchema.parse(req.body);
@@ -26,6 +25,7 @@ export const reviewLocation = async (req, res, next) => {
     if (existing) throw new ApiError(409, 'This booking already has a location review');
 
     const { rows } = await query(`SELECT location_id FROM slots WHERE slot_id = $1`, [booking.slot_id]);
+    if (!rows[0]) throw new ApiError(404, 'Slot not found for this booking');
 
     const review = await addLocationReview({
       booking_id: data.booking_id,
@@ -40,7 +40,6 @@ export const reviewLocation = async (req, res, next) => {
   }
 };
 
-// Host reviews the driver after a completed booking (mutual trust rating).
 export const reviewDriver = async (req, res, next) => {
   try {
     const data = reviewSchema.parse(req.body);

@@ -235,7 +235,6 @@
           </div>
         `).join('');
       } catch (err) {
-        // Non-critical — fail silently, reviews just won't show.
       }
     }
 
@@ -278,8 +277,6 @@
     }
 
     function setupBookingForm() {
-      // Only driver accounts can book — hosts/admins get an explanatory
-      // message instead of a form they'd only get a 403 from submitting.
       if (user.role !== 'driver') {
         const bookingCard = document.getElementById('booking-form').closest('.card');
         bookingCard.innerHTML = `
@@ -335,16 +332,16 @@
             end_time: new Date(endTime).toISOString(),
           });
           const quote = res.data;
-          
+
           document.getElementById('payment-summary').innerHTML = `
             <div class="flex justify-between mb-1"><span>Rate:</span> <span>${money(pricePerHour)}/hr</span></div>
             <div class="flex justify-between mb-1"><span>Duration:</span> <span>${quote.hours.toFixed(1)} hrs</span></div>
             <hr style="border-color:var(--color-border); margin:8px 0;" />
             <div class="flex justify-between font-bold"><span>Total:</span> <span>${money(quote.total_amount || quote.estimated_amount)}</span></div>
           `;
-          
+
           document.getElementById('payment-modal').style.display = 'flex';
-          
+
           document.getElementById('payment-form').onsubmit = async (pe) => {
             pe.preventDefault();
             const payBtn = document.getElementById('pay-submit');
@@ -352,10 +349,10 @@
             payBtn.textContent = 'Processing payment...';
 
             await new Promise(r => setTimeout(r, 1500));
-            
+
             payBtn.textContent = 'Payment Successful';
             payBtn.classList.replace('btn-primary', 'btn-success');
-            
+
             await new Promise(r => setTimeout(r, 500));
 
             try {
@@ -380,7 +377,7 @@
           document.getElementById('pay-cancel').onclick = () => {
             document.getElementById('payment-modal').style.display = 'none';
           };
-          
+
         } catch (err) {
           showToast(apiErrorMessage(err, 'Could not get quote.'), 'error');
         } finally {
@@ -394,7 +391,6 @@
       window.location.href = '/bookings.html';
     });
 
-    // Live slot status — refresh the grid/options in place when anyone books/cancels/checks in.
     onSlotUpdated(() => {
       api.get(`/listings/${listingId}`).then((res) => {
         currentSlots = res.data.slots;
@@ -404,6 +400,7 @@
     });
 
     if (user) loadListing();
-  </script>
+  
+    </script>
 </body>
 </html>

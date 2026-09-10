@@ -104,7 +104,6 @@
       submitBtn.textContent = 'Creating account...';
 
       try {
-        // NOTE: the backend route is /auth/signup, not /auth/register.
         const res = await api.post('/auth/signup', {
           name, email, password, role,
           ...(phone ? { phone } : {}),
@@ -119,6 +118,7 @@
         submitBtn.textContent = 'Continue';
       }
     });
-  </script>
+  
+    </script>
 </body>
 </html>

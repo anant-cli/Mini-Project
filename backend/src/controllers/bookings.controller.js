@@ -170,9 +170,11 @@ export const listHostedBookings = async (req, res, next) => {
 export const listHostBookings = listHostedBookings;
 
 
+const qrTokenSchema = z.object({ qr_token: z.string().min(1).max(64) });
+
 export const checkin = async (req, res, next) => {
   try {
-    const { qr_token } = req.body;
+    const { qr_token } = qrTokenSchema.parse(req.body);
     const { booking, updated } = await withTransaction(async (client) => {
       const booking = await lockBookingByQrToken(client, qr_token);
       if (!booking) throw new ApiError(404, 'Invalid QR code');
@@ -192,7 +194,7 @@ export const checkin = async (req, res, next) => {
 
 export const checkout = async (req, res, next) => {
   try {
-    const { qr_token } = req.body;
+    const { qr_token } = qrTokenSchema.parse(req.body);
     const commissionPercent = Number(process.env.PLATFORM_COMMISSION_PERCENT || 15);
     const result = await withTransaction(async (client) => {
       const booking = await lockBookingByQrToken(client, qr_token);

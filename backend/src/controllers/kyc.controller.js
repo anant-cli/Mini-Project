@@ -5,9 +5,6 @@ import {
 } from '../models/kyc.model.js';
 import { ApiError } from '../middleware/errorHandler.js';
 
-// Base64 data URLs only (e.g. "data:image/jpeg;base64,...") — capped well
-// under Express's json body limit (see server.js) so a couple of phone
-// photos fit comfortably without needing a separate file-upload endpoint.
 const dataUrlImage = z.string()
   .min(100)
   .max(4_000_000)

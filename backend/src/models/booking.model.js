@@ -77,7 +77,6 @@ export const recordCheckin = async (bookingId, method = 'qr', client = null) => 
   return rows[0];
 };
 
-// Computes the final bill from the actual checkin-to-checkout duration, adding overtime if the driver stayed past the booked end time.
 export const recordCheckout = async (bookingId, pricePerHour, client = null, lockedBooking = null) => {
   const runner = client ? client.query.bind(client) : query;
   const booking = lockedBooking || await findBookingById(bookingId);

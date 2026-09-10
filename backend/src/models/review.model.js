@@ -16,7 +16,6 @@ export const findDriverReviewForBooking = async (bookingId) => {
   return rows[0];
 };
 
-// Driver rates the space (location review)
 export const addLocationReview = async ({ booking_id, location_id, author_id, rating, comment }) => {
   const { rows } = await query(
     `INSERT INTO reviews (booking_id, location_id, author_id, rating, comment)
@@ -26,7 +25,6 @@ export const addLocationReview = async ({ booking_id, location_id, author_id, ra
   return rows[0];
 };
 
-// Host rates the driver
 export const addDriverReview = async ({ booking_id, reviewed_user, author_id, rating, comment }) => {
   const { rows } = await query(
     `INSERT INTO reviews (booking_id, reviewed_user, author_id, rating, comment)

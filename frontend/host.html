@@ -310,7 +310,6 @@
         commissionPercent = Number(res.data.platform_commission_percent);
         document.getElementById('stat-earnings-label').textContent = `Est. Payout (after ${commissionPercent}% commission)`;
       } catch {
-        // Non-critical — fall back to the 15% default already assumed above.
       }
     }
 
@@ -649,7 +648,8 @@
       loadCommission().then(loadBookings);
       loadListings();
     }
-  </script>
+  
+    </script>
 </body>
 </html>
 

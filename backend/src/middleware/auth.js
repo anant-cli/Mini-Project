@@ -24,10 +24,6 @@ export const requireAuth = async (req, res, next) => {
     };
     next();
   } catch (err) {
-    // A DB/query error here (e.g. a column added by a migration that
-    // hasn't been applied yet) is NOT the same thing as a bad token —
-    // let it surface as a real 500 via errorHandler instead of silently
-    // logging the user out, which used to hide exactly this class of bug.
     next(err);
   }
 };

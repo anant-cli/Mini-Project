@@ -5,7 +5,7 @@ import {
   setEmailVerified, updatePasswordHash, registerFailedLogin, clearFailedLogins,
 } from '../models/user.model.js';
 import {
-  createOtp, getActiveOtp, getMostRecentOtp, incrementOtpAttempts, consumeOtp,
+  createOtp, getActiveOtp, getMostRecentOtp, incrementOtpAttempts, consumeOtp, countOtpsIssuedSince,
 } from '../models/otp.model.js';
 import { generateOtp, hashOtp, otpExpiryDate } from '../utils/otp.js';
 import { sendEmail, otpEmailHtml } from '../utils/email.js';
@@ -14,14 +14,22 @@ import { ApiError } from '../middleware/errorHandler.js';
 
 const MAX_OTP_ATTEMPTS = 5;
 const RESEND_COOLDOWN_SECONDS = 60;
+const DAILY_EMAIL_LIMIT = Number(process.env.DAILY_EMAIL_LIMIT || 450);
 
-// Passwords need at least one letter and one number on top of the length
-// check — stops "aaaaaaaa"-style passwords without being obnoxious about it.
 const passwordSchema = z.string().min(8).max(128)
   .regex(/[a-zA-Z]/, 'Password must contain at least one letter')
   .regex(/[0-9]/, 'Password must contain at least one number');
 
-async function issueAndSendOtp(user, purpose) {
+async function issueAndSendOtp(user, purpose, { throwOnCap = true } = {}) {
+  const sentToday = await countOtpsIssuedSince(24);
+  if (sentToday >= DAILY_EMAIL_LIMIT) {
+    if (throwOnCap) {
+      throw new ApiError(503, "We've hit today's verification email limit. Please try again in a few hours.");
+    }
+    console.error(`Daily OTP email limit (${DAILY_EMAIL_LIMIT}) reached — skipped ${purpose} email for ${user.email}`);
+    return;
+  }
+
   const code = generateOtp();
   const tokenHash = hashOtp(code);
   await createOtp(user.user_id, purpose, tokenHash, otpExpiryDate(10));
@@ -49,7 +57,7 @@ export const signup = async (req, res, next) => {
     const passwordHash = await bcrypt.hash(data.password, 12);
     const user = await createUser({ ...data, passwordHash });
 
-    await issueAndSendOtp(user, 'email_verify');
+    await issueAndSendOtp(user, 'email_verify', { throwOnCap: false });
 
     const token = signToken(user);
     res.status(201).json({ user, token });
@@ -58,10 +66,6 @@ export const signup = async (req, res, next) => {
   }
 };
 
-// Strips fields that are for internal server-side logic only (password
-// hash, brute-force counters) so they never ride along in an API response —
-// even to the account's own owner, these are implementation detail, not
-// something a client should see or depend on.
 function toPublicUser(user) {
   const { password_hash: _ph, failed_login_attempts: _fla, locked_until: _lu, ...publicUser } = user;
   return publicUser;
@@ -77,8 +81,6 @@ export const login = async (req, res, next) => {
     const { email, password } = loginSchema.parse(req.body);
     const user = await findUserByEmail(email);
 
-    // Same generic error whether the email doesn't exist or the password is
-    // wrong — never reveal which one, to avoid confirming registered emails.
     const genericError = () => new ApiError(401, 'Invalid email or password');
     if (!user) throw genericError();
 
@@ -114,7 +116,6 @@ export const me = async (req, res, next) => {
   }
 };
 
-// ---------- Email verification (OTP) ----------
 const verifyEmailSchema = z.object({
   otp: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
 });
@@ -169,7 +170,6 @@ export const resendOtp = async (req, res, next) => {
   }
 };
 
-// ---------- Forgot / reset password (OTP, unauthenticated) ----------
 const forgotPasswordSchema = z.object({ email: z.string().email().max(160) });
 
 export const forgotPassword = async (req, res, next) => {
@@ -177,10 +177,6 @@ export const forgotPassword = async (req, res, next) => {
     const { email } = forgotPasswordSchema.parse(req.body);
     const user = await findUserByEmail(email);
 
-    // Always the same response whether or not the account exists, and
-    // regardless of the resend cooldown result — an attacker probing this
-    // endpoint should never be able to distinguish "no such account" from
-    // "code already sent, please wait".
     const genericMessage = { message: 'If an account exists for that email, a reset code has been sent.' };
 
     if (!user) return res.json(genericMessage);
@@ -191,7 +187,7 @@ export const forgotPassword = async (req, res, next) => {
       if (secondsSince < RESEND_COOLDOWN_SECONDS) return res.json(genericMessage);
     }
 
-    await issueAndSendOtp(user, 'password_reset');
+    await issueAndSendOtp(user, 'password_reset', { throwOnCap: false });
     res.json(genericMessage);
   } catch (err) {
     next(err);
@@ -234,10 +230,6 @@ const deleteAccountSchema = z.object({
   password: z.string().min(1, 'Password is required to delete your account'),
 });
 
-// Self-service account deletion for any role. Requires the current password
-// as confirmation. All owned data (a host's listings/slots, a driver's
-// bookings/payments/reviews/favorites) is removed automatically by the
-// database's ON DELETE CASCADE constraints — see schema.sql.
 export const deleteMyAccount = async (req, res, next) => {
   try {
     const { password } = deleteAccountSchema.parse(req.body);

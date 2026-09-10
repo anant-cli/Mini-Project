@@ -5,9 +5,6 @@ import { ApiError } from '../middleware/errorHandler.js';
 
 const quote = (id) => `"${id}"`;
 
-// Resolves the requested table against the registry. Every generic CRUD /
-// analytics handler goes through this first — an unknown table name is a
-// 404, never a query built from unchecked input.
 function resolveTable(name) {
   const def = getTableDef(name);
   if (!def) throw new ApiError(404, `Unknown table "${name}"`);
@@ -20,11 +17,6 @@ function resolveColumn(def, name, { mustExist = true } = {}) {
   return col;
 }
 
-// Every column except ones flagged `heavy` (large blobs like the KYC
-// images) — used to build an explicit column list instead of `SELECT *` /
-// `RETURNING *`, so a heavy column can never leak into a list/edit response
-// even if a future column gets added to the registry without thinking
-// about it.
 function selectableColumns(def) {
   return def.columns.filter((c) => !c.heavy).map((c) => c.name);
 }
@@ -33,9 +25,6 @@ function selectListSql(def) {
   return selectableColumns(def).map(quote).join(', ');
 }
 
-// Coerces a raw JSON value into the right JS type for its column, and
-// rejects it outright if it doesn't fit (bad enum value, non-numeric
-// number, etc.) rather than silently passing bad data through to Postgres.
 function coerceValue(col, raw) {
   if (raw === null || raw === undefined || raw === '') return null;
   switch (col.type) {
@@ -67,8 +56,6 @@ function coerceValue(col, raw) {
   }
 }
 
-// Builds { column, value } pairs for every editable column present in the
-// request body, validating each one. Used by both create and update.
 function buildEditableAssignments(def, body, { forCreate }) {
   const assignments = [];
   for (const col of def.columns) {
@@ -90,9 +77,6 @@ function pkWhereClause(def, pkValues, startIndex = 1) {
   return { clause: clauses.join(' AND '), params: def.pk.map((col) => pkValues[col]) };
 }
 
-// ---------------------------------------------------------------------------
-// Table metadata (drives the frontend's table picker + auto-generated forms)
-// ---------------------------------------------------------------------------
 export const listTableDefs = async (req, res, next) => {
   try {
     const counts = await Promise.all(
@@ -131,9 +115,6 @@ export const listTableDefs = async (req, res, next) => {
   }
 };
 
-// ---------------------------------------------------------------------------
-// Generic list with search / sort / pagination
-// ---------------------------------------------------------------------------
 const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -150,7 +131,7 @@ export const listRows = async (req, res, next) => {
     let sortColumn = def.defaultSort.column;
     let sortDir = def.defaultSort.dir;
     if (sort) {
-      const col = resolveColumn(def, sort); // throws if not a real column
+      const col = resolveColumn(def, sort);
       if (col.heavy) throw new ApiError(400, `Cannot sort by "${sort}"`);
       sortColumn = sort;
     }
@@ -261,8 +242,6 @@ export const deleteRow = async (req, res, next) => {
   }
 };
 
-// The route always carries a single `:id` — for composite-key tables
-// (favorites) the client joins the key parts with a comma, in pk order.
 function extractPk(def, params) {
   const parts = String(params.id).split(',');
   if (parts.length !== def.pk.length) {
@@ -273,7 +252,6 @@ function extractPk(def, params) {
 
 function mapDbError(err) {
   if (err instanceof ApiError) return err;
-  // Postgres error codes: 23505 unique_violation, 23503 foreign_key_violation, 23502 not_null_violation
   if (err?.code === '23505') return new ApiError(409, 'That value already exists (unique constraint).');
   if (err?.code === '23503') return new ApiError(409, 'That would violate a foreign key relationship.');
   if (err?.code === '23502') return new ApiError(400, `Missing required field: ${err.column || 'unknown'}`);
@@ -281,12 +259,6 @@ function mapDbError(err) {
   return err;
 }
 
-// ---------------------------------------------------------------------------
-// Analytics — admin picks a table + how to slice it, we build one whitelisted
-// aggregate query. Nothing here accepts a raw SQL fragment from the client:
-// every table/column/interval/metric is checked against the registry or a
-// fixed enum before it's interpolated.
-// ---------------------------------------------------------------------------
 export const analyticsOptions = async (req, res, next) => {
   try {
     const options = TABLE_NAMES.map((name) => {
@@ -358,7 +330,6 @@ export const analyticsSeries = async (req, res, next) => {
       return;
     }
 
-    // breakdown mode
     if (!input.groupColumn || !allowed.categoryColumns.includes(input.groupColumn)) {
       throw new ApiError(400, `"${input.groupColumn}" isn't a chartable category column on ${def.table}`);
     }

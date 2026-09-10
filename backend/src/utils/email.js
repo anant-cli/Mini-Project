@@ -2,10 +2,6 @@ import nodemailer from 'nodemailer';
 
 let cachedTransporter;
 
-// Any free SMTP provider works here (Gmail app password, Brevo/Sendinblue
-// free tier, Resend, Mailtrap for local testing). If SMTP_HOST isn't set —
-// e.g. a fresh local checkout — we fall back to logging the email to the
-// console instead of failing signups outright.
 function getTransporter() {
   if (cachedTransporter !== undefined) return cachedTransporter;
 
@@ -30,8 +26,6 @@ export async function sendEmail({ to, subject, html }) {
   const from = process.env.EMAIL_FROM || 'ParkSlot <no-reply@parkslot.local>';
 
   if (!transporter) {
-    // Local/dev fallback — no SMTP configured. Logging the OTP here (never
-    // in an API response) keeps development usable without real email.
     console.log(`\n[email:dev-mode] To: ${to}\nSubject: ${subject}\n${html.replace(/<[^>]+>/g, ' ').trim()}\n`);
     return { delivered: false, devMode: true };
   }

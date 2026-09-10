@@ -12,8 +12,6 @@ export const createHeldPayment = async (client, { booking_id, amount, payment_mo
   return rows[0];
 };
 
-// Release payout to host only after checkout is confirmed, adjusting the
-// captured amount to the final (possibly overtime-inclusive) total.
 export const releasePayment = async (bookingId, finalAmount, commissionPercent, client = null) => {
   const platformCut = Number((finalAmount * (commissionPercent / 100)).toFixed(2));
   const hostPayout = Number((finalAmount - platformCut).toFixed(2));

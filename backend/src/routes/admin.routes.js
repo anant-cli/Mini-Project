@@ -9,8 +9,6 @@ import adminTablesRoutes from './adminTables.routes.js';
 const router = Router();
 router.use(requireAuth, requireRole('admin'));
 
-// Generic "browse/edit any table" + dashboard analytics engine — see
-// adminTables.routes.js / adminTables.controller.js / config/adminTables.js.
 router.use('/', adminTablesRoutes);
 
 router.get('/report', platformReport);

@@ -4,8 +4,6 @@ import {
   analyticsOptions, analyticsSeries,
 } from '../controllers/adminTables.controller.js';
 
-// Mounted under /api/admin by admin.routes.js, which already applies
-// requireAuth + requireRole('admin') to everything below it.
 const router = Router();
 
 router.get('/analytics/options', analyticsOptions);

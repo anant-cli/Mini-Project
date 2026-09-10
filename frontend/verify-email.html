@@ -64,10 +64,6 @@
     }
 
     function goNext() {
-      // Already-verified users don't need identity docs re-collected if
-      // they've already submitted (or been approved for) KYC — this page
-      // otherwise doubles as the identity-verification gate for anyone who
-      // never finished either step.
       if (user.kyc_status && user.kyc_status !== 'unsubmitted') {
         goToApp();
       } else {
@@ -137,6 +133,7 @@
         resendBtn.disabled = false;
       }
     });
-  </script>
+  
+    </script>
 </body>
 </html>

@@ -1,8 +1,5 @@
 import { query, withTransaction } from '../config/db.js';
 
-// A user may only have one *active* submission at a time (pending, or the
-// most recent approved/rejected one) — resubmission after a rejection is
-// allowed and simply creates a new row so the review history is kept.
 export const createKycSubmission = async (userId, data) => {
   return withTransaction(async (client) => {
     const { rows } = await client.query(
@@ -31,7 +28,6 @@ export const getLatestKycForUser = async (userId) => {
   return rows[0];
 };
 
-// Full record including images — only for the admin review queue.
 export const getPendingKycSubmissions = async () => {
   const { rows } = await query(
     `SELECT k.*, u.name AS user_name, u.email AS user_email, u.role AS user_role

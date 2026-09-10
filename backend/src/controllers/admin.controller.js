@@ -123,9 +123,6 @@ export const listUsers = async (req, res, next) => {
   }
 };
 
-// Admin can remove any account. Same cascade guarantee as self-service
-// deletion: a host's listings/slots or a driver's bookings/payments/
-// reviews/favorites are removed automatically via ON DELETE CASCADE.
 export const deleteUserByAdmin = async (req, res, next) => {
   try {
     if (req.params.id === req.user.user_id) {

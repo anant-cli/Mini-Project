@@ -11,7 +11,6 @@ const chargerSchema = z.object({
   price_per_kwh: z.number().positive().max(100000),
 });
 
-// A host may only manage chargers on locations they own. Admins can manage any.
 const assertOwnsLocation = async (req, locationId) => {
   const ownerId = await getLocationOwnerId(locationId);
   if (!ownerId) throw new ApiError(404, 'Listing not found');

@@ -1,7 +1,5 @@
 import { query } from '../config/db.js';
 
-// Invalidate any earlier unconsumed codes for the same purpose before
-// issuing a new one, so only the most recently sent code is ever valid.
 export const createOtp = async (userId, purpose, tokenHash, expiresAt) => {
   await query(
     `UPDATE otp_tokens SET consumed_at = now()
@@ -26,8 +24,6 @@ export const getActiveOtp = async (userId, purpose) => {
   return rows[0];
 };
 
-// Used to enforce a resend cooldown regardless of whether the previous
-// code has expired or been consumed yet.
 export const getMostRecentOtp = async (userId, purpose) => {
   const { rows } = await query(
     `SELECT * FROM otp_tokens WHERE user_id = $1 AND purpose = $2
@@ -43,4 +39,12 @@ export const incrementOtpAttempts = async (otpId) => {
 
 export const consumeOtp = async (otpId) => {
   await query(`UPDATE otp_tokens SET consumed_at = now() WHERE otp_id = $1`, [otpId]);
+};
+
+export const countOtpsIssuedSince = async (hours) => {
+  const { rows } = await query(
+    `SELECT COUNT(*)::int AS count FROM otp_tokens WHERE created_at > now() - ($1 || ' hours')::interval`,
+    [hours]
+  );
+  return rows[0].count;
 };

@@ -48,7 +48,6 @@
     import { getUser } from '/js/auth.js';
     import { showToast } from '/js/toast.js';
 
-    // Already logged in? Skip the login screen.
     const existing = getUser();
     if (existing) {
       window.location.href = !existing.email_verified
@@ -88,10 +87,10 @@
         submitBtn.disabled = false;
         submitBtn.textContent = 'Login';
       }
-      
+
     });
-    
-    
-  </script>
+
+  
+    </script>
 </body>
 </html>

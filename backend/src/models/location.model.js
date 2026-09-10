@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { withTransaction } from '../config/db.js';
 
 export const createLocation = async (owner_id, data) => {
   const {
@@ -7,36 +7,34 @@ export const createLocation = async (owner_id, data) => {
     operating_hours, photos, ownership_consent,
   } = data;
 
-  const { rows } = await query(
-    `INSERT INTO locations
-      (owner_id, name, address, latitude, longitude, total_slots,
-       price_per_hour, vehicle_types_allowed, has_ev_charging, operating_hours, photos,
-       owner_consent_confirmed_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-     RETURNING *`,
-    [owner_id, name, address, latitude, longitude, total_slots,
-     price_per_hour, vehicle_types_allowed, Boolean(has_ev_charging),
-     JSON.stringify(operating_hours || { open: '00:00', close: '23:59' }), photos || [],
-     ownership_consent ? new Date() : null]
-  );
-
-  // Auto-create the physical slot rows for this listing.
-  const location = rows[0];
-  const slotInserts = [];
-  for (let i = 1; i <= total_slots; i++) {
-    slotInserts.push(
-      query(
-        `INSERT INTO slots (location_id, slot_number, vehicle_type) VALUES ($1,$2,$3)`,
-        [location.location_id, `S${i}`, vehicle_types_allowed?.[0] || 'car']
-      )
+  return withTransaction(async (client) => {
+    const { rows } = await client.query(
+      `INSERT INTO locations
+        (owner_id, name, address, latitude, longitude, total_slots,
+         price_per_hour, vehicle_types_allowed, has_ev_charging, operating_hours, photos,
+         owner_consent_confirmed_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+       RETURNING *`,
+      [owner_id, name, address, latitude, longitude, total_slots,
+       price_per_hour, vehicle_types_allowed, Boolean(has_ev_charging),
+       JSON.stringify(operating_hours || { open: '00:00', close: '23:59' }), photos || [],
+       ownership_consent ? new Date() : null]
     );
-  }
-  await Promise.all(slotInserts);
-  return location;
+
+    const location = rows[0];
+    const vehicleType = vehicle_types_allowed?.[0] || 'car';
+    const slotNumbers = Array.from({ length: total_slots }, (_, i) => `S${i + 1}`);
+    await client.query(
+      `INSERT INTO slots (location_id, slot_number, vehicle_type)
+       SELECT $1, s.slot_number, $2::vehicle_type
+       FROM unnest($3::text[]) AS s(slot_number)`,
+      [location.location_id, vehicleType, slotNumbers]
+    );
+
+    return location;
+  });
 };
 
-// Nearby search — uses the haversine_km() SQL function defined in schema.sql.
-// Swap to PostGIS ST_DWithin for production-scale geo-indexing.
 export const findNearbyLocations = async ({ lat, lng, radiusKm = 5, vehicleType, evOnly, maxPrice }) => {
   const conditions = ['is_verified = true'];
   const params = [lat, lng, radiusKm];
@@ -107,7 +105,6 @@ export const getLocationsByOwner = async (ownerId) => {
   return rows;
 };
 
-// Used by ownership checks (EV chargers, etc.) — cheap lookup of just the owner_id.
 export const getLocationOwnerId = async (locationId) => {
   const { rows } = await query(`SELECT owner_id FROM locations WHERE location_id = $1`, [locationId]);
   return rows[0]?.owner_id || null;

@@ -1,25 +1,3 @@
-// ---------------------------------------------------------------------------
-// Admin Console — table registry
-// ---------------------------------------------------------------------------
-// Single source of truth describing every table the admin console is allowed
-// to browse/edit, and exactly which columns are safe to read, write, search,
-// sort, and chart. The generic CRUD + analytics controllers never accept a
-// raw table/column name from the client without checking it against this
-// registry first — that's what keeps a "generic admin table editor" from
-// turning into a SQL-injection / arbitrary-query hole.
-//
-// Column `type` drives both input validation on the way in and the form
-// widget the frontend renders:
-//   uuid | text | textarea | number | boolean | enum | datetime | timestamp | json | array
-//
-// `editable: false` columns are shown but can never be sent in create/update.
-// `required: true` columns must be present on create.
-// `heavy: true` columns (large blobs — the KYC images) are never included in
-// a generic SELECT * / RETURNING * — they're excluded at the query-building
-// level in the controller, not just hidden in the UI, so a paginated table
-// list can never accidentally pull megabytes of base64 image data per row.
-// ---------------------------------------------------------------------------
-
 const ENUMS = {
   user_role: ['driver', 'host', 'business_host', 'admin'],
   kyc_status: ['unsubmitted', 'pending', 'approved', 'rejected'],
@@ -51,7 +29,6 @@ export const ADMIN_TABLES = {
       { name: 'is_suspended', type: 'boolean', editable: true, label: 'Suspended' },
       { name: 'created_at', type: 'timestamp', editable: false },
       { name: 'updated_at', type: 'timestamp', editable: false },
-      // password_hash is intentionally never exposed to the admin console.
     ],
     analytics: {
       dateColumns: ['created_at'],
@@ -248,23 +225,12 @@ export const ADMIN_TABLES = {
     table: 'kyc_submissions',
     label: 'KYC Submissions',
     pk: ['kyc_id'],
-    // Read-only in the generic browser on purpose: approving/rejecting here
-    // has to also flip users.kyc_status and users.id_verified together (see
-    // reviewKycSubmission in kyc.model.js), and a plain column edit can't do
-    // that atomically. Use the "Identity Verification" tab for that — this
-    // view exists so admins can see submission history and search/purge it.
     supportsUpdate: false,
     supportsCreate: false,
     defaultSort: { column: 'created_at', dir: 'desc' },
     columns: [
       { name: 'kyc_id', type: 'uuid', editable: false, label: 'ID' },
       { name: 'user_id', type: 'uuid', editable: false, references: 'users' },
-      // id_document_image / selfie_image deliberately omitted: they're
-      // multi-megabyte base64 blobs, and there's already a dedicated,
-      // image-previewing review flow for them (Identity Verification tab).
-      // A generic column with `heavy: true` is never selected or returned
-      // by the CRUD controller, so it can't leak into a list/edit response
-      // even if someone added it here by mistake.
       { name: 'id_document_image', type: 'text', editable: false, heavy: true },
       { name: 'selfie_image', type: 'text', editable: false, heavy: true },
       { name: 'consent_type', type: 'text', editable: false },
@@ -291,7 +257,4 @@ export function getTableDef(name) {
   return ADMIN_TABLES[name];
 }
 
-// Every value that reaches an interpolated identifier (table/column names)
-// is checked against the registry above, never against this regex alone —
-// but it's kept as a defense-in-depth sanity check on top of that.
 export const isSafeIdentifier = (value) => /^[a-z_][a-z0-9_]*$/.test(value || '');

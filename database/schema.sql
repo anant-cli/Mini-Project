@@ -1,6 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- ---------- ENUM TYPES ----------
 CREATE TYPE user_role         AS ENUM ('driver', 'host', 'business_host', 'admin');
 CREATE TYPE slot_status       AS ENUM ('available', 'booked', 'occupied', 'disabled');
 CREATE TYPE vehicle_type      AS ENUM ('two_wheeler', 'car', 'suv', 'ev_car', 'ev_two_wheeler');
@@ -9,10 +8,9 @@ CREATE TYPE checkin_method    AS ENUM ('qr', 'geofence_auto', 'manual_override')
 CREATE TYPE payment_status    AS ENUM ('authorized', 'captured', 'refunded', 'failed');
 CREATE TYPE payout_status     AS ENUM ('held', 'released', 'reversed');
 CREATE TYPE charger_status    AS ENUM ('available', 'in_use', 'out_of_service');
+CREATE TYPE kyc_status        AS ENUM ('unsubmitted', 'pending', 'approved', 'rejected');
+CREATE TYPE otp_purpose       AS ENUM ('email_verify', 'password_reset');
 
-CREATE TYPE kyc_status AS ENUM ('unsubmitted', 'pending', 'approved', 'rejected');
-
--- ---------- USERS ----------
 CREATE TABLE users (
     user_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name            VARCHAR(120) NOT NULL,
@@ -31,7 +29,6 @@ CREATE TABLE users (
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ---------- LOCATIONS (listed by hosts) ----------
 CREATE TABLE locations (
     location_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     owner_id             UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -45,17 +42,15 @@ CREATE TABLE locations (
     has_ev_charging      BOOLEAN NOT NULL DEFAULT FALSE,
     operating_hours      JSONB DEFAULT '{"open": "00:00", "close": "23:59"}',
     photos               TEXT[],
-    -- When the host confirmed, for THIS specific listing, that they own it
-    -- or are authorized to list it. Separate from the one-time account-level
-    -- KYC ownership declaration in kyc_submissions.
     owner_consent_confirmed_at TIMESTAMPTZ,
     is_verified          BOOLEAN NOT NULL DEFAULT FALSE,
     surge_enabled        BOOLEAN NOT NULL DEFAULT FALSE,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_locations_geo ON locations (latitude, longitude);
+CREATE INDEX idx_locations_owner ON locations (owner_id);
+CREATE INDEX idx_locations_verified ON locations (is_verified);
 
--- ---------- SLOTS ----------
 CREATE TABLE slots (
     slot_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     location_id  UUID NOT NULL REFERENCES locations(location_id) ON DELETE CASCADE,
@@ -64,19 +59,19 @@ CREATE TABLE slots (
     vehicle_type vehicle_type NOT NULL DEFAULT 'car',
     UNIQUE (location_id, slot_number)
 );
+CREATE INDEX idx_slots_location_status ON slots (location_id, status);
 
--- ---------- EV CHARGERS ----------
 CREATE TABLE ev_chargers (
     charger_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     location_id     UUID NOT NULL REFERENCES locations(location_id) ON DELETE CASCADE,
-    connector_type  VARCHAR(20) NOT NULL, -- Type-1, Type-2, CCS, CHAdeMO
-    current_type    VARCHAR(5)  NOT NULL DEFAULT 'AC', -- AC / DC
+    connector_type  VARCHAR(20) NOT NULL,
+    current_type    VARCHAR(5)  NOT NULL DEFAULT 'AC',
     power_kw        NUMERIC(5,2) NOT NULL,
     price_per_kwh   NUMERIC(6,2) NOT NULL,
     status          charger_status NOT NULL DEFAULT 'available'
 );
+CREATE INDEX idx_ev_chargers_location ON ev_chargers (location_id);
 
--- ---------- BOOKINGS ----------
 CREATE TABLE bookings (
     booking_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id          UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
@@ -91,17 +86,17 @@ CREATE TABLE bookings (
     estimated_amount NUMERIC(9,2) NOT NULL,
     total_amount     NUMERIC(9,2),
     overtime_amount  NUMERIC(9,2) DEFAULT 0,
-    status           booking_status NOT NULL DEFAULT 'pending', -- Note: 'pending' is currently unused in the frontend flow as bookings are created straight to 'confirmed' with held payments.
+    status           booking_status NOT NULL DEFAULT 'pending',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT valid_window CHECK (end_time > start_time)
 );
 CREATE INDEX idx_bookings_slot_time ON bookings (slot_id, start_time, end_time);
 CREATE INDEX idx_bookings_user ON bookings (user_id);
+CREATE INDEX idx_bookings_status ON bookings (status);
 
--- ---------- PAYMENTS ----------
 CREATE TABLE payments (
     payment_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    booking_id       UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE,
+    booking_id       UUID NOT NULL UNIQUE REFERENCES bookings(booking_id) ON DELETE CASCADE,
     amount           NUMERIC(9,2) NOT NULL,
     payment_mode     VARCHAR(30) NOT NULL DEFAULT 'card',
     payment_status   payment_status NOT NULL DEFAULT 'authorized',
@@ -110,12 +105,11 @@ CREATE TABLE payments (
     transaction_time TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- ---------- REVIEWS (bidirectional: location reviews + driver reviews) ----------
 CREATE TABLE reviews (
     review_id     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id    UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE,
     location_id   UUID REFERENCES locations(location_id) ON DELETE CASCADE,
-    reviewed_user UUID REFERENCES users(user_id) ON DELETE CASCADE, -- set when a host rates a driver
+    reviewed_user UUID REFERENCES users(user_id) ON DELETE CASCADE,
     author_id     UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     rating        SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment       TEXT,
@@ -128,23 +122,20 @@ CREATE UNIQUE INDEX idx_reviews_one_location_review_per_booking
 CREATE UNIQUE INDEX idx_reviews_one_driver_review_per_booking
     ON reviews (booking_id)
     WHERE reviewed_user IS NOT NULL;
+CREATE INDEX idx_reviews_location ON reviews (location_id);
+CREATE INDEX idx_reviews_reviewed_user ON reviews (reviewed_user);
 
--- ---------- FAVORITES ----------
 CREATE TABLE favorites (
     user_id     UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     location_id UUID NOT NULL REFERENCES locations(location_id) ON DELETE CASCADE,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, location_id)
 );
+CREATE INDEX idx_favorites_location ON favorites (location_id);
 
--- ---------- DISPUTES ----------
 CREATE TABLE disputes (
     dispute_id   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id   UUID NOT NULL REFERENCES bookings(booking_id) ON DELETE CASCADE,
-    -- No ON DELETE action here previously meant deleting a user who had ever
-    -- raised or resolved a dispute would fail with a foreign key violation
-    -- (deleting their account would be blocked). SET NULL keeps the dispute
-    -- record (and its booking history) intact while allowing account deletion.
     raised_by    UUID REFERENCES users(user_id) ON DELETE SET NULL,
     reason       TEXT NOT NULL,
     resolution   TEXT,
@@ -153,17 +144,15 @@ CREATE TABLE disputes (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     resolved_at  TIMESTAMPTZ
 );
+CREATE INDEX idx_disputes_booking ON disputes (booking_id);
+CREATE INDEX idx_disputes_status ON disputes (status) WHERE status = 'open';
 
--- ---------- KYC SUBMISSIONS (identity proof + selfie + consent, for both hosts and drivers) ----------
--- Images are stored as base64 data URLs for simplicity at this project's scale.
--- At real-world scale, swap id_document_image/selfie_image for object-storage
--- URLs (S3/R2) instead of inline blobs in Postgres.
 CREATE TABLE kyc_submissions (
     kyc_id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id             UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
     id_document_image   TEXT NOT NULL,
     selfie_image        TEXT NOT NULL,
-    consent_type        VARCHAR(40) NOT NULL, -- 'ownership_declaration' (host) | 'own_vehicle_liability' (driver)
+    consent_type        VARCHAR(40) NOT NULL,
     consent_version     VARCHAR(20) NOT NULL,
     consent_accepted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     consent_ip          VARCHAR(64),
@@ -175,12 +164,6 @@ CREATE TABLE kyc_submissions (
 );
 CREATE INDEX idx_kyc_user ON kyc_submissions (user_id);
 CREATE INDEX idx_kyc_pending ON kyc_submissions (status) WHERE status = 'pending';
-
--- ---------- OTP TOKENS (email verification + password reset) ----------
--- One-time codes are stored as a salted hash, never in plaintext, and are
--- single-use (consumed_at) with a short expiry and a capped attempt count
--- to resist brute-forcing a 6-digit code.
-CREATE TYPE otp_purpose AS ENUM ('email_verify', 'password_reset');
 
 CREATE TABLE otp_tokens (
     otp_id       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -194,39 +177,6 @@ CREATE TABLE otp_tokens (
 );
 CREATE INDEX idx_otp_user_purpose ON otp_tokens (user_id, purpose);
 
--- ---------- Migration note (OTP + email verification + login lockout) ----------
--- If you already ran this schema before this addition, apply against an
--- existing database (safe to re-run):
---   ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
---   ALTER TABLE users ADD COLUMN IF NOT EXISTS failed_login_attempts SMALLINT NOT NULL DEFAULT 0;
---   ALTER TABLE users ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
---   CREATE TYPE otp_purpose AS ENUM ('email_verify', 'password_reset');
---   -- then re-run the CREATE TABLE otp_tokens block above.
-
--- If you already ran this schema before the owner_consent_confirmed_at
--- addition, apply this against an existing database (safe to re-run):
---   ALTER TABLE locations ADD COLUMN IF NOT EXISTS owner_consent_confirmed_at TIMESTAMPTZ;
-
--- ---------- Migration note ----------
--- If you already ran this schema before the kyc_submissions addition, apply
--- this against an existing database (safe to re-run):
---   CREATE TYPE kyc_status AS ENUM ('unsubmitted', 'pending', 'approved', 'rejected');
---   ALTER TABLE users ADD COLUMN IF NOT EXISTS kyc_status kyc_status NOT NULL DEFAULT 'unsubmitted';
---   -- then re-run the CREATE TABLE kyc_submissions block above.
-
--- If you already ran this schema before the `disputes` FK fix above, apply
--- this against an existing database (safe to re-run):
---   ALTER TABLE disputes ALTER COLUMN raised_by DROP NOT NULL;
---   ALTER TABLE disputes DROP CONSTRAINT disputes_raised_by_fkey;
---   ALTER TABLE disputes ADD CONSTRAINT disputes_raised_by_fkey
---     FOREIGN KEY (raised_by) REFERENCES users(user_id) ON DELETE SET NULL;
---   ALTER TABLE disputes DROP CONSTRAINT disputes_resolved_by_fkey;
---   ALTER TABLE disputes ADD CONSTRAINT disputes_resolved_by_fkey
---     FOREIGN KEY (resolved_by) REFERENCES users(user_id) ON DELETE SET NULL;
--- Without this, deleting a user account that ever raised or resolved a
--- dispute fails with a foreign key violation instead of deleting cleanly.
-
--- ---------- Helper: haversine distance function (fallback if no PostGIS) ----------
 CREATE OR REPLACE FUNCTION haversine_km(lat1 DOUBLE PRECISION, lon1 DOUBLE PRECISION,
                                          lat2 DOUBLE PRECISION, lon2 DOUBLE PRECISION)
 RETURNS DOUBLE PRECISION AS $$

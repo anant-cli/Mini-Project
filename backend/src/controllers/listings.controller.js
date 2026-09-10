@@ -10,8 +10,6 @@ import { ApiError } from '../middleware/errorHandler.js';
 
 const normalizeText = (value) => value.trim().replace(/\s+/g, ' ');
 
-// Base64 data URLs only, same approach as KYC uploads — capped so a
-// handful of phone photos still fit under Express's 10mb json body limit.
 const photoDataUrl = z.string()
   .min(100)
   .max(3_000_000)
@@ -27,12 +25,7 @@ const listingSchema = z.object({
   vehicle_types_allowed: z.array(z.enum(['two_wheeler', 'car', 'suv', 'ev_car', 'ev_two_wheeler'])).nonempty(),
   has_ev_charging: z.boolean().optional(),
   operating_hours: z.object({ open: z.string().max(5), close: z.string().max(5) }).optional(),
-  // At least one photo of the actual slot/place is required — a listing
-  // can no longer be created sight-unseen.
   photos: z.array(photoDataUrl).min(1, 'At least one photo of the slot or place is required').max(5),
-  // Per-listing declaration that the host owns (or is authorized to list)
-  // this specific place, separate from the one-time account-level KYC
-  // ownership consent captured in kyc_submissions.
   ownership_consent: z.literal(true, {
     errorMap: () => ({ message: 'You must confirm you own or are authorized to list this place' }),
   }),
@@ -42,8 +35,6 @@ export const createListing = async (req, res, next) => {
   try {
     const data = listingSchema.parse(req.body);
     const location = await createLocation(req.user.user_id, data);
-    // More than 2 listings, or more than 2 slots total, makes this a
-    // commercial host by default (see promoteToBusinessHostIfNeeded).
     const promotion = await promoteToBusinessHostIfNeeded(req.user.user_id);
     res.status(201).json({ location, promoted_to: promotion?.role || null });
   } catch (err) {
@@ -81,8 +72,6 @@ export const getListing = async (req, res, next) => {
     }
     const slots = await getSlotsByLocation(location.location_id);
 
-    // Include charger details so the frontend's EV info panel reflects
-    // what the host actually configured, instead of always showing defaults.
     let ev_chargers = [];
     if (location.has_ev_charging) {
       const { rows } = await query(
@@ -107,7 +96,6 @@ export const myListings = async (req, res, next) => {
   }
 };
 
-// --- Admin ---
 export const pendingListings = async (req, res, next) => {
   try {
     const listings = await getUnverifiedLocations();

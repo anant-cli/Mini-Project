@@ -16,22 +16,18 @@ import favoritesRoutes from './routes/favorites.routes.js';
 import kycRoutes from './routes/kyc.routes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import { initSocket } from './config/socket.js';
+import { apiRateLimiter } from './middleware/rateLimit.js';
 
 dotenv.config();
 
 const app = express();
 
-// Render (and most PaaS hosts) sit behind a reverse proxy — without this,
-// express-rate-limit and req.ip see the proxy's IP for every request
-// instead of the real client, silently disabling per-IP throttling.
 app.set('trust proxy', 1);
 
 if (process.env.NODE_ENV === 'production' && !process.env.CORS_ORIGIN) {
   throw new Error('CORS_ORIGIN is required in production');
 }
 
-// CORS_ORIGIN may be a single origin or a comma-separated list (useful when
-// the frontend has both a production domain and Vercel preview URLs).
 const corsOrigin = process.env.CORS_ORIGIN || '*';
 const allowedOrigins = corsOrigin === '*' ? '*' : corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
 const apiOrigin = process.env.API_ORIGIN || `http://localhost:${process.env.PORT || 5000}`;
@@ -50,10 +46,6 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       scriptSrcAttr: ["'none'"],
       styleSrc: ["'self'", "'unsafe-inline'"],
-      // Note: this CSP governs only the backend's own responses (the frontend
-      // is served from a different origin with its own headers), but is kept
-      // accurate to what the app actually calls in case they're ever combined:
-      // MapLibre/OpenFreeMap tiles and OpenStreetMap Nominatim for geocoding.
       connectSrc: [
         "'self'", apiOrigin, frontendOrigin,
         apiOrigin.replace(/^http/, 'ws'), frontendOrigin.replace(/^http/, 'ws'),
@@ -64,8 +56,6 @@ app.use(helmet({
   },
 }));
 app.use(cors({ origin: allowedOrigins }));
-// Raised from Express's 100kb default so a base64-encoded ID photo + selfie
-// pair fit in one KYC submission request (see kyc.controller.js).
 app.use(express.json({ limit: '10mb' }));
 app.use(morgan('dev'));
 
@@ -73,6 +63,8 @@ app.get('/health', (req, res) => res.json({ status: 'ok', service: 'parkslot-api
 app.get('/api/config', (req, res) => {
   res.json({ platform_commission_percent: Number(process.env.PLATFORM_COMMISSION_PERCENT || 15) });
 });
+
+app.use('/api', apiRateLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingsRoutes);

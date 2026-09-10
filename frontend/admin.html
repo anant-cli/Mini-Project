@@ -20,7 +20,6 @@
     <h1 class="text-3xl mb-8">Admin Console</h1>
 
     <div class="admin-shell">
-      <!-- ---------------- Sidebar ---------------- -->
       <aside class="admin-sidebar" id="admin-sidebar">
         <p class="admin-nav-heading">Overview</p>
         <button class="admin-nav-btn active" data-view="dashboard">Dashboard</button>
@@ -38,10 +37,8 @@
         <div id="db-nav-list"></div>
       </aside>
 
-      <!-- ---------------- Main content ---------------- -->
       <div class="admin-main">
 
-        <!-- ===== Dashboard ===== -->
         <section class="admin-view active" id="view-dashboard">
           <div class="grid grid-3 mb-8">
             <div class="card stat-card text-center">
@@ -138,7 +135,6 @@
           </div>
         </section>
 
-        <!-- ===== Pending listings (moderation) ===== -->
         <section class="admin-view" id="view-pending">
           <div class="card">
             <h2 class="text-2xl mb-4">Listings awaiting verification</h2>
@@ -148,7 +144,6 @@
           </div>
         </section>
 
-        <!-- ===== Identity Verification (moderation) ===== -->
         <section class="admin-view" id="view-kyc">
           <div class="card">
             <h2 class="text-2xl mb-4">Identity verification queue</h2>
@@ -158,7 +153,6 @@
           </div>
         </section>
 
-        <!-- ===== All listings (directory) ===== -->
         <section class="admin-view" id="view-listings">
           <div class="card">
             <h2 class="text-2xl mb-4">All listings</h2>
@@ -168,7 +162,6 @@
           </div>
         </section>
 
-        <!-- ===== Users (directory) ===== -->
         <section class="admin-view" id="view-users">
           <div class="card">
             <h2 class="text-2xl mb-4">Users</h2>
@@ -178,7 +171,6 @@
           </div>
         </section>
 
-        <!-- ===== Disputes (moderation) ===== -->
         <section class="admin-view" id="view-disputes">
           <div class="card">
             <h2 class="text-2xl mb-4">Open disputes</h2>
@@ -188,14 +180,12 @@
           </div>
         </section>
 
-        <!-- ===== Generic database table views (injected at runtime) ===== -->
         <div id="db-views"></div>
 
       </div>
     </div>
   </main>
 
-  <!-- Delete user modal (curated Users tab) -->
   <div id="delete-user-modal" class="modal-backdrop" style="display:none;">
     <div class="card modal-box" style="text-align:left;">
       <h2 class="text-xl mb-2">Delete this user?</h2>
@@ -208,7 +198,6 @@
     </div>
   </div>
 
-  <!-- Generic row editor modal (Database tables) -->
   <div id="row-form-modal" class="modal-backdrop row-form-modal" style="display:none;">
     <div class="card modal-box">
       <h2 class="text-xl mb-1" id="row-form-title">Add row</h2>
@@ -223,7 +212,6 @@
     </div>
   </div>
 
-  <!-- Generic delete-row confirmation modal (Database tables) -->
   <div id="delete-row-modal" class="modal-backdrop" style="display:none;">
     <div class="card modal-box" style="text-align:left;">
       <h2 class="text-xl mb-2">Delete this row?</h2>
@@ -247,10 +235,7 @@
     function money(n) { return `₹${Number(n || 0).toFixed(0)}`; }
     function fmtDate(v) { return v ? new Date(v).toLocaleString() : '—'; }
 
-    /* =========================================================
-       View switching (sidebar)
-       ========================================================= */
-    const viewLoaders = {}; // view name -> async function, called once per activation
+    const viewLoaders = {};
     function showView(view) {
       document.querySelectorAll('.admin-nav-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
       document.querySelectorAll('.admin-view').forEach((v) => v.classList.toggle('active', v.id === `view-${view}`));
@@ -262,9 +247,6 @@
       showView(btn.dataset.view);
     });
 
-    /* =========================================================
-       Dashboard — stat cards + report totals used for count pills
-       ========================================================= */
     async function loadReport() {
       try {
         const res = await api.get('/admin/report');
@@ -284,9 +266,6 @@
       }
     }
 
-    /* =========================================================
-       Dashboard — chart builder
-       ========================================================= */
     let analyticsOptions = [];
     let chartType = 'line';
 
@@ -333,7 +312,6 @@
       analyticsOptions = (res.data.tables || []).filter((t) => t.dateColumns.length || t.categoryColumns.length);
       const tableSelect = document.getElementById('chart-table');
       tableSelect.innerHTML = analyticsOptions.map((t) => `<option value="${t.name}">${t.label}</option>`).join('');
-      // Default to bookings if present, for a chart that's interesting out of the box.
       if (analyticsOptions.some((t) => t.name === 'bookings')) tableSelect.value = 'bookings';
       refreshColumnChoices();
     }
@@ -395,9 +373,6 @@
       await drawChart();
     };
 
-    /* =========================================================
-       Pending listings (moderation)
-       ========================================================= */
     async function loadPending() {
       const container = document.getElementById('pending-list');
       try {
@@ -442,10 +417,7 @@
       }
     }
     viewLoaders.pending = loadPending;
-    
-    /* =========================================================
-       Identity verification (moderation)
-       ========================================================= */
+
     const CONSENT_LABELS = {
       ownership_declaration: 'Declared ownership/right to list',
       own_vehicle_liability: 'Declared own-vehicle liability',
@@ -507,9 +479,6 @@
     }
     viewLoaders.kyc = loadKycQueue;
 
-    /* =========================================================
-       All listings (directory)
-       ========================================================= */
     async function loadAllListings() {
       const container = document.getElementById('all-listings-list');
       try {
@@ -538,9 +507,6 @@
     }
     viewLoaders.listings = loadAllListings;
 
-    /* =========================================================
-       Users (directory)
-       ========================================================= */
     let pendingDeleteUserId = null;
 
     async function loadUsers() {
@@ -613,9 +579,6 @@
       }
     });
 
-    /* =========================================================
-       Disputes (moderation)
-       ========================================================= */
     async function loadDisputes() {
       const container = document.getElementById('disputes-list');
       try {
@@ -656,12 +619,8 @@
       }
     }
 
-    /* =========================================================
-       Generic database tables — one view per table, built from
-       /admin/tables metadata. Search, sort, paginate, add/edit/delete.
-       ========================================================= */
     let tableDefs = [];
-    const tableState = {}; // name -> { page, search, sort, dir }
+    const tableState = {};
 
     function inputForColumn(col, value) {
       const val = value === null || value === undefined ? '' : value;
@@ -809,7 +768,6 @@
       }
     }
 
-    /* ---- Row add/edit form ---- */
     let activeFormTable = null;
     let activeFormRow = null;
 
@@ -820,7 +778,7 @@
       document.getElementById('row-form-title').textContent = row ? `Edit ${def.label.replace(/s$/, '')}` : `Add ${def.label.replace(/s$/, '')}`;
       document.getElementById('row-form-subtitle').textContent = row ? `Editing an existing row in ${def.table}.` : `Creating a new row in ${def.table}.`;
 
-      const editableCols = row ? def.columns.filter((c) => c.editable) : def.columns.filter((c) => c.editable);
+      const editableCols = def.columns.filter((c) => c.editable);
       const grid = document.getElementById('row-form-grid');
       grid.innerHTML = editableCols.map((c) => `
         <div class="row-form-field ${c.type === 'textarea' ? 'span-2' : ''}">
@@ -866,7 +824,6 @@
       }
     });
 
-    /* ---- Row delete ---- */
     let pendingDeleteTable = null;
     let pendingDeleteKey = null;
 
@@ -906,7 +863,7 @@
         def.rowCount = res.data.total;
         const navBtn = document.querySelector(`.admin-nav-btn[data-view="db-${name}"] .count-pill`);
         if (navBtn) navBtn.textContent = def.rowCount;
-      } catch { /* non-critical */ }
+      } catch {   }
     }
 
     async function loadTableDefs() {
@@ -918,9 +875,6 @@
       tableDefs.forEach((t) => { viewLoaders[`db-${t.name}`] = () => loadTableRows(t.name); });
     }
 
-    /* =========================================================
-       Boot
-       ========================================================= */
     if (user) {
       loadReport();
       loadPending();
@@ -929,6 +883,7 @@
       loadTableDefs();
       showView('dashboard');
     }
-  </script>
+  
+    </script>
 </body>
 </html>
