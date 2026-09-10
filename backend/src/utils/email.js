@@ -23,7 +23,7 @@ function getTransporter() {
 
 export async function sendEmail({ to, subject, html }) {
   const transporter = getTransporter();
-  const from = process.env.EMAIL_FROM || 'ParkSlot <no-reply@parkslot.local>';
+  const from = process.env.EMAIL_FROM || 'ParkSlot <parkslot.support@gmail.com>';
 
   if (!transporter) {
     console.log(`\n[email:dev-mode] To: ${to}\nSubject: ${subject}\n${html.replace(/<[^>]+>/g, ' ').trim()}\n`);
