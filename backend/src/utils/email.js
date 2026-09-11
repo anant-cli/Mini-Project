@@ -19,6 +19,10 @@ function getTransporter() {
     auth: process.env.SMTP_USER
       ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
       : undefined,
+    // Many hosts (Render, some containers) advertise IPv6 but have no
+    // outbound IPv6 route, which makes Gmail's IPv6 address fail with
+    // ENETUNREACH even though IPv4 would work fine. Force IPv4.
+    family: 4,
   });
   return cachedTransporter;
 }
