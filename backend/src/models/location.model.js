@@ -1,4 +1,4 @@
-import { withTransaction } from '../config/db.js';
+import { query, withTransaction } from '../config/db.js';
 
 export const createLocation = async (owner_id, data) => {
   const {
