@@ -20,7 +20,7 @@ const passwordSchema = z.string().min(8).max(128)
   .regex(/[a-zA-Z]/, 'Password must contain at least one letter')
   .regex(/[0-9]/, 'Password must contain at least one number');
 
-async function issueAndSendOtp(user, purpose, { throwOnCap = true } = {}) {
+async function issueAndSendOtp(user, purpose, { throwOnCap = true, throwOnSendFailure = throwOnCap } = {}) {
   const sentToday = await countOtpsIssuedSince(24);
   if (sentToday >= DAILY_EMAIL_LIMIT) {
     if (throwOnCap) {
@@ -33,11 +33,19 @@ async function issueAndSendOtp(user, purpose, { throwOnCap = true } = {}) {
   const code = generateOtp();
   const tokenHash = hashOtp(code);
   await createOtp(user.user_id, purpose, tokenHash, otpExpiryDate(10));
-  await sendEmail({
-    to: user.email,
-    subject: purpose === 'password_reset' ? 'Your ParkSlot password reset code' : 'Verify your ParkSlot email',
-    html: otpEmailHtml({ name: user.name, code, purpose }),
-  });
+
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: purpose === 'password_reset' ? 'Your ParkSlot password reset code' : 'Verify your ParkSlot email',
+      html: otpEmailHtml({ name: user.name, code, purpose }),
+    });
+  } catch (err) {
+    console.error(`Failed to send ${purpose} email to ${user.email}:`, err.message);
+    if (throwOnSendFailure) {
+      throw new ApiError(502, 'We could not send the email right now. Please try again shortly.');
+    }
+  }
 }
 
 const signupSchema = z.object({
@@ -57,7 +65,7 @@ export const signup = async (req, res, next) => {
     const passwordHash = await bcrypt.hash(data.password, 12);
     const user = await createUser({ ...data, passwordHash });
 
-    await issueAndSendOtp(user, 'email_verify', { throwOnCap: false });
+    await issueAndSendOtp(user, 'email_verify', { throwOnCap: false, throwOnSendFailure: false });
 
     const token = signToken(user);
     res.status(201).json({ user, token });
@@ -187,7 +195,7 @@ export const forgotPassword = async (req, res, next) => {
       if (secondsSince < RESEND_COOLDOWN_SECONDS) return res.json(genericMessage);
     }
 
-    await issueAndSendOtp(user, 'password_reset', { throwOnCap: false });
+    await issueAndSendOtp(user, 'password_reset', { throwOnCap: false, throwOnSendFailure: false });
     res.json(genericMessage);
   } catch (err) {
     next(err);
