@@ -1,5 +1,7 @@
 import nodemailer from 'nodemailer';
 
+const DEFAULT_SUPPORT_EMAIL = 'parkslot.support@gmail.com';
+
 let cachedTransporter;
 
 function getTransporter() {
@@ -23,15 +25,23 @@ function getTransporter() {
 
 export async function sendEmail({ to, subject, html }) {
   const transporter = getTransporter();
-  const from = process.env.EMAIL_FROM || 'ParkSlot <parkslot.support@gmail.com>';
+  const from = process.env.EMAIL_FROM || `ParkSlot <${process.env.SMTP_USER || DEFAULT_SUPPORT_EMAIL}>`;
+
+  const emailLog = `\n[email-payload] To: ${to}\nSubject: ${subject}\n${html.replace(/<[^>]+>/g, ' ').trim()}\n`;
 
   if (!transporter) {
-    console.log(`\n[email:dev-mode] To: ${to}\nSubject: ${subject}\n${html.replace(/<[^>]+>/g, ' ').trim()}\n`);
+    console.log(`[email:dev-mode] (No SMTP configured)${emailLog}`);
     return { delivered: false, devMode: true };
   }
 
-  await transporter.sendMail({ from, to, subject, html });
-  return { delivered: true, devMode: false };
+  try {
+    await transporter.sendMail({ from, to, subject, html });
+    return { delivered: true, devMode: false };
+  } catch (error) {
+    console.error(`\n[email:error] Failed to send email via SMTP. Email payload was:${emailLog}`);
+    console.error('[email:error-details]', error.message);
+    throw new Error('Failed to send email. Please check SMTP configuration or App Password.');
+  }
 }
 
 export function otpEmailHtml({ name, code, purpose }) {
