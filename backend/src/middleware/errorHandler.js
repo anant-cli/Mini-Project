@@ -10,8 +10,13 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   const status = err.status || 500;
+  const isKnownError = Boolean(err.status);
+  const safeMessage = isKnownError || process.env.NODE_ENV !== 'production'
+    ? err.message || 'Internal server error'
+    : 'Something went wrong on our end. Please try again.';
+
   res.status(status).json({
-    error: err.message || 'Internal server error',
+    error: safeMessage,
     ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
   });
 };
