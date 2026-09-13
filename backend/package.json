@@ -8,7 +8,7 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "migrate": "psql -d $PGDATABASE -f ../database/schema.sql",
-    "build": "vite build"
+    "build": "next build"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
