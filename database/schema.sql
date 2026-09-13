@@ -14,7 +14,7 @@ CREATE TABLE users (
     name            VARCHAR(120) NOT NULL,
     email           VARCHAR(160) UNIQUE NOT NULL,
     password_hash   VARCHAR(255) NOT NULL,
-    phone           VARCHAR(20),
+    phone           int(10),
     role            user_role NOT NULL DEFAULT 'driver',
     avg_rating      NUMERIC(2,1) DEFAULT 5.0 CHECK (avg_rating BETWEEN 0 AND 5),
     id_verified     BOOLEAN NOT NULL DEFAULT FALSE,
