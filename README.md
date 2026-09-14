@@ -90,6 +90,8 @@ Set `VITE_API_URL=https://your-render-url.onrender.com/api` in Vercel environmen
 | **Render** | Root directory: `backend`. Start command: `node src/server.js`. Set all backend env vars. |
 | **Neon** | Free Postgres. Paste `DATABASE_URL` into Render. |
 
+See `DEPLOYMENT.md` for a full step-by-step walkthrough, including the most common failure mode: **signup/login returning a 404** because `VITE_API_URL` was not set before the frontend was built.
+
 ## Security Notes
 
 Helmet's `contentSecurityPolicy` block in `backend/src/server.js` applies to Render API responses. The static frontend also defines its own CSP through Vercel response headers in `frontend/vercel.json`, so browser-loaded HTML is protected at the edge.
