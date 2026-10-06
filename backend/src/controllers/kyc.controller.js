@@ -8,7 +8,7 @@ import { ApiError } from '../middleware/errorHandler.js';
 const dataUrlImage = z.string()
   .min(100)
   .max(4_000_000)
-  .refine((v) => /^data:image\/(png|jpe?g|webp);base64,/.test(v), 'Must be a base64 image data URL');
+  .refine((v) => /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(v), 'Must be a base64 image data URL');
 
 const CONSENT_VERSION = '2026-09-v1';
 

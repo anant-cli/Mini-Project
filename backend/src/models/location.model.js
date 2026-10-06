@@ -1,4 +1,11 @@
 import { query, withTransaction } from '../config/db.js';
+import { availableSlotsCountSql, effectiveSlotStatusSql } from './slot.model.js';
+
+export const LISTING_CARD_COLUMNS = (alias = 'l') => [
+  'location_id', 'owner_id', 'name', 'address', 'latitude', 'longitude', 'total_slots', 'price_per_hour',
+  'vehicle_types_allowed', 'has_ev_charging', 'operating_hours', 'is_verified', 'rejected_at',
+  'surge_enabled', 'created_at',
+].map((c) => `${alias}.${c}`).concat(`${alias}.photos[1:1] AS photos`).join(', ');
 
 export const createLocation = async (owner_id, data) => {
   const {
@@ -55,8 +62,8 @@ export const findNearbyLocations = async ({ lat, lng, radiusKm = 5, vehicleType,
   }
 
   const { rows } = await query(
-    `SELECT l.*, haversine_km($1, $2, l.latitude, l.longitude) AS distance_km,
-            (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id AND s.status = 'available') AS available_slots,
+    `SELECT ${LISTING_CARD_COLUMNS('l')}, haversine_km($1, $2, l.latitude, l.longitude) AS distance_km,
+            ${availableSlotsCountSql('l.location_id')} AS available_slots,
             (SELECT ROUND(AVG(r.rating)::numeric, 1) FROM reviews r WHERE r.location_id = l.location_id) AS avg_rating,
             (SELECT COUNT(*) FROM reviews r WHERE r.location_id = l.location_id) AS review_count
      FROM locations l
@@ -83,20 +90,20 @@ export const getLocationById = async (locationId) => {
 
 export const getLocationsByOwner = async (ownerId) => {
   const { rows } = await query(
-    `SELECT l.*,
+    `SELECT ${LISTING_CARD_COLUMNS('l')},
             COALESCE(
               (SELECT json_agg(
                         json_build_object(
                           'slot_id', s.slot_id,
                           'slot_number', s.slot_number,
-                          'status', s.status,
+                          'status', ${effectiveSlotStatusSql('s')},
                           'vehicle_type', s.vehicle_type
                         ) ORDER BY s.slot_number
                       )
                FROM slots s WHERE s.location_id = l.location_id),
               '[]'
             ) AS slots,
-            (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id AND s.status = 'available') AS available_slots
+            ${availableSlotsCountSql('l.location_id')} AS available_slots
      FROM locations l
      WHERE l.owner_id = $1
      ORDER BY l.created_at DESC`,
@@ -112,13 +119,15 @@ export const getLocationOwnerId = async (locationId) => {
 
 export const verifyLocation = async (locationId, verified = true) => {
   const { rows } = await query(
-    `UPDATE locations SET is_verified = $2 WHERE location_id = $1 RETURNING *`,
+    `UPDATE locations
+     SET is_verified = $2, rejected_at = CASE WHEN $2 THEN NULL ELSE now() END
+     WHERE location_id = $1 RETURNING *`,
     [locationId, verified]
   );
   return rows[0];
 };
 
 export const getUnverifiedLocations = async () => {
-  const { rows } = await query(`SELECT * FROM locations WHERE is_verified = false ORDER BY created_at ASC`);
+  const { rows } = await query(`SELECT * FROM locations WHERE is_verified = false AND rejected_at IS NULL ORDER BY created_at ASC`);
   return rows;
 };

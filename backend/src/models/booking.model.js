@@ -110,7 +110,8 @@ export const recordCheckout = async (bookingId, pricePerHour, client = null, loc
 export const cancelBooking = async (bookingId, client = null) => {
   const runner = client ? client.query.bind(client) : query;
   const { rows } = await runner(
-    `UPDATE bookings SET status = 'cancelled' WHERE booking_id = $1 RETURNING *`,
+    `UPDATE bookings SET status = 'cancelled'
+     WHERE booking_id = $1 AND status IN ('pending', 'confirmed') RETURNING *`,
     [bookingId]
   );
   return rows[0];

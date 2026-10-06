@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { withTransaction, query } from '../config/db.js';
-import { lockSlotForUpdate, hasOverlappingBooking, setSlotStatus, countAvailableSlots } from '../models/slot.model.js';
+import {
+  lockSlotForUpdate, hasOverlappingBooking, setSlotStatus, countAvailableSlots, getEffectiveSlotStatus,
+} from '../models/slot.model.js';
 import {
   createBookingRow, lockBookingByQrToken, findBookingById,
   getBookingsForUser, getBookingsForHost, recordCheckin, recordCheckout, cancelBooking,
@@ -49,13 +51,14 @@ const parseBookingWindow = ({ start_time, end_time }) => {
   return { startTime, endTime };
 };
 
-const getSlotQuote = async (runner, slotId, startTime, endTime) => {
+const getSlotQuote = async (runner, slotId, startTime, endTime, { enforceVerified = true } = {}) => {
   const { rows } = await runner(
-    `SELECT l.price_per_hour, l.location_id FROM locations l
+    `SELECT l.price_per_hour, l.location_id, l.is_verified FROM locations l
      JOIN slots s ON s.location_id = l.location_id WHERE s.slot_id = $1`,
     [slotId]
   );
   if (!rows[0]) throw new ApiError(404, 'Location not found for slot');
+  if (enforceVerified && !rows[0].is_verified) throw new ApiError(404, 'This listing is not accepting bookings');
   const pricePerHour = Number(rows[0].price_per_hour);
   const hours = (endTime - startTime) / 3600000;
   const estimatedAmount = Number((pricePerHour * hours).toFixed(2));
@@ -103,7 +106,6 @@ export const createBooking = async (req, res, next) => {
         estimated_amount: quote.estimatedAmount,
       });
 
-      await setSlotStatus(data.slot_id, 'booked', client);
       const payment = await createHeldPayment(client, {
         booking_id: booking.booking_id,
         amount: quote.estimatedAmount,
@@ -111,15 +113,16 @@ export const createBooking = async (req, res, next) => {
       });
 
       const availableSlots = await countAvailableSlots(quote.locationId, client);
+      const slotStatus = await getEffectiveSlotStatus(data.slot_id, client);
 
-      return { booking, payment, locationId: quote.locationId, availableSlots, pricePerHour: quote.pricePerHour };
+      return { booking, payment, locationId: quote.locationId, availableSlots, slotStatus, pricePerHour: quote.pricePerHour };
     });
 
     const qrDataUrl = await generateQrDataUrl(result.booking.qr_token);
 
     emitSlotUpdate(result.locationId, {
       slot_id: data.slot_id,
-      status: 'booked',
+      status: result.slotStatus,
       available_slots: result.availableSlots,
     });
 
@@ -199,10 +202,16 @@ export const checkout = async (req, res, next) => {
     const result = await withTransaction(async (client) => {
       const booking = await lockBookingByQrToken(client, qr_token);
       if (!booking) throw new ApiError(404, 'Invalid QR code');
-      if (booking.status !== 'checked_in') throw new ApiError(400, 'Booking has not been checked in yet');
+      const parkedButDisputed = booking.status === 'disputed' && booking.checkin_time && !booking.checkout_time;
+      if (booking.status !== 'checked_in' && !parkedButDisputed) {
+        throw new ApiError(400, 'Booking has not been checked in yet');
+      }
       await assertCanManageBooking(req, booking);
 
-      const quote = await getSlotQuote(client.query.bind(client), booking.slot_id, new Date(booking.start_time), new Date(booking.end_time));
+      const quote = await getSlotQuote(
+        client.query.bind(client), booking.slot_id, new Date(booking.start_time), new Date(booking.end_time),
+        { enforceVerified: false },
+      );
       const { booking: completed, actualMinutes } = await recordCheckout(booking.booking_id, quote.pricePerHour, client, booking);
       await setSlotStatus(booking.slot_id, 'available', client);
       const availableSlots = await countAvailableSlots(quote.locationId, client);
@@ -230,28 +239,25 @@ export const checkout = async (req, res, next) => {
 
 export const cancel = async (req, res, next) => {
   try {
-    const booking = await findBookingById(req.params.id);
-    if (!booking) throw new ApiError(404, 'Booking not found');
-    if (booking.user_id !== req.user.user_id) throw new ApiError(403, 'Not your booking');
-    if (!['pending', 'confirmed'].includes(booking.status)) {
-      throw new ApiError(400, 'Only pending/confirmed bookings can be cancelled');
-    }
     const result = await withTransaction(async (client) => {
+      const { rows } = await client.query(`SELECT * FROM bookings WHERE booking_id = $1 FOR UPDATE`, [req.params.id]);
+      const booking = rows[0];
+      if (!booking) throw new ApiError(404, 'Booking not found');
+      if (booking.user_id !== req.user.user_id) throw new ApiError(403, 'Not your booking');
+      if (!['pending', 'confirmed'].includes(booking.status)) {
+        throw new ApiError(400, 'Only pending/confirmed bookings can be cancelled');
+      }
       const cancelled = await cancelBooking(booking.booking_id, client);
       const payment = await reversePayment(booking.booking_id, client);
-      await setSlotStatus(booking.slot_id, 'available', client);
-      return { cancelled, payment };
+      return { booking, cancelled, payment };
     });
-    const { rows } = await query(
-      `SELECT location_id FROM slots WHERE slot_id = $1`,
-      [booking.slot_id]
-    );
+
+    const { rows } = await query(`SELECT location_id FROM slots WHERE slot_id = $1`, [result.booking.slot_id]);
     if (rows[0]) {
-      const availableSlots = await countAvailableSlots(rows[0].location_id);
       emitSlotUpdate(rows[0].location_id, {
-        slot_id: booking.slot_id,
-        status: 'available',
-        available_slots: availableSlots,
+        slot_id: result.booking.slot_id,
+        status: await getEffectiveSlotStatus(result.booking.slot_id),
+        available_slots: await countAvailableSlots(rows[0].location_id),
       });
     }
     res.json({ booking: result.cancelled, payment: result.payment });

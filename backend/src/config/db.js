@@ -83,6 +83,12 @@ try {
   console.error('Could not register vehicle_type[] parser (non-fatal):', err.message);
 }
 
+try {
+  await pool.query('ALTER TABLE locations ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ');
+} catch (err) {
+  console.error('Could not apply locations.rejected_at migration (non-fatal):', err.message);
+}
+
 export const withTransaction = async (callback) => {
   const client = await pool.connect();
   try {

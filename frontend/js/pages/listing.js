@@ -86,15 +86,19 @@
 
     function renderSlotOptions(slots) {
       const select = document.getElementById('slot-select');
-      const available = slots.filter((s) => s.status === 'available');
-      if (available.length === 0) {
-        select.innerHTML = '<option value="">No slots available right now</option>';
+      const previous = select.value;
+      const bookable = slots.filter((s) => s.status !== 'disabled');
+      if (bookable.length === 0) {
+        select.innerHTML = '<option value="">No slots are open for booking</option>';
         document.getElementById('book-submit').disabled = true;
         return;
       }
-      select.innerHTML = available.map((s) =>
-        `<option value="${s.slot_id}">${s.slot_number} (${VEHICLE_LABELS[s.vehicle_type] || s.vehicle_type})</option>`
-      ).join('');
+      const ordered = [...bookable].sort((a, b) => (a.status === 'available' ? 0 : 1) - (b.status === 'available' ? 0 : 1));
+      select.innerHTML = ordered.map((s) => {
+        const note = s.status === 'available' ? '' : ` · ${s.status} now`;
+        return `<option value="${s.slot_id}">${escapeHtml(s.slot_number)} (${VEHICLE_LABELS[s.vehicle_type] || s.vehicle_type})${note}</option>`;
+      }).join('');
+      if (ordered.some((s) => s.slot_id === previous)) select.value = previous;
       document.getElementById('book-submit').disabled = false;
     }
 

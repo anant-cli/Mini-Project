@@ -13,7 +13,7 @@ const normalizeText = (value) => value.trim().replace(/\s+/g, ' ');
 const photoDataUrl = z.string()
   .min(100)
   .max(3_000_000)
-  .refine((v) => /^data:image\/(png|jpe?g|webp);base64,/.test(v), 'Each photo must be a base64 image data URL');
+  .refine((v) => /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(v), 'Each photo must be a base64 image data URL');
 
 const listingSchema = z.object({
   name: z.string().min(2).max(100).transform(normalizeText),

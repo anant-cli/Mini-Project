@@ -41,6 +41,7 @@ CREATE TABLE locations (
     photos               TEXT[],
     owner_consent_confirmed_at TIMESTAMPTZ,
     is_verified          BOOLEAN NOT NULL DEFAULT FALSE,
+    rejected_at          TIMESTAMPTZ,
     surge_enabled        BOOLEAN NOT NULL DEFAULT FALSE,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT now()
 );

@@ -135,13 +135,13 @@
         container.innerHTML = listings.map((l) => `
           <div class="card" style="padding:18px 20px;" data-location="${l.location_id}">
             <div class="list-card-row">
-              ${l.photos && l.photos[0] ? `<img src="${l.photos[0]}" alt="${escapeHtml(l.name)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;margin-right:12px;" />` : ''}
+              ${l.photos && l.photos[0] ? `<img src="${escapeHtml(l.photos[0])}" alt="${escapeHtml(l.name)}" style="width:64px;height:64px;object-fit:cover;border-radius:8px;margin-right:12px;" />` : ''}
               <div>
                 <strong>${escapeHtml(l.name)}</strong>
                 <p class="text-muted text-sm">${escapeHtml(l.address)}</p>
                 <p class="text-sm mt-2">${money(l.price_per_hour)}/hr &middot; ${l.available_slots}/${l.total_slots} available</p>
               </div>
-              <span class="badge ${l.is_verified ? 'badge-available' : 'badge-pending'}">${l.is_verified ? 'Verified' : 'Pending review'}</span>
+              <span class="badge ${l.is_verified ? 'badge-available' : l.rejected_at ? 'badge-cancelled' : 'badge-pending'}">${l.is_verified ? 'Verified' : l.rejected_at ? 'Not approved' : 'Pending review'}</span>
             </div>
             <div class="slot-grid" data-slotgrid="${l.location_id}">
               ${(l.slots || []).map((s) => `<div class="slot-cell ${s.status}" title="${s.slot_number}">${s.slot_number}</div>`).join('')}

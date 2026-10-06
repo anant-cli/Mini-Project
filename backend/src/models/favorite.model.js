@@ -1,4 +1,6 @@
 import { query } from '../config/db.js';
+import { LISTING_CARD_COLUMNS } from './location.model.js';
+import { availableSlotsCountSql } from './slot.model.js';
 
 export const addFavorite = async (userId, locationId) => {
   const { rows } = await query(
@@ -29,12 +31,12 @@ export const getFavoriteLocationIds = async (userId) => {
 
 export const getFavoriteLocations = async (userId) => {
   const { rows } = await query(
-    `SELECT l.*,
+    `SELECT ${LISTING_CARD_COLUMNS('l')},
             f.created_at AS saved_at,
-            (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id AND s.status = 'available') AS available_slots
+            ${availableSlotsCountSql('l.location_id')} AS available_slots
      FROM favorites f
      JOIN locations l ON l.location_id = f.location_id
-     WHERE f.user_id = $1
+     WHERE f.user_id = $1 AND l.is_verified = true
      ORDER BY f.created_at DESC`,
     [userId]
   );

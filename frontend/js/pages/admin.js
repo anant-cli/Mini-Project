@@ -220,11 +220,11 @@
             <div class="flex gap-4 mb-3" style="flex-wrap:wrap;">
               <div>
                 <p class="text-sm text-muted mb-1">ID document</p>
-                <img src="${s.id_document_image}" alt="ID document" style="max-width:220px; max-height:160px; border-radius:8px; object-fit:cover;" />
+                <img src="${escapeHtml(s.id_document_image)}" alt="ID document" style="max-width:220px; max-height:160px; border-radius:8px; object-fit:cover;" />
               </div>
               <div>
                 <p class="text-sm text-muted mb-1">Selfie</p>
-                <img src="${s.selfie_image}" alt="Selfie" style="max-width:160px; max-height:160px; border-radius:8px; object-fit:cover;" />
+                <img src="${escapeHtml(s.selfie_image)}" alt="Selfie" style="max-width:160px; max-height:160px; border-radius:8px; object-fit:cover;" />
               </div>
             </div>
             <div class="flex gap-2">
@@ -272,7 +272,7 @@
                 <p class="text-sm text-muted">${escapeHtml(l.address)}</p>
                 <p class="text-sm text-muted">Hosted by ${escapeHtml(l.host_name)} (${escapeHtml(l.host_email)})</p>
               </div>
-              <span class="badge ${l.is_verified ? 'badge-available' : 'badge-pending'}">${l.is_verified ? 'Verified' : 'Pending'}</span>
+              <span class="badge ${l.is_verified ? 'badge-available' : l.rejected_at ? 'badge-cancelled' : 'badge-pending'}">${l.is_verified ? 'Verified' : l.rejected_at ? 'Rejected' : 'Pending'}</span>
             </div>
           </div>
         `).join('');

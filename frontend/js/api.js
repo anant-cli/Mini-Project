@@ -2,12 +2,6 @@ import axios from 'axios';
 
 const baseURL = import.meta.env.VITE_API_URL || '/api';
 
-// On Vercel (or any static host), there is no backend at "/api" on the same
-// domain — the API lives on a separate host (e.g. Render). If VITE_API_URL
-// isn't set as a build-time environment variable, every request falls back
-// to a relative "/api" path, which the static host will 404 on. This is the
-// #1 cause of "signup failed / 404" after deploying. Warn loudly in the
-// console so it's obvious what to fix instead of a silent, confusing 404.
 const isLocalHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
 const looksMisconfigured = baseURL === '/api' && !isLocalHost;
 if (looksMisconfigured) {
@@ -61,9 +55,6 @@ export function apiErrorMessage(err, fallback = 'Something went wrong. Please tr
   if (isUnreachable) {
     return 'Cannot reach the server. Make sure the backend is running and try again.';
   }
-  // A bare, JSON-less 404 on a request to our own baseURL almost always means
-  // the frontend is misconfigured (no VITE_API_URL) rather than a real "not
-  // found" from the API, which normally returns a JSON { error } body instead.
   if (status === 404 && looksMisconfigured) {
     return 'The app cannot reach its backend (server URL is not configured for this deployment). Please contact the site owner.';
   }

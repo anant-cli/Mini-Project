@@ -1,4 +1,4 @@
-import { query } from '../config/db.js';
+import { query, withTransaction } from '../config/db.js';
 import { getPaymentByBooking } from '../models/payment.model.js';
 import { findBookingById } from '../models/booking.model.js';
 import { ApiError } from '../middleware/errorHandler.js';
@@ -43,12 +43,23 @@ export const raiseDispute = async (req, res, next) => {
     if (!booking) throw new ApiError(404, 'Booking not found');
     await assertCanViewBookingPayment(req, booking);
 
-    const { rows } = await query(
-      `INSERT INTO disputes (booking_id, raised_by, reason) VALUES ($1,$2,$3) RETURNING *`,
-      [booking_id, req.user.user_id, reason.trim().replace(/\s+/g, ' ')]
-    );
-    await query(`UPDATE bookings SET status = 'disputed' WHERE booking_id = $1`, [booking_id]);
-    res.status(201).json({ dispute: rows[0] });
+    if (booking.status === 'cancelled') throw new ApiError(400, 'Cancelled bookings cannot be disputed');
+
+    const dispute = await withTransaction(async (client) => {
+      await client.query(`SELECT 1 FROM bookings WHERE booking_id = $1 FOR UPDATE`, [booking_id]);
+      const { rows: open } = await client.query(
+        `SELECT 1 FROM disputes WHERE booking_id = $1 AND status = 'open' LIMIT 1`,
+        [booking_id]
+      );
+      if (open.length) throw new ApiError(409, 'There is already an open dispute for this booking');
+      const { rows } = await client.query(
+        `INSERT INTO disputes (booking_id, raised_by, reason) VALUES ($1,$2,$3) RETURNING *`,
+        [booking_id, req.user.user_id, reason.trim().replace(/\s+/g, ' ').slice(0, 2000)]
+      );
+      await client.query(`UPDATE bookings SET status = 'disputed' WHERE booking_id = $1`, [booking_id]);
+      return rows[0];
+    });
+    res.status(201).json({ dispute });
   } catch (err) {
     next(err);
   }

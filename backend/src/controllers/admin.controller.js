@@ -1,7 +1,10 @@
 import { query, withTransaction } from '../config/db.js';
 import { reversePayment } from '../models/payment.model.js';
+import { setSlotStatus, getEffectiveSlotStatus, countAvailableSlots } from '../models/slot.model.js';
+import { emitSlotUpdate } from '../config/socket.js';
 import { deleteUser, findUserById } from '../models/user.model.js';
 import { ApiError } from '../middleware/errorHandler.js';
+import { LISTING_CARD_COLUMNS } from '../models/location.model.js';
 
 export const platformReport = async (req, res, next) => {
   try {
@@ -59,26 +62,49 @@ export const resolveDispute = async (req, res, next) => {
     const result = await withTransaction(async (client) => {
       const { rows } = await client.query(
         `UPDATE disputes SET status = 'resolved', resolution = $2, resolved_by = $3, resolved_at = now()
-         WHERE dispute_id = $1 RETURNING *`,
-        [req.params.id, resolution?.trim().replace(/\s+/g, ' '), req.user.user_id]
+         WHERE dispute_id = $1 AND status = 'open' RETURNING *`,
+        [req.params.id, resolution?.trim().replace(/\s+/g, ' ') || null, req.user.user_id]
       );
       const dispute = rows[0];
+      if (!dispute) throw new ApiError(404, 'Open dispute not found');
+
+      const { rows: bookingRows } = await client.query(
+        `SELECT * FROM bookings WHERE booking_id = $1 FOR UPDATE`,
+        [dispute.booking_id]
+      );
+      const current = bookingRows[0];
+      const parkedNow = current.checkin_time && !current.checkout_time;
+
       let payment = null;
-      let booking = null;
-      if (dispute && outcome === 'refund_driver') {
+      let nextStatus;
+      if (outcome === 'refund_driver') {
         payment = await reversePayment(dispute.booking_id, client);
-        const { rows: bookingRows } = await client.query(
-          `UPDATE bookings
-           SET status = CASE WHEN status = 'completed' THEN status ELSE 'cancelled' END
-           WHERE booking_id = $1 RETURNING *`,
-          [dispute.booking_id]
-        );
-        booking = bookingRows[0];
+        nextStatus = current.checkout_time ? 'completed' : 'cancelled';
+        if (parkedNow) await setSlotStatus(current.slot_id, 'available', client);
+      } else if (current.checkout_time) {
+        nextStatus = 'completed';
+      } else if (current.checkin_time) {
+        nextStatus = 'checked_in';
+      } else {
+        nextStatus = 'confirmed';
       }
-      return { dispute, payment, booking };
+
+      const { rows: updated } = await client.query(
+        `UPDATE bookings SET status = $2 WHERE booking_id = $1 AND status = 'disputed' RETURNING *`,
+        [dispute.booking_id, nextStatus]
+      );
+      const { rows: loc } = await client.query(`SELECT location_id FROM slots WHERE slot_id = $1`, [current.slot_id]);
+      return { dispute, payment, booking: updated[0] || current, locationId: loc[0]?.location_id, slotId: current.slot_id };
     });
 
-    res.json(result);
+    if (result.locationId) {
+      emitSlotUpdate(result.locationId, {
+        slot_id: result.slotId,
+        status: await getEffectiveSlotStatus(result.slotId),
+        available_slots: await countAvailableSlots(result.locationId),
+      });
+    }
+    res.json({ dispute: result.dispute, payment: result.payment, booking: result.booking });
   } catch (err) {
     next(err);
   }
@@ -141,7 +167,7 @@ export const deleteUserByAdmin = async (req, res, next) => {
 export const listAllListings = async (req, res, next) => {
   try {
     const { rows } = await query(
-      `SELECT l.*, u.name AS host_name, u.email AS host_email,
+      `SELECT ${LISTING_CARD_COLUMNS('l')}, u.name AS host_name, u.email AS host_email,
               (SELECT COUNT(*) FROM slots s WHERE s.location_id = l.location_id) AS total_slot_count
        FROM locations l
        JOIN users u ON u.user_id = l.owner_id
